@@ -23,7 +23,7 @@ export function RoomStage({ model }: { model: RoomModel }) {
   const memberColors = room.memberIds.map((id) => users[id]?.color).filter((c): c is string => !!c);
   const ring = room.kind === 'our' ? ringGradientStops(memberColors.length ? memberColors : [color]) : [color];
   // 조명: 사람 있음 = 따뜻한 100%, Agent만 = 40%(Agent 색), 비어 있음 = 꺼짐, 승인 대기 = 오렌지 보조광
-  const glow = ambience.base === 'occupied' ? 'var(--amber)' : ambience.base === 'agentOnly' ? color : 'var(--stage-idle)';
+  const glow = ambience.base === 'occupied' ? 'var(--scene-sea-shore)' : ambience.base === 'agentOnly' ? color : 'var(--stage-idle)';
   const lit = ambience.base === 'empty' ? 0.12 : ambience.base === 'agentOnly' ? 0.4 : 0.85;
   const alpha = `${Math.round(lit * 100)}%`;
   const present = model.state.presentUserIds;

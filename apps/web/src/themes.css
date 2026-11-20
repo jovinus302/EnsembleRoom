@@ -148,7 +148,7 @@
   --stage-a: var(--scene-sky-mid);
   --stage-b: var(--scene-sand);
   --stage-idle: #2a4a5c;
-  --thumb-bg: var(--popover);
+  --thumb-bg: color-mix(in srgb, var(--scene-haze) 80%, var(--scene-sea-mid));
   --avatar-paper: #f4f7fd;
   --tour-dot: color-mix(in srgb, var(--fg) 20%, transparent);
 }

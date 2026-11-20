@@ -60,7 +60,6 @@ function RoomRow({ room, sub }: { room: WorldRoom; sub?: string }) {
           <span
             aria-hidden="true"
             className="tg-mini-cap"
-            style={{ background: `linear-gradient(135deg, rgba(255,255,255,0.7), color-mix(in srgb, ${color} 55%, transparent))`, borderColor: color }}
           />
         )}
         <span className="tx">

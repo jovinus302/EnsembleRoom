@@ -51,11 +51,12 @@ export function Composer({
           <label htmlFor="composer-to" className="sr-only">
             받는 이
           </label>
+          <span className="relative inline-flex shrink-0">
           <select
             id="composer-to"
             value={toValid}
             onChange={(e) => setTo(e.target.value)}
-            className={`${btn('soft')} max-w-[130px] shrink-0 text-aux`}
+            className={`${btn('soft')} max-w-[130px] shrink-0 appearance-none !pr-7 text-aux`}
           >
             <option value="">모두에게</option>
             {targets.map((t) => (
@@ -64,6 +65,8 @@ export function Composer({
               </option>
             ))}
           </select>
+          <span aria-hidden="true" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[length:var(--fs-label)] opacity-70">▾</span>
+          </span>
         </>
       )}
       {/* 좁은 폭에서 줄바꿈되더라도 입력창과 전송 버튼은 같은 줄에 머문다 */}

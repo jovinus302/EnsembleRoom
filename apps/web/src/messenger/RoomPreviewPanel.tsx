@@ -63,7 +63,7 @@ function useAction() {
 function CapsuleThumb({ room, color }: { room: WorldRoom; color: string }) {
   const frosted = room.preview.glass !== 'clear';
   const amb = room.preview.ambience;
-  const glow = amb === 'occupied' ? '#ffd9a0' : amb === 'agentOnly' ? color : amb === 'attention' ? APPROVAL_ORANGE : 'var(--stage-idle)';
+  const glow = amb === 'occupied' ? 'var(--scene-sea-shore)' : amb === 'agentOnly' ? color : amb === 'attention' ? APPROVAL_ORANGE : 'var(--stage-idle)';
   const lit = amb === 'empty' ? 0.15 : amb === 'agentOnly' ? 0.45 : 0.9;
   const alpha = `${Math.round(lit * 100)}%`;
   return (
