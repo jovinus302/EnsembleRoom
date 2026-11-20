@@ -28,6 +28,7 @@ const themedInk = (kind: BoardToolKind) => `var(--bt-ink-${kind}, ${TOOL_THEME[k
 export const toolVars = (kind: BoardToolKind): CSSProperties =>
   ({
     '--tool': themed(kind),
+    '--k': themed(kind),
     '--tool-ink': themedInk(kind),
     // 글자로 쓸 때: 밝은 배경에서도 읽히도록 전경색과 섞는다
     '--tool-text': `color-mix(in srgb, ${themed(kind)} 62%, var(--fg))`,
@@ -133,7 +134,7 @@ export function toolStatusLine(tool: BoardTool): string {
 /** 구경만 가능한 시점(방문자·재생·DM) 안내. 컨트롤은 각 패널이 disabled로 막는다. */
 export function ViewOnlyNote({ className = '' }: { className?: string }) {
   return (
-    <p data-testid="tool-viewonly" className={`flex items-center gap-1.5 text-[11px] text-muted ${className}`}>
+    <p data-testid="tool-viewonly" className={`flex items-center gap-1.5 text-label text-muted ${className}`}>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
         <circle cx="12" cy="12" r="3" />
@@ -230,7 +231,7 @@ export function ToolCover({ tool, height = 72 }: { tool: BoardTool; height?: num
         <>
           <ToolArt kind={tool.kind} />
           {pending && (
-            <span data-testid="tool-cover-pending" className="absolute bottom-1 right-1.5 animate-pulse text-[10px] text-muted/80">
+            <span data-testid="tool-cover-pending" className="absolute bottom-1 right-1.5 animate-pulse text-label text-muted/80">
               이미지 생성 중…
             </span>
           )}
@@ -246,7 +247,7 @@ export function ToolCreator({ tool, m, compact = false, made = false }: { tool: 
   if (kind === 'agent' || kind === 'room_agent') {
     const a = m.resolveAgent(id, kind);
     return (
-      <span data-testid="tool-creator" data-creator-kind={kind} className="inline-flex items-center gap-1.5 text-[11px] text-muted">
+      <span data-testid="tool-creator" data-creator-kind={kind} className="inline-flex items-center gap-1.5 text-label text-muted">
         <AgentAvatar variant={a.variant} color={a.color} size={compact ? 18 : 22} name={a.name} room={kind === 'room_agent'} />
         {made ? (
           <span>
@@ -264,14 +265,14 @@ export function ToolCreator({ tool, m, compact = false, made = false }: { tool: 
   if (kind === 'human') {
     const u = m.users[id ?? ''];
     return (
-      <span data-testid="tool-creator" data-creator-kind="human" className="inline-flex items-center gap-1.5 text-[11px] text-muted">
+      <span data-testid="tool-creator" data-creator-kind="human" className="inline-flex items-center gap-1.5 text-label text-muted">
         <Avatar name={u?.name ?? '누군가'} color={u?.color ?? FALLBACK_COLOR} size={compact ? 16 : 20} />
         <span>{u?.name ?? '누군가'}{made ? '님이 만듦' : ''}</span>
       </span>
     );
   }
   return (
-    <span data-testid="tool-creator" data-creator-kind="system" className="text-[11px] text-muted">
+    <span data-testid="tool-creator" data-creator-kind="system" className="text-label text-muted">
       시스템
     </span>
   );
@@ -307,15 +308,15 @@ export function useToolOp(roomId: string, toolId: string) {
 export function ToolError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" data-testid="tool-error" className="mt-2 text-[11px] text-red-500">
+    <p role="alert" data-testid="tool-error" className="mt-2 text-label text-danger">
       {message}
     </p>
   );
 }
 
 export const toolInput =
-  'tw-inset rounded-lg border border-line px-2.5 py-1 text-sm placeholder:text-muted focus-visible:border-[var(--tool,var(--focus))] disabled:opacity-50';
+  'tg-field bc-in placeholder:text-muted disabled:opacity-50';
 export const toolBtn =
-  'tw-inset rounded-lg border border-line px-3 py-1 text-xs transition-colors hover:border-[var(--tool,var(--line))] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line';
+  'tg-btn tg-btn-ghost bc-btn';
 export const toolBtnPrimary =
-  'rounded-lg bg-[var(--tool,var(--fg))] px-3.5 py-1 text-xs font-bold text-[var(--tool-ink,var(--bg))] shadow-sm transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40';
+  'tg-btn tg-btn-primary bc-btn';
