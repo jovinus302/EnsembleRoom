@@ -505,6 +505,20 @@ describe('시드 도구가 이미 있는 방에서의 새 요청 (리허설 결�
     expect(ladders()).toHaveLength(2);
   });
 
+  it('시연 대사 "국밥 누가 쏠까? 사다리로 정하자": 시드 사다리가 있어도 발화를 반영한 새 사다리를 만든다', async () => {
+    startSeeded();
+    const ladders = () => toolsOf(R.friends).filter((t) => t.kind === 'ladder');
+    expect(ladders()).toHaveLength(1);
+    say(alice, R.friends, '국밥 누가 쏠까? 사다리로 정하자');
+    await ctx.agents.drain();
+    expect(ladders()).toHaveLength(2);
+    const made = ladders().at(-1)!;
+    if (made.kind !== 'ladder') throw new Error('ladder 아님');
+    expect(made.title).toBe('누가 국밥 쏘기?');
+    expect(made.outcomes).toContain('국밥 쏘기');
+    expect(made.run).toBeFalsy();
+  });
+
   it('이미 실행한 사다리가 있으면 같은 주제여도 새로 만든다', async () => {
     startSeeded();
     const seedLadder = toolsOf(R.friends).find((t) => t.kind === 'ladder')!;
