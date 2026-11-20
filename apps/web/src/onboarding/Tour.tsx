@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { useSession } from '../store/session';
 import { hasSeenTour, markTourSeen, useTour } from './tourStore';
+import { btn } from '../ui/tg';
 import { TOURS, type TourId, type TourStep } from './tourSteps';
 
 const PAD = 6;
@@ -194,14 +195,12 @@ function TourOverlay({ id, userId }: { id: TourId; userId: string }) {
         <div
           aria-hidden="true"
           data-testid="tour-spotlight"
-          className="pointer-events-none fixed rounded-xl"
+          className="tg-spot pointer-events-none fixed"
           style={{
             left: target.left - PAD,
             top: target.top - PAD,
             width: target.width + PAD * 2,
             height: target.height + PAD * 2,
-            boxShadow: '0 0 0 9999px var(--scrim-tour)',
-            outline: '2px solid var(--focus)',
             transition: move,
           }}
         />
@@ -215,18 +214,18 @@ function TourOverlay({ id, userId }: { id: TourId; userId: string }) {
         aria-label={`${label} · ${step.title}`}
         tabIndex={-1}
         data-testid="tour-card"
-        className="fixed rounded-2xl border border-line bg-surface surface-sheet p-4 shadow-2xl outline-none"
+        className="tg-panel tg-tour fixed outline-none"
         style={{ left: pos.left, top: pos.top, width: CARD_W, maxWidth: `calc(100vw - ${EDGE * 2}px)`, transition: move }}
       >
-        <div className="flex items-center gap-2 text-[11px] text-muted">
-          <span>{label}</span>
-          <span className="ml-auto" aria-live="polite">
+        <div className="flex items-center gap-2">
+          <span className="tg-mono">{label}</span>
+          <span className="tg-mono ml-auto" aria-live="polite">
             {index + 1} / {steps.length}
           </span>
         </div>
-        <h2 className="mt-1.5 text-base font-semibold">{step.title}</h2>
-        <p className="mt-1.5 text-sm leading-relaxed text-fg">{step.body}</p>
-        <div className="mt-3 flex items-center gap-1.5" role="group" aria-label="진행 단계">
+        <h2 className="tg-title text-body">{step.title}</h2>
+        <p className="tg-aux leading-relaxed">{step.body}</p>
+        <div className="tg-steps" role="group" aria-label="진행 단계">
           {steps.map((_, i) => (
             <button
               key={i}
@@ -234,26 +233,21 @@ function TourOverlay({ id, userId }: { id: TourId; userId: string }) {
               aria-label={`${i + 1}단계로 이동`}
               aria-current={i === index ? 'step' : undefined}
               onClick={() => setIndex(i)}
-              className="h-2 rounded-full"
-              style={{
-                width: i === index ? 18 : 8,
-                background: i === index ? 'var(--focus)' : i < index ? 'var(--tour-dot)' : 'var(--line)',
-                transition: reduced ? 'none' : 'width 160ms ease, background 160ms ease',
-              }}
+              className={i <= index ? 'on' : undefined}
             />
           ))}
         </div>
-        <div className="mt-3 flex items-center gap-2">
-          <button type="button" data-testid="tour-skip" onClick={() => finish('skipped')} className="rounded-md px-2 py-1.5 text-xs text-muted hover:bg-raised hover:text-fg">
+        <div className="flex items-center gap-2">
+          <button type="button" data-testid="tour-skip" onClick={() => finish('skipped')} className={btn('ghost')}>
             건너뛰기
           </button>
           <span className="ml-auto" />
           {index > 0 && (
-            <button type="button" data-testid="tour-prev" onClick={() => go(index - 1)} className="rounded-md border border-line px-3 py-1.5 text-sm hover:bg-raised">
+            <button type="button" data-testid="tour-prev" onClick={() => go(index - 1)} className={btn('soft')}>
               이전
             </button>
           )}
-          <button type="button" data-testid="tour-next" onClick={() => go(index + 1)} className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-[var(--on-accent-strong)] hover:brightness-95">
+          <button type="button" data-testid="tour-next" onClick={() => go(index + 1)} className={btn('primary')}>
             {last ? '완료' : '다음'}
           </button>
         </div>
@@ -302,9 +296,7 @@ export function GuideButton({ id, withLabel = false }: { id: TourId; withLabel?:
       aria-label="가이드 열기"
       title="가이드 다시 보기"
       onClick={() => useTour.getState().open(id)}
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 border border-line text-muted hover:bg-raised hover:text-fg ${
-        withLabel ? 'rounded-md px-3 py-1.5 text-sm' : 'h-7 w-7 rounded-full text-xs'
-      }`}
+      className={`${btn('ghost', { round: !withLabel })} shrink-0`}
     >
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
         <circle cx="8" cy="8" r="6.4" />

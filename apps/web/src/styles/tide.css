@@ -1282,18 +1282,6 @@ html[data-quality="off"] [data-world] {
     background: color-mix(in srgb, var(--fg) 10%, transparent);
   }
 }
-/* 가이드 버튼(onboarding/Tour.tsx, 수정 금지)을 헤더에서 ghost 버튼처럼 보이게 한다. 레이어 밖 규칙이라 Tailwind 유틸리티보다 우선한다. */
-.tg-room-hdr [data-testid="guide-open-room"] {
-  height: 32px;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  color: var(--fg);
-  font: 600 var(--fs-aux) / 1 var(--font);
-}
-.tg-room-hdr [data-testid="guide-open-room"]:hover {
-  background: color-mix(in srgb, var(--fg) 8%, transparent);
-}
 /* Step 10: Approval cards */
 /* compact 승인 카드: 한 줄 행. 제안·투표·수정 폼 같은 긴 내용(.full)은 아래 줄로 내려간다. */
 .tg-appr.compact {
@@ -1374,7 +1362,7 @@ html[data-quality="off"] [data-world] {
   color: var(--destructive-ink);
 }
 
-/* Step 12a: Sheets */
+/* Step 12: Sheets, login, tour */
 @layer components {
   /* 시트: 스크림만 페이드하고 패널은 자신에게만 입장 모션을 건다(조상 opacity 금지) */
   .tg-sheet-scrim {
@@ -1386,6 +1374,82 @@ html[data-quality="off"] [data-world] {
   .tg-opt:has(input:focus-visible) {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
+  }
+  /* 로그인 */
+  .tg-scene-bit {
+    background: linear-gradient(
+      180deg,
+      var(--scene-sky-top) 0%,
+      var(--scene-sky-mid) 30%,
+      var(--scene-sky-low) 46%,
+      var(--scene-sea-far) 47%,
+      var(--scene-sea-mid) 52%,
+      var(--scene-sea-shore) 57%,
+      var(--scene-sand) 58%,
+      var(--scene-sand-shade) 100%
+    );
+  }
+  .tg-login {
+    width: 380px;
+    max-width: 100%;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .tg-input-el {
+    background: transparent;
+    border: 0;
+    color: var(--fg);
+    font: 400 var(--fs-body) / 1.5 var(--font);
+    padding: 0 6px;
+    min-height: 32px;
+  }
+  .tg-input-el:focus-visible {
+    outline: none;
+  }
+  .tg-input-el::placeholder {
+    color: var(--muted);
+  }
+  .tg-input:has(.tg-input-el:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  /* 투어 */
+  .tg-spot {
+    border-radius: var(--r-card);
+    box-shadow:
+      0 0 0 9999px var(--scrim-tour),
+      0 0 0 2px var(--primary),
+      0 0 24px color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  .tg-tour {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tg-steps {
+    display: flex;
+    gap: 4px;
+  }
+  .tg-steps button {
+    position: relative;
+    width: 16px;
+    height: 4px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--fg) 20%, transparent);
+    cursor: pointer;
+  }
+  .tg-steps button::after {
+    content: "";
+    position: absolute;
+    inset: -6px 0;
+  }
+  .tg-steps button.on {
+    background: var(--primary);
   }
 }
 @keyframes tg-sheet-pop {
