@@ -26,8 +26,8 @@ export function LeaveSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <Sheet title="Leave · 자리 비우기" onClose={onClose} testId="leave-sheet">
-      <p className="mt-2 text-sm text-muted">
+    <Sheet title="Leave · 자리 비우기" eyebrow="LEAVE" onClose={onClose} testId="leave-sheet">
+      <p className="tg-aux">
         {agentName}가 내 대신 이 Room에 남아 위임 범위 안에서만 움직여요. 보드를 직접 바꾸지는 못하고, 확정이 필요한 일은 나에게
         승인을 요청해요.
       </p>
@@ -37,6 +37,7 @@ export function LeaveSheet({
         grants={LEAVE_GRANTS}
         defaultActions={['chat', 'comment', 'propose_edit', 'request_approval']}
         submitLabel="Leave"
+        submitVariant="cta"
         required={false}
         busy={busy}
         error={error}

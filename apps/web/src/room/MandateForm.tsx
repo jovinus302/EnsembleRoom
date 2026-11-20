@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Capability, Mandate } from '@ensemble/shared';
 import { CAPABILITY_LABEL } from '../messenger/visits';
+import { btn } from '../ui/tg';
 
 /** 허용 행동 설명 (위임 메모 아래에 보인다) */
 const CAPABILITY_HINT: Partial<Record<Capability, string>> = {
@@ -17,6 +18,7 @@ export function MandateForm({
   grants,
   defaultActions,
   submitLabel,
+  submitVariant = 'primary',
   required,
   busy,
   error,
@@ -28,6 +30,8 @@ export function MandateForm({
   grants: readonly Capability[];
   defaultActions: readonly Capability[];
   submitLabel: string;
+  /** 제출 버튼 위계: 기본 primary, 방을 비우는 등 주 행동이면 cta */
+  submitVariant?: 'primary' | 'cta';
   required: boolean;
   busy: boolean;
   error?: string | null;
@@ -40,15 +44,15 @@ export function MandateForm({
   const trimmed = text.trim();
   return (
     <form
-      className="mt-4 flex flex-col gap-3"
+      className="flex flex-col gap-3.5"
       onSubmit={(e) => {
         e.preventDefault();
         if (required && !trimmed) return;
         onSubmit(trimmed ? { text: trimmed, allowedActions: actions } : undefined);
       }}
     >
-      <label className="flex flex-col gap-1 text-xs text-muted">
-        {label}
+      <label className="flex flex-col gap-1.5">
+        <span className="tg-mono">{label}</span>
         <textarea
           data-testid="mandate-text"
           value={text}
@@ -56,38 +60,39 @@ export function MandateForm({
           maxLength={500}
           rows={4}
           placeholder={placeholder}
-          className="resize-none rounded-md border border-line bg-bg px-2.5 py-2 text-sm text-fg placeholder:text-muted"
+          className="tg-field resize-none"
         />
-        <span className="self-end">{text.length}/500</span>
+        <span className="tg-aux self-end">{text.length}/500</span>
       </label>
-      <fieldset className="flex flex-col gap-1.5 text-sm" data-testid="mandate-actions">
-        <legend className="mb-1 text-xs text-muted">허용할 행동</legend>
+      <fieldset className="flex flex-col gap-2" data-testid="mandate-actions">
+        <legend className="tg-mono mb-1.5">허용할 행동</legend>
         {grants.map((c) => (
-          <label key={c} className="flex items-start gap-2">
-            <input type="checkbox" className="mt-1" checked={actions.includes(c)} onChange={() => toggle(c)} />
-            <span>
-              {CAPABILITY_LABEL[c]}
-              {CAPABILITY_HINT[c] && <span className="ml-1.5 text-xs text-muted">{CAPABILITY_HINT[c]}</span>}
+          <label key={c} className={`tg-opt${actions.includes(c) ? ' on' : ''}`}>
+            <input type="checkbox" className="sr-only" checked={actions.includes(c)} onChange={() => toggle(c)} />
+            <span className="r" aria-hidden="true" />
+            <span className="flex flex-col">
+              <span className="font-semibold">{CAPABILITY_LABEL[c]}</span>
+              {CAPABILITY_HINT[c] && <span className="tg-aux">{CAPABILITY_HINT[c]}</span>}
             </span>
           </label>
         ))}
       </fieldset>
       {error && (
-        <p role="alert" className="text-xs text-danger">
+        <p role="alert" className="text-aux text-danger">
           {error}
         </p>
       )}
-      <div className="flex gap-2">
+      <div className="sh-f">
+        <button type="button" onClick={onCancel} className={btn('ghost')}>
+          취소
+        </button>
         <button
           type="submit"
           data-testid="mandate-submit"
           disabled={busy || (required && !trimmed)}
-          className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-[var(--on-accent-strong)] disabled:opacity-50"
+          className={btn(submitVariant)}
         >
           {submitLabel}
-        </button>
-        <button type="button" onClick={onCancel} className="rounded-md border border-line px-4 py-1.5 text-sm hover:bg-raised">
-          취소
         </button>
       </div>
     </form>

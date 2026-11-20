@@ -79,7 +79,7 @@ function DigestSheet({ roomId }: { roomId: string }) {
 
   const title = room ? titleOf(room, meId, users) : 'Room';
   return (
-    <Sheet title={`돌아온 것을 환영해요 · ${title}`} onClose={() => void confirm()} testId="rejoin-digest">
+    <Sheet title={`돌아온 것을 환영해요 · ${title}`} eyebrow="REJOIN DIGEST" onClose={() => void confirm()} testId="rejoin-digest">
       {!digest && !error && <p className="tg-aux mt-4">내가 없는 동안의 일을 정리하는 중…</p>}
       {error && (
         <p role="alert" className="mt-4 text-body text-danger">

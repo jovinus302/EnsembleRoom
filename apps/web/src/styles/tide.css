@@ -1373,3 +1373,28 @@ html[data-quality="off"] [data-world] {
   background: color-mix(in srgb, var(--destructive) 18%, transparent);
   color: var(--destructive-ink);
 }
+
+/* Step 12a: Sheets */
+@layer components {
+  /* 시트: 스크림만 페이드하고 패널은 자신에게만 입장 모션을 건다(조상 opacity 금지) */
+  .tg-sheet-scrim {
+    animation: tg-fade-in var(--dur-base) var(--ease-standard) both;
+  }
+  .tg-sheet-in {
+    animation: tg-sheet-pop var(--dur-base) var(--ease-out) both;
+  }
+  .tg-opt:has(input:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+@keyframes tg-sheet-pop {
+  from {
+    opacity: 0;
+    transform: scale(calc(1 - 0.05 * var(--motion)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
