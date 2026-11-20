@@ -140,10 +140,10 @@ export function CapsuleShell({
   const attnMat = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
-        color: new THREE.Color(PALETTE.approvalOrange).multiplyScalar(2.6),
+        // 가산 혼합은 밝은 낮 모래 위에서 살구색으로 묻힌다. 일반 혼합 + 앰버 원색으로 어디서나 앰버로 읽히게 한다
+        color: new THREE.Color(PALETTE.approvalOrange).multiplyScalar(1.12),
         transparent: true,
         opacity: 0,
-        blending: THREE.AdditiveBlending,
         depthWrite: false,
         toneMapped: false,
       }),
@@ -217,8 +217,8 @@ export function CapsuleShell({
     // 링: 평소엔 소유자 색, 호버/선택 시 밝게, 승인 대기 시 오렌지가 번쩍인다
     ringGlow.current = THREE.MathUtils.damp(ringGlow.current, 1.15 + h * 1.1 + (selected ? 0.5 : 0), 8, dt);
     ringMat.color.setScalar(ringGlow.current * (1 + k * 1.2));
-    if (attention) ringMat.color.lerp(ORANGE, k * 0.55);
-    attnMat.opacity = attention ? 0.3 + 0.7 * k : 0;
+    if (attention) ringMat.color.lerp(ORANGE, 0.45 + k * 0.45);
+    attnMat.opacity = attention ? 0.62 + 0.38 * k : 0;
     if (attnSprite.current) {
       (attnSprite.current.material as THREE.SpriteMaterial).opacity = attention ? (0.06 + 0.1 * k) * (1 - 0.9 * fk) : 0;
     }
