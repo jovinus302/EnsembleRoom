@@ -1,5 +1,5 @@
 /*
- * 디자인 토큰 (남색 단일 테마). 컴포넌트는 아래 "의미 토큰"만 쓴다.
+ * 디자인 토큰 (Tide Glass: 청록 잉크 단일 테마). 컴포넌트는 아래 "의미 토큰"만 쓴다.
  *
  * 의미 토큰 
  *   표면/글자 : --bg(입력창 등 오목한 면) --panel(+--panel-rgb/--panel-opacity) --panel-raised(=surface-2)
@@ -16,96 +16,179 @@
  *               --label-chip-bg --label-dot-border  (월드 위 이름표)
  *   무대/썸네일: --stage-a --stage-b --stage-idle --thumb-bg (3D 미사용 폴백·방 미리보기)
  *   아바타    : --avatar-paper(아바타 안쪽 종이색)
- *   패널 투명도: --panel-opacity-messenger / --panel-opacity-room (3D 캔버스가 뒤에 있을 때)
+ *   패널      : --panel-alpha (3D 가 뒤에 있으면 .86, 없으면 .96) --panel-bg --panel-filter --panel-border --panel-shadow
+ *   Tide 토큰 : 아래 첫 :root 블록은 design/mockups/02-tide-glass.html 의 :root 와 같다. 기존 이름은 두 번째 :root 의 호환 별칭이다.
  */
+
+:root {
+  /* ===== Tide Glass 토큰 (목업 :root 와 동일, --alice/--bob 제외) ===== */
+  /* surface */
+  --page-bg: #04111a;
+  --fg: #d9f3f7;
+  --muted: #8dbed2;
+  --panel-alpha: 0.86;
+  --panel-top: rgb(10 34 46 / var(--panel-alpha));
+  --panel-bottom: rgb(6 19 28 / var(--panel-alpha));
+  --panel-bg: linear-gradient(180deg, var(--panel-top), var(--panel-bottom));
+  --panel-filter: blur(24px) saturate(1.15) brightness(0.82);
+  --panel-border: rgba(217, 243, 247, 0.22);
+  --panel-shadow: 0 10px 28px hsl(205 73% 3% / 0.42), 0 2px 6px hsl(205 73% 3% / 0.3), inset 0 1px 0 rgba(114, 239, 221, 0.24);
+  --card: rgba(11, 32, 46, 0.92);
+  --popover: #0e2838;
+  --border: #194259;
+  --concave: rgba(3, 14, 22, 0.55);
+  --solid-bg: #0e2838;
+  --solid-shadow: 0 6px 16px rgba(5, 20, 30, 0.38);
+  /* action */
+  --primary: #00e5c3;
+  --primary-fg: #041714;
+  --primary-glow: 0 4px 20px rgba(0, 229, 195, 0.38);
+  --cta-bg: #00e5c3;
+  --cta-fg: #041714;
+  --amber: #ffb45a;
+  --amber-ink: #ffb45a;
+  --amber-tonal: rgba(255, 180, 90, 0.13);
+  --destructive: #ff5964;
+  --destructive-ink: #ffa6ac;
+  --ok: #72efdd;
+  /* actors */
+  --agent: #64e4bd;
+  --room: #b8e86a;
+  --bubble-base: #0e2838;
+  /* scene palette (맑은 낮 바다) */
+  --scene-sky-top: #3f8fd8;
+  --scene-sky-mid: #7cc0ee;
+  --scene-sky-low: #d6eefa;
+  --scene-haze: #e4f3fb;
+  --scene-sea-far: #0b5c8a;
+  --scene-sea-mid: #12a3b8;
+  --scene-sea-shore: #7fe0d2;
+  --scene-foam: #ffffff;
+  --scene-sand: #f7efe0;
+  --scene-sand-shade: #e6d9c2;
+  --scene-shadow: rgba(30, 70, 100, 0.22);
+  --scene-glint: rgba(255, 255, 255, 0.85);
+  --scene-glow: rgba(255, 255, 255, 0.55);
+  /* tool keys */
+  --k-ladder: #d8b07a;
+  --k-settle: #d4b66a;
+  --k-travel: #6fb3c0;
+  --k-custom: #7cc17a;
+  /* radius */
+  --r-panel: 24px;
+  --r-card: 16px;
+  --r-input: 16px;
+  --r-pill: 999px;
+  --r-tail: 4px;
+  /* type */
+  --fs-label: 11px;
+  --fs-aux: 13px;
+  --fs-body: 15px;
+  --fs-title: 20px;
+  --fs-display: 28px;
+  --fs-hero: 44px;
+  --font: "DM Sans", "Pretendard Variable", Pretendard, "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "Pretendard Variable", Pretendard, "Noto Sans KR", "Malgun Gothic", ui-monospace, monospace;
+  /* motion */
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-slow: 400ms;
+  --dur-pop: 180ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --motion: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion: 0;
+  }
+}
+
+/* ===== 호환 별칭: 기존 이름 -> Tide 토큰. 화면 단계에서 하나씩 걷어낸다. ===== */
 :root {
   --scheme: dark;
   --tracking: 0;
-  --bg: #0b1020;
-  --panel-rgb: 21 29 48;
-  --panel-opacity: 1;
-  --panel-opacity-messenger: 0.8;
-  --panel-opacity-room: 0.88;
-  --raised-rgb: 31 41 66;
-  --raised-alpha: var(--panel-opacity);
-  --panel: rgb(var(--panel-rgb) / var(--panel-opacity));
-  --panel-raised: rgb(var(--raised-rgb) / var(--raised-alpha, var(--panel-opacity)));
-  --surface: #151d30;
-  --line: #2b3850;
-  --fg: #f0f5ff;
-  --muted: #a0aec4;
-  --focus: #8ab4ff;
-  --accent: #f0f5ff;
-  --accent-fg: #0b1020;
+  --bg: var(--concave);
+  --panel: rgb(10 34 46 / var(--panel-alpha));
+  --panel-raised: color-mix(in srgb, var(--fg) 7%, var(--card));
+  --surface: var(--popover);
+  --line: var(--border);
+  --focus: var(--primary);
+  --accent: var(--primary);
+  --accent-fg: var(--primary-fg);
   --on-accent-strong: var(--accent-fg);
-  --on-accent: #0b1020;
+  --on-accent: var(--primary-fg);
   --sea: #5aa6b8;
   --sky: #5ab0ff;
   --plant: #6ee7a0;
   --sand-gold: #d9b37a;
-  --hover: rgb(255 255 255 / 0.06);
-  --scrim: rgb(0 0 0 / 0.55);
-  --scrim-tour: rgb(0 0 0 / 0.6);
-  --glass: rgb(11 16 32 / 0.55);
-  --shadow: none;
+  --hover: color-mix(in srgb, var(--fg) 8%, transparent);
+  --scrim: rgba(4, 24, 34, 0.62);
+  --scrim-tour: rgba(3, 12, 18, 0.64);
+  --glass: var(--solid-bg);
+  --shadow: var(--solid-shadow);
   --shadow-card: var(--shadow);
-  --radius: 16px;
-  --font-title: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
-  --danger: #fca5a5;
-  --warn: #ffd36a;
+  --radius: var(--r-panel);
+  --font-title: var(--font);
+  --danger: var(--destructive-ink);
+  --warn: var(--amber);
   --info: #7cc4ff;
-  --ok: #64e4bd;
   --star: #f2d04e;
 
-  --card-base: transparent;
-  --card-base-dim: transparent;
+  --card-base: var(--bubble-base);
+  --card-base-dim: var(--card);
   --tint-me: 20%;
-  --tint-other: 12%;
-  --tint-agent-room: 10%;
-  --tint-agent-dm: 8%;
-  --tint-approval-pending: 12%;
-  --tint-approval: 4%;
-  --tint-mandate: 8%;
-  --ink-pct: 100%;
-  --ink-base: #000000;
-  --approval-ink: #ff9f43;
+  --tint-other: 20%;
+  --tint-agent-room: 20%;
+  --tint-agent-dm: 16%;
+  --tint-approval-pending: 13%;
+  --tint-approval: 6%;
+  --tint-mandate: 10%;
+  --ink-pct: 80%;
+  --ink-base: #d9f3f7;
+  --approval-ink: var(--amber-ink);
 
-  --label-bg: rgba(28, 18, 12, 0.78);
-  --label-border: rgba(255, 238, 214, 0.35);
-  --label-fg: #fff4e2;
-  --label-fg-dim: rgba(255, 244, 226, 0.7);
-  --label-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
-  --label-attn-border: #ffb45a;
-  --label-attn-shadow: 0 0 10px rgba(255, 180, 90, 0.7);
-  --label-chip-bg: rgba(255, 255, 255, 0.08);
-  --label-dot-border: rgba(255, 255, 255, 0.5);
+  --label-bg: var(--solid-bg);
+  --label-border: rgba(217, 243, 247, 0.16);
+  --label-fg: var(--fg);
+  --label-fg-dim: var(--muted);
+  --label-shadow: var(--solid-shadow);
+  --label-attn-border: var(--amber);
+  --label-attn-shadow: var(--solid-shadow), 0 0 0 3px color-mix(in srgb, var(--amber) 22%, transparent);
+  --label-chip-bg: color-mix(in srgb, var(--fg) 8%, transparent);
+  --label-dot-border: rgba(217, 243, 247, 0.5);
 
-  --stage-a: #1b2640;
-  --stage-b: #0b1020;
-  --stage-idle: #3a4660;
-  --thumb-bg: #101829;
+  --stage-a: var(--scene-sky-mid);
+  --stage-b: var(--scene-sand);
+  --stage-idle: #2a4a5c;
+  --thumb-bg: var(--popover);
   --avatar-paper: #f4f7fd;
-  --tour-dot: #5b6b88;
+  --tour-dot: color-mix(in srgb, var(--fg) 20%, transparent);
 }
 
-/* 3D 캔버스가 뒤에 깔렸을 때만 패널을 더 투명하게. --panel/--panel-raised 는 :root 에서 한 번 계산되므로 여기서 다시 선언한다. */
-[data-world="on"][data-screen="messenger"] {
-  --panel-opacity: var(--panel-opacity-messenger);
-  --panel: rgb(var(--panel-rgb) / var(--panel-opacity));
-  --panel-raised: rgb(var(--raised-rgb) / var(--raised-alpha, var(--panel-opacity)));
-}
+/* 3D 캔버스가 뒤에 깔렸을 때. --panel/--panel-top/--panel-bottom 은 :root 에서 한 번 계산되므로 여기서 다시 계산한다. */
+[data-world="on"][data-screen="messenger"],
 [data-world="on"][data-screen="room"] {
-  --panel-opacity: var(--panel-opacity-room);
-  --panel: rgb(var(--panel-rgb) / var(--panel-opacity));
-  --panel-raised: rgb(var(--raised-rgb) / var(--raised-alpha, var(--panel-opacity)));
+  --panel-alpha: 0.86;
+  --panel-top: rgb(10 34 46 / var(--panel-alpha));
+  --panel-bottom: rgb(6 19 28 / var(--panel-alpha));
+  --panel: rgb(10 34 46 / var(--panel-alpha));
+}
+/* 뒤에 장면이 없으면 blur 는 의미가 없다. */
+[data-world="off"] {
+  --panel-alpha: 0.96;
+  --panel-filter: none;
+  --panel-top: rgb(10 34 46 / var(--panel-alpha));
+  --panel-bottom: rgb(6 19 28 / var(--panel-alpha));
+  --panel: rgb(10 34 46 / var(--panel-alpha));
 }
 
 body {
-  background-color: #0b1020;
+  background: var(--page-bg);
 }
 
 /* 시트(모달·투어·로그인 카드): 클래스 surface-sheet */
 .surface-sheet {
-  background-color: var(--surface);
-  border-radius: var(--radius);
+  background: var(--panel-bg);
+  border-radius: var(--r-panel);
 }

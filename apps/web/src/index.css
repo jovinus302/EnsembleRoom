@@ -23,7 +23,36 @@
   --color-info: var(--info);
   --color-ok: var(--ok);
   --color-star: var(--star);
-  --font-sans: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-amber: var(--amber);
+  --color-amber-tonal: var(--amber-tonal);
+  --color-card: var(--card);
+  --color-popover: var(--popover);
+  --color-concave: var(--concave);
+  --color-border: var(--border);
+  --color-solid: var(--solid-bg);
+  --color-destructive: var(--destructive);
+  --color-destructive-ink: var(--destructive-ink);
+  --color-agent: var(--agent);
+  --color-room-agent: var(--room);
+  --color-page: var(--page-bg);
+  --radius-panel: var(--r-panel);
+  --radius-card: var(--r-card);
+  --radius-input: var(--r-input);
+  --text-label: 11px;
+  --text-label--line-height: 1.2;
+  --text-aux: 13px;
+  --text-aux--line-height: 1.4;
+  --text-body: 15px;
+  --text-body--line-height: 1.5;
+  --text-title: 20px;
+  --text-title--line-height: 1.25;
+  --text-display: 28px;
+  --text-display--line-height: 1.2;
+  --font-sans: var(--font);
+  --font-mono: var(--mono);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html,
@@ -36,7 +65,8 @@ body {
   margin: 0;
   color: var(--fg);
   color-scheme: var(--scheme, light);
-  letter-spacing: var(--tracking, 0.01em);
+  letter-spacing: var(--tracking, 0);
+  font-size: var(--fs-body);
   font-family: var(--font-sans);
 }
 
