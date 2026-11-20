@@ -1260,3 +1260,44 @@ html[data-quality="off"] [data-world] {
     --panel: rgb(10 34 46 / var(--panel-alpha));
   }
 }
+
+/* Step 8: Room shell */
+@layer components {
+  .tg-tlbar {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 6px;
+    border-radius: var(--r-pill);
+  }
+  .tg-tlbar.past {
+    border-color: color-mix(in srgb, var(--amber) 35%, transparent);
+  }
+  .tg-tlwrap:has(.tg-tl-range:focus-visible) .th {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  .tg-flow-step:hover {
+    background: color-mix(in srgb, var(--fg) 10%, transparent);
+  }
+}
+/* 가이드 버튼(onboarding/Tour.tsx, 수정 금지)을 헤더에서 ghost 버튼처럼 보이게 한다. 레이어 밖 규칙이라 Tailwind 유틸리티보다 우선한다. */
+.tg-room-hdr [data-testid="guide-open-room"] {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font: 600 var(--fs-aux) / 1 var(--font);
+}
+.tg-room-hdr [data-testid="guide-open-room"]:hover {
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+@layer components {
+  /* 3D 위에 떠 있는 안내(배너)는 반투명이면 읽기 어려워 불투명 바탕을 쓴다 */
+  .tg-notice.tg-float {
+    background: var(--solid-bg);
+    box-shadow: var(--solid-shadow);
+  }
+}
