@@ -1,0 +1,29 @@
+{
+  "name": "ensemble-room",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c cyan,magenta \"npm run dev -w apps/server\" \"npm run dev -w apps/web\"",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "seed": "npm run seed -w apps/server",
+    "smoke:claude": "npm run smoke:claude -w apps/server --",
+    "smoke:turn": "npm run smoke:turn -w apps/server",
+    "assets:extract": "node tools/extract-demo-assets.mjs",
+    "assets:props": "node tools/import-props.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.7",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}

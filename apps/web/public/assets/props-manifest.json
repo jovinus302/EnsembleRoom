@@ -1,0 +1,4129 @@
+{
+  "version": 1,
+  "note": "3D 단계(S15~S17)는 이 파일만 보고 배치한다. 파일 경로는 /assets/ 기준. available:false인 항목은 계획의 폴백(프리미티브/절차적)을 쓴다. tools/import-props.mjs가 생성한다(수정 금지).",
+  "units": "meters (Kenney 원본 단위 그대로, Y-up). pivotOffset은 모델의 피벗을 바닥 중앙으로 옮기는 이동량이다. recommendedScale은 1=원본 크기. 실내 미니어처 비율은 배치 코드의 전역 스케일로 조정한다.",
+  "props": {
+    "desk": {
+      "id": "desk",
+      "file": "props/desk.glb",
+      "available": true,
+      "bytes": 15048,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "desk.glb",
+      "bbox": {
+        "min": [
+          -0.01,
+          0,
+          -0.38
+        ],
+        "max": [
+          0.724,
+          0.384,
+          0.012
+        ],
+        "size": [
+          0.734,
+          0.384,
+          0.392
+        ]
+      },
+      "pivotOffset": [
+        -0.357,
+        0,
+        0.184
+      ],
+      "recommendedScale": 1
+    },
+    "desk-corner": {
+      "id": "desk-corner",
+      "file": "props/desk-corner.glb",
+      "available": true,
+      "bytes": 17984,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "deskCorner.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.974
+        ],
+        "max": [
+          0.974,
+          0.384,
+          0
+        ],
+        "size": [
+          0.974,
+          0.384,
+          0.974
+        ]
+      },
+      "pivotOffset": [
+        -0.487,
+        0,
+        0.487
+      ],
+      "recommendedScale": 1
+    },
+    "chair-desk": {
+      "id": "chair-desk",
+      "file": "props/chair-desk.glb",
+      "available": true,
+      "bytes": 39016,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "chairDesk.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.314
+        ],
+        "max": [
+          0.335,
+          0.608,
+          0
+        ],
+        "size": [
+          0.335,
+          0.608,
+          0.314
+        ]
+      },
+      "pivotOffset": [
+        -0.167,
+        0,
+        0.157
+      ],
+      "recommendedScale": 1
+    },
+    "computer-screen": {
+      "id": "computer-screen",
+      "file": "props/computer-screen.glb",
+      "available": true,
+      "bytes": 6404,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "computerScreen.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.104
+        ],
+        "max": [
+          0.393,
+          0.294,
+          0
+        ],
+        "size": [
+          0.393,
+          0.294,
+          0.104
+        ]
+      },
+      "pivotOffset": [
+        -0.196,
+        0,
+        0.052
+      ],
+      "recommendedScale": 1
+    },
+    "computer-keyboard": {
+      "id": "computer-keyboard",
+      "file": "props/computer-keyboard.glb",
+      "available": true,
+      "bytes": 3476,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "computerKeyboard.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.118
+        ],
+        "max": [
+          0.282,
+          0.028,
+          0
+        ],
+        "size": [
+          0.282,
+          0.028,
+          0.118
+        ]
+      },
+      "pivotOffset": [
+        -0.141,
+        0,
+        0.059
+      ],
+      "recommendedScale": 1
+    },
+    "computer-mouse": {
+      "id": "computer-mouse",
+      "file": "props/computer-mouse.glb",
+      "available": true,
+      "bytes": 5868,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "computerMouse.glb",
+      "bbox": {
+        "min": [
+          -0.025,
+          0,
+          -0.085
+        ],
+        "max": [
+          0.025,
+          0.024,
+          0
+        ],
+        "size": [
+          0.05,
+          0.024,
+          0.085
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        0.043
+      ],
+      "recommendedScale": 1
+    },
+    "laptop": {
+      "id": "laptop",
+      "file": "props/laptop.glb",
+      "available": true,
+      "bytes": 5540,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "laptop.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.24
+        ],
+        "max": [
+          0.264,
+          0.162,
+          0
+        ],
+        "size": [
+          0.264,
+          0.162,
+          0.24
+        ]
+      },
+      "pivotOffset": [
+        -0.132,
+        0,
+        0.12
+      ],
+      "recommendedScale": 1
+    },
+    "bookcase-open": {
+      "id": "bookcase-open",
+      "file": "props/bookcase-open.glb",
+      "available": true,
+      "bytes": 18020,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "bookcaseOpen.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.25
+        ],
+        "max": [
+          0.4,
+          0.88,
+          0
+        ],
+        "size": [
+          0.4,
+          0.88,
+          0.25
+        ]
+      },
+      "pivotOffset": [
+        -0.2,
+        0,
+        0.125
+      ],
+      "recommendedScale": 1
+    },
+    "bookcase-open-low": {
+      "id": "bookcase-open-low",
+      "file": "props/bookcase-open-low.glb",
+      "available": true,
+      "bytes": 11520,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "bookcaseOpenLow.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.25
+        ],
+        "max": [
+          0.4,
+          0.4,
+          0
+        ],
+        "size": [
+          0.4,
+          0.4,
+          0.25
+        ]
+      },
+      "pivotOffset": [
+        -0.2,
+        0,
+        0.125
+      ],
+      "recommendedScale": 1
+    },
+    "bookcase-closed": {
+      "id": "bookcase-closed",
+      "file": "props/bookcase-closed.glb",
+      "available": true,
+      "bytes": 23132,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "bookcaseClosed.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.25
+        ],
+        "max": [
+          0.4,
+          0.85,
+          0
+        ],
+        "size": [
+          0.4,
+          0.85,
+          0.25
+        ]
+      },
+      "pivotOffset": [
+        -0.2,
+        0,
+        0.125
+      ],
+      "recommendedScale": 1
+    },
+    "bookcase-closed-wide": {
+      "id": "bookcase-closed-wide",
+      "file": "props/bookcase-closed-wide.glb",
+      "available": true,
+      "bytes": 23140,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "bookcaseClosedWide.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.25
+        ],
+        "max": [
+          0.8,
+          0.79,
+          0
+        ],
+        "size": [
+          0.8,
+          0.79,
+          0.25
+        ]
+      },
+      "pivotOffset": [
+        -0.4,
+        0,
+        0.125
+      ],
+      "recommendedScale": 1
+    },
+    "books": {
+      "id": "books",
+      "file": "props/books.glb",
+      "available": true,
+      "bytes": 6864,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "books.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.094
+        ],
+        "max": [
+          0.15,
+          0.104,
+          0
+        ],
+        "size": [
+          0.15,
+          0.104,
+          0.095
+        ]
+      },
+      "pivotOffset": [
+        -0.075,
+        0,
+        0.047
+      ],
+      "recommendedScale": 1
+    },
+    "lamp-square-table": {
+      "id": "lamp-square-table",
+      "file": "props/lamp-square-table.glb",
+      "available": true,
+      "bytes": 5624,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "lampSquareTable.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.12
+        ],
+        "max": [
+          0.12,
+          0.29,
+          0
+        ],
+        "size": [
+          0.12,
+          0.29,
+          0.12
+        ]
+      },
+      "pivotOffset": [
+        -0.06,
+        0,
+        0.06
+      ],
+      "recommendedScale": 1
+    },
+    "lamp-round-table": {
+      "id": "lamp-round-table",
+      "file": "props/lamp-round-table.glb",
+      "available": true,
+      "bytes": 6604,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "lampRoundTable.glb",
+      "bbox": {
+        "min": [
+          -0.016,
+          0,
+          -0.148
+        ],
+        "max": [
+          0.136,
+          0.314,
+          0.028
+        ],
+        "size": [
+          0.152,
+          0.314,
+          0.176
+        ]
+      },
+      "pivotOffset": [
+        -0.06,
+        0,
+        0.06
+      ],
+      "recommendedScale": 1
+    },
+    "lamp-round-floor": {
+      "id": "lamp-round-floor",
+      "file": "props/lamp-round-floor.glb",
+      "available": true,
+      "bytes": 6600,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "lampRoundFloor.glb",
+      "bbox": {
+        "min": [
+          -0.016,
+          0,
+          -0.148
+        ],
+        "max": [
+          0.136,
+          0.86,
+          0.028
+        ],
+        "size": [
+          0.152,
+          0.86,
+          0.176
+        ]
+      },
+      "pivotOffset": [
+        -0.06,
+        0,
+        0.06
+      ],
+      "recommendedScale": 1
+    },
+    "lamp-square-floor": {
+      "id": "lamp-square-floor",
+      "file": "props/lamp-square-floor.glb",
+      "available": true,
+      "bytes": 5624,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "lampSquareFloor.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.12
+        ],
+        "max": [
+          0.12,
+          0.86,
+          0
+        ],
+        "size": [
+          0.12,
+          0.86,
+          0.12
+        ]
+      },
+      "pivotOffset": [
+        -0.06,
+        0,
+        0.06
+      ],
+      "recommendedScale": 1
+    },
+    "lamp-wall": {
+      "id": "lamp-wall",
+      "file": "props/lamp-wall.glb",
+      "available": true,
+      "bytes": 4828,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "lampWall.glb",
+      "bbox": {
+        "min": [
+          -0.113,
+          0,
+          0
+        ],
+        "max": [
+          0.113,
+          0.093,
+          0.15
+        ],
+        "size": [
+          0.227,
+          0.093,
+          0.15
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        -0.075
+      ],
+      "recommendedScale": 1
+    },
+    "potted-plant": {
+      "id": "potted-plant",
+      "file": "props/potted-plant.glb",
+      "available": true,
+      "bytes": 7576,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "pottedPlant.glb",
+      "bbox": {
+        "min": [
+          -0.106,
+          0,
+          -0.121
+        ],
+        "max": [
+          0.106,
+          0.654,
+          0.121
+        ],
+        "size": [
+          0.212,
+          0.654,
+          0.241
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        0
+      ],
+      "recommendedScale": 1
+    },
+    "plant-small-1": {
+      "id": "plant-small-1",
+      "file": "props/plant-small-1.glb",
+      "available": true,
+      "bytes": 8224,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "plantSmall1.glb",
+      "bbox": {
+        "min": [
+          -0.047,
+          0,
+          -0.047
+        ],
+        "max": [
+          0.047,
+          0.14,
+          0.047
+        ],
+        "size": [
+          0.095,
+          0.14,
+          0.095
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        0
+      ],
+      "recommendedScale": 1
+    },
+    "plant-small-2": {
+      "id": "plant-small-2",
+      "file": "props/plant-small-2.glb",
+      "available": true,
+      "bytes": 12996,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "plantSmall2.glb",
+      "bbox": {
+        "min": [
+          -0.047,
+          0,
+          -0.047
+        ],
+        "max": [
+          0.047,
+          0.14,
+          0.047
+        ],
+        "size": [
+          0.095,
+          0.14,
+          0.095
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        0
+      ],
+      "recommendedScale": 1
+    },
+    "plant-small-3": {
+      "id": "plant-small-3",
+      "file": "props/plant-small-3.glb",
+      "available": true,
+      "bytes": 8424,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "plantSmall3.glb",
+      "bbox": {
+        "min": [
+          -0.049,
+          0,
+          -0.042
+        ],
+        "max": [
+          0.049,
+          0.145,
+          0.042
+        ],
+        "size": [
+          0.098,
+          0.145,
+          0.085
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        0
+      ],
+      "recommendedScale": 1
+    },
+    "rug-rectangle": {
+      "id": "rug-rectangle",
+      "file": "props/rug-rectangle.glb",
+      "available": true,
+      "bytes": 3188,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "rugRectangle.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.92
+        ],
+        "max": [
+          1.57,
+          0.01,
+          0
+        ],
+        "size": [
+          1.57,
+          0.01,
+          0.92
+        ]
+      },
+      "pivotOffset": [
+        -0.785,
+        0,
+        0.46
+      ],
+      "recommendedScale": 1
+    },
+    "rug-round": {
+      "id": "rug-round",
+      "file": "props/rug-round.glb",
+      "available": true,
+      "bytes": 10164,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "rugRound.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.92
+        ],
+        "max": [
+          0.92,
+          0.01,
+          0
+        ],
+        "size": [
+          0.92,
+          0.01,
+          0.92
+        ]
+      },
+      "pivotOffset": [
+        -0.46,
+        0,
+        0.46
+      ],
+      "recommendedScale": 1
+    },
+    "speaker": {
+      "id": "speaker",
+      "file": "props/speaker.glb",
+      "available": true,
+      "bytes": 15744,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "speaker.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.148
+        ],
+        "max": [
+          0.148,
+          0.636,
+          0
+        ],
+        "size": [
+          0.148,
+          0.636,
+          0.148
+        ]
+      },
+      "pivotOffset": [
+        -0.074,
+        0,
+        0.074
+      ],
+      "recommendedScale": 1
+    },
+    "speaker-small": {
+      "id": "speaker-small",
+      "file": "props/speaker-small.glb",
+      "available": true,
+      "bytes": 15244,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "speakerSmall.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.133
+        ],
+        "max": [
+          0.148,
+          0.298,
+          0
+        ],
+        "size": [
+          0.148,
+          0.298,
+          0.133
+        ]
+      },
+      "pivotOffset": [
+        -0.074,
+        0,
+        0.067
+      ],
+      "recommendedScale": 1
+    },
+    "radio": {
+      "id": "radio",
+      "file": "props/radio.glb",
+      "available": true,
+      "bytes": 25020,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "radio.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.098
+        ],
+        "max": [
+          0.315,
+          0.228,
+          0
+        ],
+        "size": [
+          0.315,
+          0.228,
+          0.098
+        ]
+      },
+      "pivotOffset": [
+        -0.157,
+        0,
+        0.049
+      ],
+      "recommendedScale": 1
+    },
+    "side-table": {
+      "id": "side-table",
+      "file": "props/side-table.glb",
+      "available": true,
+      "bytes": 8800,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "sideTable.glb",
+      "bbox": {
+        "min": [
+          -0.01,
+          0,
+          -0.21
+        ],
+        "max": [
+          0.524,
+          0.384,
+          0.01
+        ],
+        "size": [
+          0.534,
+          0.384,
+          0.22
+        ]
+      },
+      "pivotOffset": [
+        -0.257,
+        0,
+        0.1
+      ],
+      "recommendedScale": 1
+    },
+    "side-table-drawers": {
+      "id": "side-table-drawers",
+      "file": "props/side-table-drawers.glb",
+      "available": true,
+      "bytes": 19072,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "sideTableDrawers.glb",
+      "bbox": {
+        "min": [
+          -0.01,
+          0,
+          -0.21
+        ],
+        "max": [
+          0.524,
+          0.384,
+          0.012
+        ],
+        "size": [
+          0.534,
+          0.384,
+          0.222
+        ]
+      },
+      "pivotOffset": [
+        -0.257,
+        0,
+        0.099
+      ],
+      "recommendedScale": 1
+    },
+    "coat-rack-standing": {
+      "id": "coat-rack-standing",
+      "file": "props/coat-rack-standing.glb",
+      "available": true,
+      "bytes": 13288,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "coatRackStanding.glb",
+      "bbox": {
+        "min": [
+          -0.136,
+          0,
+          -0.136
+        ],
+        "max": [
+          0.136,
+          0.77,
+          0.136
+        ],
+        "size": [
+          0.273,
+          0.77,
+          0.273
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        0
+      ],
+      "recommendedScale": 1
+    },
+    "cardboard-box-open": {
+      "id": "cardboard-box-open",
+      "file": "props/cardboard-box-open.glb",
+      "available": true,
+      "bytes": 5404,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "cardboardBoxOpen.glb",
+      "bbox": {
+        "min": [
+          -0.08,
+          0,
+          -0.212
+        ],
+        "max": [
+          0.292,
+          0.281,
+          0
+        ],
+        "size": [
+          0.372,
+          0.281,
+          0.212
+        ]
+      },
+      "pivotOffset": [
+        -0.106,
+        0,
+        0.106
+      ],
+      "recommendedScale": 1
+    },
+    "lounge-sofa": {
+      "id": "lounge-sofa",
+      "file": "props/lounge-sofa.glb",
+      "available": true,
+      "bytes": 9644,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "loungeSofa.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.41
+        ],
+        "max": [
+          0.98,
+          0.46,
+          0
+        ],
+        "size": [
+          0.98,
+          0.46,
+          0.41
+        ]
+      },
+      "pivotOffset": [
+        -0.49,
+        0,
+        0.205
+      ],
+      "recommendedScale": 1
+    },
+    "lounge-design-sofa": {
+      "id": "lounge-design-sofa",
+      "file": "props/lounge-design-sofa.glb",
+      "available": true,
+      "bytes": 9128,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "loungeDesignSofa.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.41
+        ],
+        "max": [
+          1.12,
+          0.4,
+          0
+        ],
+        "size": [
+          1.12,
+          0.4,
+          0.41
+        ]
+      },
+      "pivotOffset": [
+        -0.56,
+        0,
+        0.205
+      ],
+      "recommendedScale": 1
+    },
+    "lounge-chair": {
+      "id": "lounge-chair",
+      "file": "props/lounge-chair.glb",
+      "available": true,
+      "bytes": 9648,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "loungeChair.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.41
+        ],
+        "max": [
+          0.49,
+          0.46,
+          0
+        ],
+        "size": [
+          0.49,
+          0.46,
+          0.41
+        ]
+      },
+      "pivotOffset": [
+        -0.245,
+        0,
+        0.205
+      ],
+      "recommendedScale": 1
+    },
+    "lounge-chair-relax": {
+      "id": "lounge-chair-relax",
+      "file": "props/lounge-chair-relax.glb",
+      "available": true,
+      "bytes": 13904,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "loungeChairRelax.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.675
+        ],
+        "max": [
+          0.49,
+          0.63,
+          0
+        ],
+        "size": [
+          0.49,
+          0.63,
+          0.675
+        ]
+      },
+      "pivotOffset": [
+        -0.245,
+        0,
+        0.338
+      ],
+      "recommendedScale": 1
+    },
+    "table-coffee": {
+      "id": "table-coffee",
+      "file": "props/table-coffee.glb",
+      "available": true,
+      "bytes": 8256,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "tableCoffee.glb",
+      "bbox": {
+        "min": [
+          -0.461,
+          0,
+          -0.3
+        ],
+        "max": [
+          0.2,
+          0.23,
+          0.1
+        ],
+        "size": [
+          0.661,
+          0.23,
+          0.4
+        ]
+      },
+      "pivotOffset": [
+        0.131,
+        0,
+        0.1
+      ],
+      "recommendedScale": 1
+    },
+    "cabinet-television": {
+      "id": "cabinet-television",
+      "file": "props/cabinet-television.glb",
+      "available": true,
+      "bytes": 10524,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "cabinetTelevision.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.25
+        ],
+        "max": [
+          0.8,
+          0.31,
+          0
+        ],
+        "size": [
+          0.8,
+          0.31,
+          0.25
+        ]
+      },
+      "pivotOffset": [
+        -0.4,
+        0,
+        0.125
+      ],
+      "recommendedScale": 1
+    },
+    "television-vintage": {
+      "id": "television-vintage",
+      "file": "props/television-vintage.glb",
+      "available": true,
+      "bytes": 19392,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "televisionVintage.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.27
+        ],
+        "max": [
+          0.41,
+          0.27,
+          0
+        ],
+        "size": [
+          0.41,
+          0.27,
+          0.27
+        ]
+      },
+      "pivotOffset": [
+        -0.205,
+        0,
+        0.135
+      ],
+      "recommendedScale": 1
+    },
+    "television-modern": {
+      "id": "television-modern",
+      "file": "props/television-modern.glb",
+      "available": true,
+      "bytes": 6368,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "televisionModern.glb",
+      "bbox": {
+        "min": [
+          -0.342,
+          0,
+          -0.064
+        ],
+        "max": [
+          0.342,
+          0.455,
+          0.064
+        ],
+        "size": [
+          0.685,
+          0.455,
+          0.128
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        0
+      ],
+      "recommendedScale": 1
+    },
+    "pillow": {
+      "id": "pillow",
+      "file": "props/pillow.glb",
+      "available": true,
+      "bytes": 5044,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "pillow.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.088
+        ],
+        "max": [
+          0.23,
+          0.222,
+          0
+        ],
+        "size": [
+          0.23,
+          0.222,
+          0.088
+        ]
+      },
+      "pivotOffset": [
+        -0.115,
+        0,
+        0.044
+      ],
+      "recommendedScale": 1
+    },
+    "pillow-blue": {
+      "id": "pillow-blue",
+      "file": "props/pillow-blue.glb",
+      "available": true,
+      "bytes": 5056,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "pillowBlue.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.063
+        ],
+        "max": [
+          0.23,
+          0.129,
+          0
+        ],
+        "size": [
+          0.23,
+          0.129,
+          0.063
+        ]
+      },
+      "pivotOffset": [
+        -0.115,
+        0,
+        0.032
+      ],
+      "recommendedScale": 1
+    },
+    "table-round": {
+      "id": "table-round",
+      "file": "props/table-round.glb",
+      "available": true,
+      "bytes": 6444,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "tableRound.glb",
+      "bbox": {
+        "min": [
+          0,
+          -0.27,
+          -0.8
+        ],
+        "max": [
+          0.693,
+          0.097,
+          0
+        ],
+        "size": [
+          0.693,
+          0.367,
+          0.8
+        ]
+      },
+      "pivotOffset": [
+        -0.346,
+        0.27,
+        0.4
+      ],
+      "recommendedScale": 1
+    },
+    "table": {
+      "id": "table",
+      "file": "props/table.glb",
+      "available": true,
+      "bytes": 8196,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "table.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.447
+        ],
+        "max": [
+          0.841,
+          0.327,
+          0
+        ],
+        "size": [
+          0.841,
+          0.327,
+          0.447
+        ]
+      },
+      "pivotOffset": [
+        -0.42,
+        0,
+        0.224
+      ],
+      "recommendedScale": 1
+    },
+    "table-cloth": {
+      "id": "table-cloth",
+      "file": "props/table-cloth.glb",
+      "available": true,
+      "bytes": 9920,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "tableCloth.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.447
+        ],
+        "max": [
+          0.841,
+          0.327,
+          0
+        ],
+        "size": [
+          0.841,
+          0.327,
+          0.447
+        ]
+      },
+      "pivotOffset": [
+        -0.42,
+        0,
+        0.224
+      ],
+      "recommendedScale": 1
+    },
+    "table-cross": {
+      "id": "table-cross",
+      "file": "props/table-cross.glb",
+      "available": true,
+      "bytes": 12140,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "tableCross.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.447
+        ],
+        "max": [
+          0.852,
+          0.347,
+          0
+        ],
+        "size": [
+          0.852,
+          0.347,
+          0.447
+        ]
+      },
+      "pivotOffset": [
+        -0.426,
+        0,
+        0.224
+      ],
+      "recommendedScale": 1
+    },
+    "chair": {
+      "id": "chair",
+      "file": "props/chair.glb",
+      "available": true,
+      "bytes": 10756,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "chair.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.2
+        ],
+        "max": [
+          0.2,
+          0.47,
+          0
+        ],
+        "size": [
+          0.2,
+          0.47,
+          0.2
+        ]
+      },
+      "pivotOffset": [
+        -0.1,
+        0,
+        0.1
+      ],
+      "recommendedScale": 1
+    },
+    "chair-cushion": {
+      "id": "chair-cushion",
+      "file": "props/chair-cushion.glb",
+      "available": true,
+      "bytes": 12588,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "chairCushion.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.2
+        ],
+        "max": [
+          0.2,
+          0.46,
+          0
+        ],
+        "size": [
+          0.2,
+          0.46,
+          0.2
+        ]
+      },
+      "pivotOffset": [
+        -0.1,
+        0,
+        0.1
+      ],
+      "recommendedScale": 1
+    },
+    "chair-rounded": {
+      "id": "chair-rounded",
+      "file": "props/chair-rounded.glb",
+      "available": true,
+      "bytes": 17156,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "chairRounded.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.2
+        ],
+        "max": [
+          0.2,
+          0.455,
+          0
+        ],
+        "size": [
+          0.2,
+          0.455,
+          0.2
+        ]
+      },
+      "pivotOffset": [
+        -0.1,
+        0,
+        0.1
+      ],
+      "recommendedScale": 1
+    },
+    "chair-modern-cushion": {
+      "id": "chair-modern-cushion",
+      "file": "props/chair-modern-cushion.glb",
+      "available": true,
+      "bytes": 7376,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "chairModernCushion.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.2
+        ],
+        "max": [
+          0.2,
+          0.46,
+          0
+        ],
+        "size": [
+          0.2,
+          0.46,
+          0.2
+        ]
+      },
+      "pivotOffset": [
+        -0.1,
+        0,
+        0.1
+      ],
+      "recommendedScale": 1
+    },
+    "stool-bar": {
+      "id": "stool-bar",
+      "file": "props/stool-bar.glb",
+      "available": true,
+      "bytes": 11816,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "stoolBar.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.23
+        ],
+        "max": [
+          0.265,
+          0.435,
+          0
+        ],
+        "size": [
+          0.265,
+          0.435,
+          0.23
+        ]
+      },
+      "pivotOffset": [
+        -0.132,
+        0,
+        0.115
+      ],
+      "recommendedScale": 1
+    },
+    "kitchen-bar": {
+      "id": "kitchen-bar",
+      "file": "props/kitchen-bar.glb",
+      "available": true,
+      "bytes": 6004,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "kitchenBar.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.21
+        ],
+        "max": [
+          0.43,
+          0.42,
+          0
+        ],
+        "size": [
+          0.43,
+          0.42,
+          0.21
+        ]
+      },
+      "pivotOffset": [
+        -0.215,
+        0,
+        0.105
+      ],
+      "recommendedScale": 1
+    },
+    "kitchen-bar-end": {
+      "id": "kitchen-bar-end",
+      "file": "props/kitchen-bar-end.glb",
+      "available": true,
+      "bytes": 11084,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "kitchenBarEnd.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.21
+        ],
+        "max": [
+          0.102,
+          0.42,
+          0
+        ],
+        "size": [
+          0.102,
+          0.42,
+          0.21
+        ]
+      },
+      "pivotOffset": [
+        -0.051,
+        0,
+        0.105
+      ],
+      "recommendedScale": 1
+    },
+    "kitchen-coffee-machine": {
+      "id": "kitchen-coffee-machine",
+      "file": "props/kitchen-coffee-machine.glb",
+      "available": true,
+      "bytes": 13332,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "kitchenCoffeeMachine.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.24
+        ],
+        "max": [
+          0.19,
+          0.177,
+          0
+        ],
+        "size": [
+          0.19,
+          0.177,
+          0.24
+        ]
+      },
+      "pivotOffset": [
+        -0.095,
+        0,
+        0.12
+      ],
+      "recommendedScale": 1
+    },
+    "kitchen-blender": {
+      "id": "kitchen-blender",
+      "file": "props/kitchen-blender.glb",
+      "available": true,
+      "bytes": 18728,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "kitchenBlender.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.109
+        ],
+        "max": [
+          0.136,
+          0.228,
+          0
+        ],
+        "size": [
+          0.136,
+          0.228,
+          0.109
+        ]
+      },
+      "pivotOffset": [
+        -0.068,
+        0,
+        0.055
+      ],
+      "recommendedScale": 1
+    },
+    "kitchen-cabinet-upper": {
+      "id": "kitchen-cabinet-upper",
+      "file": "props/kitchen-cabinet-upper.glb",
+      "available": true,
+      "bytes": 8168,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "kitchenCabinetUpper.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.21
+        ],
+        "max": [
+          0.43,
+          0.39,
+          0.01
+        ],
+        "size": [
+          0.43,
+          0.39,
+          0.22
+        ]
+      },
+      "pivotOffset": [
+        -0.215,
+        0,
+        0.1
+      ],
+      "recommendedScale": 1
+    },
+    "toaster": {
+      "id": "toaster",
+      "file": "props/toaster.glb",
+      "available": true,
+      "bytes": 14924,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "toaster.glb",
+      "bbox": {
+        "min": [
+          -0.094,
+          0,
+          -0.05
+        ],
+        "max": [
+          0.094,
+          0.13,
+          0.05
+        ],
+        "size": [
+          0.188,
+          0.13,
+          0.1
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        0
+      ],
+      "recommendedScale": 1
+    },
+    "bench-cushion": {
+      "id": "bench-cushion",
+      "file": "props/bench-cushion.glb",
+      "available": true,
+      "bytes": 12500,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "benchCushion.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.2
+        ],
+        "max": [
+          0.4,
+          0.46,
+          0
+        ],
+        "size": [
+          0.4,
+          0.46,
+          0.2
+        ]
+      },
+      "pivotOffset": [
+        -0.2,
+        0,
+        0.1
+      ],
+      "recommendedScale": 1
+    },
+    "trashcan": {
+      "id": "trashcan",
+      "file": "props/trashcan.glb",
+      "available": true,
+      "bytes": 6452,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "trashcan.glb",
+      "bbox": {
+        "min": [
+          -0.104,
+          0,
+          -0.112
+        ],
+        "max": [
+          0.104,
+          0.428,
+          0.122
+        ],
+        "size": [
+          0.208,
+          0.428,
+          0.234
+        ]
+      },
+      "pivotOffset": [
+        0,
+        0,
+        -0.005
+      ],
+      "recommendedScale": 1
+    },
+    "bear": {
+      "id": "bear",
+      "file": "props/bear.glb",
+      "available": true,
+      "bytes": 11884,
+      "source": "Kenney Furniture Kit",
+      "license": "CC0",
+      "sourceFile": "bear.glb",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          -0.247
+        ],
+        "max": [
+          0.39,
+          0.45,
+          0
+        ],
+        "size": [
+          0.39,
+          0.45,
+          0.248
+        ]
+      },
+      "pivotOffset": [
+        -0.195,
+        0,
+        0.124
+      ],
+      "recommendedScale": 1
+    }
+  },
+  "themes": {
+    "studio": {
+      "label": "작업실 (Alice My Room)",
+      "props": [
+        {
+          "id": "desk",
+          "file": "props/desk.glb",
+          "available": true,
+          "bytes": 15048,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "desk.glb",
+          "bbox": {
+            "min": [
+              -0.01,
+              0,
+              -0.38
+            ],
+            "max": [
+              0.724,
+              0.384,
+              0.012
+            ],
+            "size": [
+              0.734,
+              0.384,
+              0.392
+            ]
+          },
+          "pivotOffset": [
+            -0.357,
+            0,
+            0.184
+          ],
+          "recommendedScale": 1,
+          "role": "메인 책상"
+        },
+        {
+          "id": "chair-desk",
+          "file": "props/chair-desk.glb",
+          "available": true,
+          "bytes": 39016,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "chairDesk.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.314
+            ],
+            "max": [
+              0.335,
+              0.608,
+              0
+            ],
+            "size": [
+              0.335,
+              0.608,
+              0.314
+            ]
+          },
+          "pivotOffset": [
+            -0.167,
+            0,
+            0.157
+          ],
+          "recommendedScale": 1,
+          "role": "책상 의자"
+        },
+        {
+          "id": "computer-screen",
+          "file": "props/computer-screen.glb",
+          "available": true,
+          "bytes": 6404,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "computerScreen.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.104
+            ],
+            "max": [
+              0.393,
+              0.294,
+              0
+            ],
+            "size": [
+              0.393,
+              0.294,
+              0.104
+            ]
+          },
+          "pivotOffset": [
+            -0.196,
+            0,
+            0.052
+          ],
+          "recommendedScale": 1,
+          "role": "책상 위 모니터"
+        },
+        {
+          "id": "computer-keyboard",
+          "file": "props/computer-keyboard.glb",
+          "available": true,
+          "bytes": 3476,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "computerKeyboard.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.118
+            ],
+            "max": [
+              0.282,
+              0.028,
+              0
+            ],
+            "size": [
+              0.282,
+              0.028,
+              0.118
+            ]
+          },
+          "pivotOffset": [
+            -0.141,
+            0,
+            0.059
+          ],
+          "recommendedScale": 1,
+          "role": "책상 위 키보드"
+        },
+        {
+          "id": "computer-mouse",
+          "file": "props/computer-mouse.glb",
+          "available": true,
+          "bytes": 5868,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "computerMouse.glb",
+          "bbox": {
+            "min": [
+              -0.025,
+              0,
+              -0.085
+            ],
+            "max": [
+              0.025,
+              0.024,
+              0
+            ],
+            "size": [
+              0.05,
+              0.024,
+              0.085
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            0.043
+          ],
+          "recommendedScale": 1,
+          "role": "책상 위 마우스"
+        },
+        {
+          "id": "laptop",
+          "file": "props/laptop.glb",
+          "available": true,
+          "bytes": 5540,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "laptop.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.24
+            ],
+            "max": [
+              0.264,
+              0.162,
+              0
+            ],
+            "size": [
+              0.264,
+              0.162,
+              0.24
+            ]
+          },
+          "pivotOffset": [
+            -0.132,
+            0,
+            0.12
+          ],
+          "recommendedScale": 1,
+          "role": "보조 노트북 (선택)"
+        },
+        {
+          "id": "bookcase-open",
+          "file": "props/bookcase-open.glb",
+          "available": true,
+          "bytes": 18020,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "bookcaseOpen.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.25
+            ],
+            "max": [
+              0.4,
+              0.88,
+              0
+            ],
+            "size": [
+              0.4,
+              0.88,
+              0.25
+            ]
+          },
+          "pivotOffset": [
+            -0.2,
+            0,
+            0.125
+          ],
+          "recommendedScale": 1,
+          "role": "벽 책장 (기억 선반 후보)"
+        },
+        {
+          "id": "books",
+          "file": "props/books.glb",
+          "available": true,
+          "bytes": 6864,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "books.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.094
+            ],
+            "max": [
+              0.15,
+              0.104,
+              0
+            ],
+            "size": [
+              0.15,
+              0.104,
+              0.095
+            ]
+          },
+          "pivotOffset": [
+            -0.075,
+            0,
+            0.047
+          ],
+          "recommendedScale": 1,
+          "role": "책상/선반 위 책 더미"
+        },
+        {
+          "id": "lamp-square-table",
+          "file": "props/lamp-square-table.glb",
+          "available": true,
+          "bytes": 5624,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "lampSquareTable.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.12
+            ],
+            "max": [
+              0.12,
+              0.29,
+              0
+            ],
+            "size": [
+              0.12,
+              0.29,
+              0.12
+            ]
+          },
+          "pivotOffset": [
+            -0.06,
+            0,
+            0.06
+          ],
+          "recommendedScale": 1,
+          "role": "책상 스탠드 (InteriorLights 연동)"
+        },
+        {
+          "id": "lamp-round-floor",
+          "file": "props/lamp-round-floor.glb",
+          "available": true,
+          "bytes": 6600,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "lampRoundFloor.glb",
+          "bbox": {
+            "min": [
+              -0.016,
+              0,
+              -0.148
+            ],
+            "max": [
+              0.136,
+              0.86,
+              0.028
+            ],
+            "size": [
+              0.152,
+              0.86,
+              0.176
+            ]
+          },
+          "pivotOffset": [
+            -0.06,
+            0,
+            0.06
+          ],
+          "recommendedScale": 1,
+          "role": "구석 플로어 스탠드"
+        },
+        {
+          "id": "potted-plant",
+          "file": "props/potted-plant.glb",
+          "available": true,
+          "bytes": 7576,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "pottedPlant.glb",
+          "bbox": {
+            "min": [
+              -0.106,
+              0,
+              -0.121
+            ],
+            "max": [
+              0.106,
+              0.654,
+              0.121
+            ],
+            "size": [
+              0.212,
+              0.654,
+              0.241
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            0
+          ],
+          "recommendedScale": 1,
+          "role": "화분"
+        },
+        {
+          "id": "rug-rectangle",
+          "file": "props/rug-rectangle.glb",
+          "available": true,
+          "bytes": 3188,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "rugRectangle.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.92
+            ],
+            "max": [
+              1.57,
+              0.01,
+              0
+            ],
+            "size": [
+              1.57,
+              0.01,
+              0.92
+            ]
+          },
+          "pivotOffset": [
+            -0.785,
+            0,
+            0.46
+          ],
+          "recommendedScale": 1,
+          "role": "바닥 러그"
+        },
+        {
+          "id": "speaker",
+          "file": "props/speaker.glb",
+          "available": true,
+          "bytes": 15744,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "speaker.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.148
+            ],
+            "max": [
+              0.148,
+              0.636,
+              0
+            ],
+            "size": [
+              0.148,
+              0.636,
+              0.148
+            ]
+          },
+          "pivotOffset": [
+            -0.074,
+            0,
+            0.074
+          ],
+          "recommendedScale": 1,
+          "role": "스피커"
+        },
+        {
+          "id": "side-table",
+          "file": "props/side-table.glb",
+          "available": true,
+          "bytes": 8800,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "sideTable.glb",
+          "bbox": {
+            "min": [
+              -0.01,
+              0,
+              -0.21
+            ],
+            "max": [
+              0.524,
+              0.384,
+              0.01
+            ],
+            "size": [
+              0.534,
+              0.384,
+              0.22
+            ]
+          },
+          "pivotOffset": [
+            -0.257,
+            0,
+            0.1
+          ],
+          "recommendedScale": 1,
+          "role": "보조 테이블"
+        },
+        {
+          "id": "coat-rack-standing",
+          "file": "props/coat-rack-standing.glb",
+          "available": true,
+          "bytes": 13288,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "coatRackStanding.glb",
+          "bbox": {
+            "min": [
+              -0.136,
+              0,
+              -0.136
+            ],
+            "max": [
+              0.136,
+              0.77,
+              0.136
+            ],
+            "size": [
+              0.273,
+              0.77,
+              0.273
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            0
+          ],
+          "recommendedScale": 1,
+          "role": "코트 걸이 (문 근처)"
+        },
+        {
+          "id": "cardboard-box-open",
+          "file": "props/cardboard-box-open.glb",
+          "available": true,
+          "bytes": 5404,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "cardboardBoxOpen.glb",
+          "bbox": {
+            "min": [
+              -0.08,
+              0,
+              -0.212
+            ],
+            "max": [
+              0.292,
+              0.281,
+              0
+            ],
+            "size": [
+              0.372,
+              0.281,
+              0.212
+            ]
+          },
+          "pivotOffset": [
+            -0.106,
+            0,
+            0.106
+          ],
+          "recommendedScale": 1,
+          "role": "잡동사니 박스"
+        }
+      ]
+    },
+    "lounge": {
+      "label": "라운지·서재 (Bob My Room)",
+      "props": [
+        {
+          "id": "lounge-sofa",
+          "file": "props/lounge-sofa.glb",
+          "available": true,
+          "bytes": 9644,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "loungeSofa.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.41
+            ],
+            "max": [
+              0.98,
+              0.46,
+              0
+            ],
+            "size": [
+              0.98,
+              0.46,
+              0.41
+            ]
+          },
+          "pivotOffset": [
+            -0.49,
+            0,
+            0.205
+          ],
+          "recommendedScale": 1,
+          "role": "메인 소파"
+        },
+        {
+          "id": "lounge-design-sofa",
+          "file": "props/lounge-design-sofa.glb",
+          "available": true,
+          "bytes": 9128,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "loungeDesignSofa.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.41
+            ],
+            "max": [
+              1.12,
+              0.4,
+              0
+            ],
+            "size": [
+              1.12,
+              0.4,
+              0.41
+            ]
+          },
+          "pivotOffset": [
+            -0.56,
+            0,
+            0.205
+          ],
+          "recommendedScale": 1,
+          "role": "보조 소파 (선택)"
+        },
+        {
+          "id": "lounge-chair",
+          "file": "props/lounge-chair.glb",
+          "available": true,
+          "bytes": 9648,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "loungeChair.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.41
+            ],
+            "max": [
+              0.49,
+              0.46,
+              0
+            ],
+            "size": [
+              0.49,
+              0.46,
+              0.41
+            ]
+          },
+          "pivotOffset": [
+            -0.245,
+            0,
+            0.205
+          ],
+          "recommendedScale": 1,
+          "role": "1인 라운지 의자"
+        },
+        {
+          "id": "lounge-chair-relax",
+          "file": "props/lounge-chair-relax.glb",
+          "available": true,
+          "bytes": 13904,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "loungeChairRelax.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.675
+            ],
+            "max": [
+              0.49,
+              0.63,
+              0
+            ],
+            "size": [
+              0.49,
+              0.63,
+              0.675
+            ]
+          },
+          "pivotOffset": [
+            -0.245,
+            0,
+            0.338
+          ],
+          "recommendedScale": 1,
+          "role": "리클라이너 풍 의자"
+        },
+        {
+          "id": "table-coffee",
+          "file": "props/table-coffee.glb",
+          "available": true,
+          "bytes": 8256,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "tableCoffee.glb",
+          "bbox": {
+            "min": [
+              -0.461,
+              0,
+              -0.3
+            ],
+            "max": [
+              0.2,
+              0.23,
+              0.1
+            ],
+            "size": [
+              0.661,
+              0.23,
+              0.4
+            ]
+          },
+          "pivotOffset": [
+            0.131,
+            0,
+            0.1
+          ],
+          "recommendedScale": 1,
+          "role": "소파 앞 커피 테이블"
+        },
+        {
+          "id": "bookcase-closed-wide",
+          "file": "props/bookcase-closed-wide.glb",
+          "available": true,
+          "bytes": 23140,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "bookcaseClosedWide.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.25
+            ],
+            "max": [
+              0.8,
+              0.79,
+              0
+            ],
+            "size": [
+              0.8,
+              0.79,
+              0.25
+            ]
+          },
+          "pivotOffset": [
+            -0.4,
+            0,
+            0.125
+          ],
+          "recommendedScale": 1,
+          "role": "서재 와이드 책장 (기억 선반 후보)"
+        },
+        {
+          "id": "bookcase-closed",
+          "file": "props/bookcase-closed.glb",
+          "available": true,
+          "bytes": 23132,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "bookcaseClosed.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.25
+            ],
+            "max": [
+              0.4,
+              0.85,
+              0
+            ],
+            "size": [
+              0.4,
+              0.85,
+              0.25
+            ]
+          },
+          "pivotOffset": [
+            -0.2,
+            0,
+            0.125
+          ],
+          "recommendedScale": 1,
+          "role": "서재 책장"
+        },
+        {
+          "id": "books",
+          "file": "props/books.glb",
+          "available": true,
+          "bytes": 6864,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "books.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.094
+            ],
+            "max": [
+              0.15,
+              0.104,
+              0
+            ],
+            "size": [
+              0.15,
+              0.104,
+              0.095
+            ]
+          },
+          "pivotOffset": [
+            -0.075,
+            0,
+            0.047
+          ],
+          "recommendedScale": 1,
+          "role": "책 더미"
+        },
+        {
+          "id": "cabinet-television",
+          "file": "props/cabinet-television.glb",
+          "available": true,
+          "bytes": 10524,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "cabinetTelevision.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.25
+            ],
+            "max": [
+              0.8,
+              0.31,
+              0
+            ],
+            "size": [
+              0.8,
+              0.31,
+              0.25
+            ]
+          },
+          "pivotOffset": [
+            -0.4,
+            0,
+            0.125
+          ],
+          "recommendedScale": 1,
+          "role": "TV 장"
+        },
+        {
+          "id": "television-vintage",
+          "file": "props/television-vintage.glb",
+          "available": true,
+          "bytes": 19392,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "televisionVintage.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.27
+            ],
+            "max": [
+              0.41,
+              0.27,
+              0
+            ],
+            "size": [
+              0.41,
+              0.27,
+              0.27
+            ]
+          },
+          "pivotOffset": [
+            -0.205,
+            0,
+            0.135
+          ],
+          "recommendedScale": 1,
+          "role": "TV 장 위 빈티지 TV"
+        },
+        {
+          "id": "lamp-round-floor",
+          "file": "props/lamp-round-floor.glb",
+          "available": true,
+          "bytes": 6600,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "lampRoundFloor.glb",
+          "bbox": {
+            "min": [
+              -0.016,
+              0,
+              -0.148
+            ],
+            "max": [
+              0.136,
+              0.86,
+              0.028
+            ],
+            "size": [
+              0.152,
+              0.86,
+              0.176
+            ]
+          },
+          "pivotOffset": [
+            -0.06,
+            0,
+            0.06
+          ],
+          "recommendedScale": 1,
+          "role": "플로어 스탠드"
+        },
+        {
+          "id": "lamp-round-table",
+          "file": "props/lamp-round-table.glb",
+          "available": true,
+          "bytes": 6604,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "lampRoundTable.glb",
+          "bbox": {
+            "min": [
+              -0.016,
+              0,
+              -0.148
+            ],
+            "max": [
+              0.136,
+              0.314,
+              0.028
+            ],
+            "size": [
+              0.152,
+              0.314,
+              0.176
+            ]
+          },
+          "pivotOffset": [
+            -0.06,
+            0,
+            0.06
+          ],
+          "recommendedScale": 1,
+          "role": "사이드 테이블 스탠드"
+        },
+        {
+          "id": "side-table-drawers",
+          "file": "props/side-table-drawers.glb",
+          "available": true,
+          "bytes": 19072,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "sideTableDrawers.glb",
+          "bbox": {
+            "min": [
+              -0.01,
+              0,
+              -0.21
+            ],
+            "max": [
+              0.524,
+              0.384,
+              0.012
+            ],
+            "size": [
+              0.534,
+              0.384,
+              0.222
+            ]
+          },
+          "pivotOffset": [
+            -0.257,
+            0,
+            0.099
+          ],
+          "recommendedScale": 1,
+          "role": "사이드 테이블"
+        },
+        {
+          "id": "rug-round",
+          "file": "props/rug-round.glb",
+          "available": true,
+          "bytes": 10164,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "rugRound.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.92
+            ],
+            "max": [
+              0.92,
+              0.01,
+              0
+            ],
+            "size": [
+              0.92,
+              0.01,
+              0.92
+            ]
+          },
+          "pivotOffset": [
+            -0.46,
+            0,
+            0.46
+          ],
+          "recommendedScale": 1,
+          "role": "원형 러그"
+        },
+        {
+          "id": "pillow",
+          "file": "props/pillow.glb",
+          "available": true,
+          "bytes": 5044,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "pillow.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.088
+            ],
+            "max": [
+              0.23,
+              0.222,
+              0
+            ],
+            "size": [
+              0.23,
+              0.222,
+              0.088
+            ]
+          },
+          "pivotOffset": [
+            -0.115,
+            0,
+            0.044
+          ],
+          "recommendedScale": 1,
+          "role": "소파 쿠션"
+        },
+        {
+          "id": "pillow-blue",
+          "file": "props/pillow-blue.glb",
+          "available": true,
+          "bytes": 5056,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "pillowBlue.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.063
+            ],
+            "max": [
+              0.23,
+              0.129,
+              0
+            ],
+            "size": [
+              0.23,
+              0.129,
+              0.063
+            ]
+          },
+          "pivotOffset": [
+            -0.115,
+            0,
+            0.032
+          ],
+          "recommendedScale": 1,
+          "role": "소파 쿠션(파랑)"
+        },
+        {
+          "id": "potted-plant",
+          "file": "props/potted-plant.glb",
+          "available": true,
+          "bytes": 7576,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "pottedPlant.glb",
+          "bbox": {
+            "min": [
+              -0.106,
+              0,
+              -0.121
+            ],
+            "max": [
+              0.106,
+              0.654,
+              0.121
+            ],
+            "size": [
+              0.212,
+              0.654,
+              0.241
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            0
+          ],
+          "recommendedScale": 1,
+          "role": "화분"
+        },
+        {
+          "id": "plant-small-2",
+          "file": "props/plant-small-2.glb",
+          "available": true,
+          "bytes": 12996,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "plantSmall2.glb",
+          "bbox": {
+            "min": [
+              -0.047,
+              0,
+              -0.047
+            ],
+            "max": [
+              0.047,
+              0.14,
+              0.047
+            ],
+            "size": [
+              0.095,
+              0.14,
+              0.095
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            0
+          ],
+          "recommendedScale": 1,
+          "role": "작은 화분"
+        },
+        {
+          "id": "radio",
+          "file": "props/radio.glb",
+          "available": true,
+          "bytes": 25020,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "radio.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.098
+            ],
+            "max": [
+              0.315,
+              0.228,
+              0
+            ],
+            "size": [
+              0.315,
+              0.228,
+              0.098
+            ]
+          },
+          "pivotOffset": [
+            -0.157,
+            0,
+            0.049
+          ],
+          "recommendedScale": 1,
+          "role": "라디오"
+        },
+        {
+          "id": "speaker-small",
+          "file": "props/speaker-small.glb",
+          "available": true,
+          "bytes": 15244,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "speakerSmall.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.133
+            ],
+            "max": [
+              0.148,
+              0.298,
+              0
+            ],
+            "size": [
+              0.148,
+              0.298,
+              0.133
+            ]
+          },
+          "pivotOffset": [
+            -0.074,
+            0,
+            0.067
+          ],
+          "recommendedScale": 1,
+          "role": "작은 스피커"
+        }
+      ]
+    },
+    "cafe": {
+      "label": "카페 (Our Room 기본)",
+      "props": [
+        {
+          "id": "table-round",
+          "file": "props/table-round.glb",
+          "available": true,
+          "bytes": 6444,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "tableRound.glb",
+          "bbox": {
+            "min": [
+              0,
+              -0.27,
+              -0.8
+            ],
+            "max": [
+              0.693,
+              0.097,
+              0
+            ],
+            "size": [
+              0.693,
+              0.367,
+              0.8
+            ]
+          },
+          "pivotOffset": [
+            -0.346,
+            0.27,
+            0.4
+          ],
+          "recommendedScale": 1,
+          "role": "카페 원형 테이블"
+        },
+        {
+          "id": "chair-rounded",
+          "file": "props/chair-rounded.glb",
+          "available": true,
+          "bytes": 17156,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "chairRounded.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.2
+            ],
+            "max": [
+              0.2,
+              0.455,
+              0
+            ],
+            "size": [
+              0.2,
+              0.455,
+              0.2
+            ]
+          },
+          "pivotOffset": [
+            -0.1,
+            0,
+            0.1
+          ],
+          "recommendedScale": 1,
+          "role": "카페 의자"
+        },
+        {
+          "id": "chair",
+          "file": "props/chair.glb",
+          "available": true,
+          "bytes": 10756,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "chair.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.2
+            ],
+            "max": [
+              0.2,
+              0.47,
+              0
+            ],
+            "size": [
+              0.2,
+              0.47,
+              0.2
+            ]
+          },
+          "pivotOffset": [
+            -0.1,
+            0,
+            0.1
+          ],
+          "recommendedScale": 1,
+          "role": "카페 의자(대안)"
+        },
+        {
+          "id": "stool-bar",
+          "file": "props/stool-bar.glb",
+          "available": true,
+          "bytes": 11816,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "stoolBar.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.23
+            ],
+            "max": [
+              0.265,
+              0.435,
+              0
+            ],
+            "size": [
+              0.265,
+              0.435,
+              0.23
+            ]
+          },
+          "pivotOffset": [
+            -0.132,
+            0,
+            0.115
+          ],
+          "recommendedScale": 1,
+          "role": "바 스툴"
+        },
+        {
+          "id": "kitchen-bar",
+          "file": "props/kitchen-bar.glb",
+          "available": true,
+          "bytes": 6004,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "kitchenBar.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.21
+            ],
+            "max": [
+              0.43,
+              0.42,
+              0
+            ],
+            "size": [
+              0.43,
+              0.42,
+              0.21
+            ]
+          },
+          "pivotOffset": [
+            -0.215,
+            0,
+            0.105
+          ],
+          "recommendedScale": 1,
+          "role": "바 카운터"
+        },
+        {
+          "id": "kitchen-bar-end",
+          "file": "props/kitchen-bar-end.glb",
+          "available": true,
+          "bytes": 11084,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "kitchenBarEnd.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.21
+            ],
+            "max": [
+              0.102,
+              0.42,
+              0
+            ],
+            "size": [
+              0.102,
+              0.42,
+              0.21
+            ]
+          },
+          "pivotOffset": [
+            -0.051,
+            0,
+            0.105
+          ],
+          "recommendedScale": 1,
+          "role": "바 카운터 끝"
+        },
+        {
+          "id": "kitchen-coffee-machine",
+          "file": "props/kitchen-coffee-machine.glb",
+          "available": true,
+          "bytes": 13332,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "kitchenCoffeeMachine.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.24
+            ],
+            "max": [
+              0.19,
+              0.177,
+              0
+            ],
+            "size": [
+              0.19,
+              0.177,
+              0.24
+            ]
+          },
+          "pivotOffset": [
+            -0.095,
+            0,
+            0.12
+          ],
+          "recommendedScale": 1,
+          "role": "바 위 커피 머신 (계획의 프리미티브 에스프레소 머신 대안)"
+        },
+        {
+          "id": "kitchen-blender",
+          "file": "props/kitchen-blender.glb",
+          "available": true,
+          "bytes": 18728,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "kitchenBlender.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.109
+            ],
+            "max": [
+              0.136,
+              0.228,
+              0
+            ],
+            "size": [
+              0.136,
+              0.228,
+              0.109
+            ]
+          },
+          "pivotOffset": [
+            -0.068,
+            0,
+            0.055
+          ],
+          "recommendedScale": 1,
+          "role": "바 위 블렌더"
+        },
+        {
+          "id": "kitchen-cabinet-upper",
+          "file": "props/kitchen-cabinet-upper.glb",
+          "available": true,
+          "bytes": 8168,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "kitchenCabinetUpper.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.21
+            ],
+            "max": [
+              0.43,
+              0.39,
+              0.01
+            ],
+            "size": [
+              0.43,
+              0.39,
+              0.22
+            ]
+          },
+          "pivotOffset": [
+            -0.215,
+            0,
+            0.1
+          ],
+          "recommendedScale": 1,
+          "role": "벽 상부장"
+        },
+        {
+          "id": "toaster",
+          "file": "props/toaster.glb",
+          "available": true,
+          "bytes": 14924,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "toaster.glb",
+          "bbox": {
+            "min": [
+              -0.094,
+              0,
+              -0.05
+            ],
+            "max": [
+              0.094,
+              0.13,
+              0.05
+            ],
+            "size": [
+              0.188,
+              0.13,
+              0.1
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            0
+          ],
+          "recommendedScale": 1,
+          "role": "토스터"
+        },
+        {
+          "id": "bench-cushion",
+          "file": "props/bench-cushion.glb",
+          "available": true,
+          "bytes": 12500,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "benchCushion.glb",
+          "bbox": {
+            "min": [
+              0,
+              0,
+              -0.2
+            ],
+            "max": [
+              0.4,
+              0.46,
+              0
+            ],
+            "size": [
+              0.4,
+              0.46,
+              0.2
+            ]
+          },
+          "pivotOffset": [
+            -0.2,
+            0,
+            0.1
+          ],
+          "recommendedScale": 1,
+          "role": "벽 벤치"
+        },
+        {
+          "id": "table-coffee",
+          "file": "props/table-coffee.glb",
+          "available": true,
+          "bytes": 8256,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "tableCoffee.glb",
+          "bbox": {
+            "min": [
+              -0.461,
+              0,
+              -0.3
+            ],
+            "max": [
+              0.2,
+              0.23,
+              0.1
+            ],
+            "size": [
+              0.661,
+              0.23,
+              0.4
+            ]
+          },
+          "pivotOffset": [
+            0.131,
+            0,
+            0.1
+          ],
+          "recommendedScale": 1,
+          "role": "낮은 테이블"
+        },
+        {
+          "id": "lamp-wall",
+          "file": "props/lamp-wall.glb",
+          "available": true,
+          "bytes": 4828,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "lampWall.glb",
+          "bbox": {
+            "min": [
+              -0.113,
+              0,
+              0
+            ],
+            "max": [
+              0.113,
+              0.093,
+              0.15
+            ],
+            "size": [
+              0.227,
+              0.093,
+              0.15
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            -0.075
+          ],
+          "recommendedScale": 1,
+          "role": "벽 조명"
+        },
+        {
+          "id": "plant-small-3",
+          "file": "props/plant-small-3.glb",
+          "available": true,
+          "bytes": 8424,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "plantSmall3.glb",
+          "bbox": {
+            "min": [
+              -0.049,
+              0,
+              -0.042
+            ],
+            "max": [
+              0.049,
+              0.145,
+              0.042
+            ],
+            "size": [
+              0.098,
+              0.145,
+              0.085
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            0
+          ],
+          "recommendedScale": 1,
+          "role": "테이블 위 작은 화분"
+        },
+        {
+          "id": "potted-plant",
+          "file": "props/potted-plant.glb",
+          "available": true,
+          "bytes": 7576,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "pottedPlant.glb",
+          "bbox": {
+            "min": [
+              -0.106,
+              0,
+              -0.121
+            ],
+            "max": [
+              0.106,
+              0.654,
+              0.121
+            ],
+            "size": [
+              0.212,
+              0.654,
+              0.241
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            0
+          ],
+          "recommendedScale": 1,
+          "role": "화분"
+        },
+        {
+          "id": "trashcan",
+          "file": "props/trashcan.glb",
+          "available": true,
+          "bytes": 6452,
+          "source": "Kenney Furniture Kit",
+          "license": "CC0",
+          "sourceFile": "trashcan.glb",
+          "bbox": {
+            "min": [
+              -0.104,
+              0,
+              -0.112
+            ],
+            "max": [
+              0.104,
+              0.428,
+              0.122
+            ],
+            "size": [
+              0.208,
+              0.428,
+              0.234
+            ]
+          },
+          "pivotOffset": [
+            0,
+            0,
+            -0.005
+          ],
+          "recommendedScale": 1,
+          "role": "쓰레기통"
+        }
+      ],
+      "variants": {
+        "home": {
+          "label": "우리 가족: 식탁과 러그",
+          "props": [
+            {
+              "id": "table",
+              "file": "props/table.glb",
+              "available": true,
+              "bytes": 8196,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "table.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.447
+                ],
+                "max": [
+                  0.841,
+                  0.327,
+                  0
+                ],
+                "size": [
+                  0.841,
+                  0.327,
+                  0.447
+                ]
+              },
+              "pivotOffset": [
+                -0.42,
+                0,
+                0.224
+              ],
+              "recommendedScale": 1,
+              "role": "식탁"
+            },
+            {
+              "id": "table-cloth",
+              "file": "props/table-cloth.glb",
+              "available": true,
+              "bytes": 9920,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "tableCloth.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.447
+                ],
+                "max": [
+                  0.841,
+                  0.327,
+                  0
+                ],
+                "size": [
+                  0.841,
+                  0.327,
+                  0.447
+                ]
+              },
+              "pivotOffset": [
+                -0.42,
+                0,
+                0.224
+              ],
+              "recommendedScale": 1,
+              "role": "식탁(식탁보 버전)"
+            },
+            {
+              "id": "chair-cushion",
+              "file": "props/chair-cushion.glb",
+              "available": true,
+              "bytes": 12588,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "chairCushion.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.2
+                ],
+                "max": [
+                  0.2,
+                  0.46,
+                  0
+                ],
+                "size": [
+                  0.2,
+                  0.46,
+                  0.2
+                ]
+              },
+              "pivotOffset": [
+                -0.1,
+                0,
+                0.1
+              ],
+              "recommendedScale": 1,
+              "role": "식탁 의자"
+            },
+            {
+              "id": "rug-rectangle",
+              "file": "props/rug-rectangle.glb",
+              "available": true,
+              "bytes": 3188,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "rugRectangle.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.92
+                ],
+                "max": [
+                  1.57,
+                  0.01,
+                  0
+                ],
+                "size": [
+                  1.57,
+                  0.01,
+                  0.92
+                ]
+              },
+              "pivotOffset": [
+                -0.785,
+                0,
+                0.46
+              ],
+              "recommendedScale": 1,
+              "role": "식탁 아래 러그"
+            },
+            {
+              "id": "rug-round",
+              "file": "props/rug-round.glb",
+              "available": true,
+              "bytes": 10164,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "rugRound.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.92
+                ],
+                "max": [
+                  0.92,
+                  0.01,
+                  0
+                ],
+                "size": [
+                  0.92,
+                  0.01,
+                  0.92
+                ]
+              },
+              "pivotOffset": [
+                -0.46,
+                0,
+                0.46
+              ],
+              "recommendedScale": 1,
+              "role": "거실 쪽 원형 러그"
+            },
+            {
+              "id": "lamp-round-table",
+              "file": "props/lamp-round-table.glb",
+              "available": true,
+              "bytes": 6604,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "lampRoundTable.glb",
+              "bbox": {
+                "min": [
+                  -0.016,
+                  0,
+                  -0.148
+                ],
+                "max": [
+                  0.136,
+                  0.314,
+                  0.028
+                ],
+                "size": [
+                  0.152,
+                  0.314,
+                  0.176
+                ]
+              },
+              "pivotOffset": [
+                -0.06,
+                0,
+                0.06
+              ],
+              "recommendedScale": 1,
+              "role": "식탁 옆 스탠드"
+            },
+            {
+              "id": "pillow",
+              "file": "props/pillow.glb",
+              "available": true,
+              "bytes": 5044,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "pillow.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.088
+                ],
+                "max": [
+                  0.23,
+                  0.222,
+                  0
+                ],
+                "size": [
+                  0.23,
+                  0.222,
+                  0.088
+                ]
+              },
+              "pivotOffset": [
+                -0.115,
+                0,
+                0.044
+              ],
+              "recommendedScale": 1,
+              "role": "벤치 쿠션"
+            },
+            {
+              "id": "bear",
+              "file": "props/bear.glb",
+              "available": true,
+              "bytes": 11884,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "bear.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.247
+                ],
+                "max": [
+                  0.39,
+                  0.45,
+                  0
+                ],
+                "size": [
+                  0.39,
+                  0.45,
+                  0.248
+                ]
+              },
+              "pivotOffset": [
+                -0.195,
+                0,
+                0.124
+              ],
+              "recommendedScale": 1,
+              "role": "곰 인형 (가정 분위기)"
+            }
+          ],
+          "primitives": []
+        },
+        "meeting": {
+          "label": "팀: 긴 테이블과 화이트보드",
+          "props": [
+            {
+              "id": "table-cross",
+              "file": "props/table-cross.glb",
+              "available": true,
+              "bytes": 12140,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "tableCross.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.447
+                ],
+                "max": [
+                  0.852,
+                  0.347,
+                  0
+                ],
+                "size": [
+                  0.852,
+                  0.347,
+                  0.447
+                ]
+              },
+              "pivotOffset": [
+                -0.426,
+                0,
+                0.224
+              ],
+              "recommendedScale": 1,
+              "role": "긴 회의 테이블 (스케일 X로 늘려 쓰거나 2개 이어 붙임)"
+            },
+            {
+              "id": "chair-modern-cushion",
+              "file": "props/chair-modern-cushion.glb",
+              "available": true,
+              "bytes": 7376,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "chairModernCushion.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.2
+                ],
+                "max": [
+                  0.2,
+                  0.46,
+                  0
+                ],
+                "size": [
+                  0.2,
+                  0.46,
+                  0.2
+                ]
+              },
+              "pivotOffset": [
+                -0.1,
+                0,
+                0.1
+              ],
+              "recommendedScale": 1,
+              "role": "회의 의자"
+            },
+            {
+              "id": "chair-desk",
+              "file": "props/chair-desk.glb",
+              "available": true,
+              "bytes": 39016,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "chairDesk.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.314
+                ],
+                "max": [
+                  0.335,
+                  0.608,
+                  0
+                ],
+                "size": [
+                  0.335,
+                  0.608,
+                  0.314
+                ]
+              },
+              "pivotOffset": [
+                -0.167,
+                0,
+                0.157
+              ],
+              "recommendedScale": 1,
+              "role": "회의 의자(대안)"
+            },
+            {
+              "id": "television-modern",
+              "file": "props/television-modern.glb",
+              "available": true,
+              "bytes": 6368,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "televisionModern.glb",
+              "bbox": {
+                "min": [
+                  -0.342,
+                  0,
+                  -0.064
+                ],
+                "max": [
+                  0.342,
+                  0.455,
+                  0.064
+                ],
+                "size": [
+                  0.685,
+                  0.455,
+                  0.128
+                ]
+              },
+              "pivotOffset": [
+                0,
+                0,
+                0
+              ],
+              "recommendedScale": 1,
+              "role": "벽 프레젠테이션 화면"
+            },
+            {
+              "id": "laptop",
+              "file": "props/laptop.glb",
+              "available": true,
+              "bytes": 5540,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "laptop.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.24
+                ],
+                "max": [
+                  0.264,
+                  0.162,
+                  0
+                ],
+                "size": [
+                  0.264,
+                  0.162,
+                  0.24
+                ]
+              },
+              "pivotOffset": [
+                -0.132,
+                0,
+                0.12
+              ],
+              "recommendedScale": 1,
+              "role": "테이블 위 노트북"
+            },
+            {
+              "id": "speaker",
+              "file": "props/speaker.glb",
+              "available": true,
+              "bytes": 15744,
+              "source": "Kenney Furniture Kit",
+              "license": "CC0",
+              "sourceFile": "speaker.glb",
+              "bbox": {
+                "min": [
+                  0,
+                  0,
+                  -0.148
+                ],
+                "max": [
+                  0.148,
+                  0.636,
+                  0
+                ],
+                "size": [
+                  0.148,
+                  0.636,
+                  0.148
+                ]
+              },
+              "pivotOffset": [
+                -0.074,
+                0,
+                0.074
+              ],
+              "recommendedScale": 1,
+              "role": "스피커"
+            }
+          ],
+          "primitives": [
+            "whiteboard"
+          ]
+        }
+      }
+    }
+  },
+  "primitives": [
+    "capsule-shell",
+    "base-tray",
+    "seam-ring",
+    "pendant-bulb",
+    "pebbles",
+    "bread-dessert",
+    "arch-shelf",
+    "picture-frame(board card)",
+    "whiteboard",
+    "espresso-machine(대안: kitchen-coffee-machine)"
+  ],
+  "hdri": {
+    "file": "hdri/sunset_1k.hdr",
+    "available": true,
+    "bytes": 1440400,
+    "resolution": "1k",
+    "source": "Poly Haven venice_sunset",
+    "license": "CC0",
+    "author": "Greg Zaal",
+    "url": "https://polyhaven.com/a/venice_sunset",
+    "fallback": null,
+    "fallbackNote": null
+  },
+  "textures": {
+    "sand": {
+      "available": true,
+      "resolution": "1k",
+      "source": "Poly Haven sand_01",
+      "license": "CC0",
+      "author": "Rob Tuytel",
+      "url": "https://polyhaven.com/a/sand_01",
+      "maps": {
+        "diffuse": "textures/sand_diff_1k.jpg",
+        "normal": "textures/sand_nor_gl_1k.jpg",
+        "roughness": "textures/sand_rough_1k.jpg"
+      },
+      "bytes": 1552576,
+      "fallback": null
+    }
+  },
+  "fonts": {
+    "sign": {
+      "file": "fonts/NotoSansKR-Bold-subset.ttf",
+      "available": true,
+      "bytes": 456548,
+      "family": "Noto Sans KR",
+      "weight": 700,
+      "license": "OFL-1.1",
+      "licenseFile": "fonts/OFL.txt",
+      "url": "https://github.com/google/fonts/tree/main/ofl/notosanskr",
+      "coverage": "ASCII, Latin-1, 호환 자모, KS X 1001 한글 2350자",
+      "fallback": null
+    }
+  }
+}

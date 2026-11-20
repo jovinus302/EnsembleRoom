@@ -1,0 +1,208 @@
+{
+  "_comment": "S14 입력 목록. src는 assets-src/<source dir> 기준 상대경로. 소품은 Kenney Furniture Kit(CC0)의 GLB를 그대로 복사한다(원본이 이미 2~72KB라 최적화 불필요). themes는 3D 단계(S15~S17)가 쓸 소품 배치 후보와 역할이다.",
+  "kenney": {
+    "dir": "kenney-furniture-kit",
+    "zip": "kit.zip",
+    "zipGlbPrefix": "Models/GLTF format/",
+    "license": "CC0",
+    "source": "Kenney Furniture Kit"
+  },
+  "props": [
+    { "id": "desk", "src": "desk.glb", "out": "desk.glb" },
+    { "id": "desk-corner", "src": "deskCorner.glb", "out": "desk-corner.glb" },
+    { "id": "chair-desk", "src": "chairDesk.glb", "out": "chair-desk.glb" },
+    { "id": "computer-screen", "src": "computerScreen.glb", "out": "computer-screen.glb" },
+    { "id": "computer-keyboard", "src": "computerKeyboard.glb", "out": "computer-keyboard.glb" },
+    { "id": "computer-mouse", "src": "computerMouse.glb", "out": "computer-mouse.glb" },
+    { "id": "laptop", "src": "laptop.glb", "out": "laptop.glb" },
+    { "id": "bookcase-open", "src": "bookcaseOpen.glb", "out": "bookcase-open.glb" },
+    { "id": "bookcase-open-low", "src": "bookcaseOpenLow.glb", "out": "bookcase-open-low.glb" },
+    { "id": "bookcase-closed", "src": "bookcaseClosed.glb", "out": "bookcase-closed.glb" },
+    { "id": "bookcase-closed-wide", "src": "bookcaseClosedWide.glb", "out": "bookcase-closed-wide.glb" },
+    { "id": "books", "src": "books.glb", "out": "books.glb" },
+    { "id": "lamp-square-table", "src": "lampSquareTable.glb", "out": "lamp-square-table.glb" },
+    { "id": "lamp-round-table", "src": "lampRoundTable.glb", "out": "lamp-round-table.glb" },
+    { "id": "lamp-round-floor", "src": "lampRoundFloor.glb", "out": "lamp-round-floor.glb" },
+    { "id": "lamp-square-floor", "src": "lampSquareFloor.glb", "out": "lamp-square-floor.glb" },
+    { "id": "lamp-wall", "src": "lampWall.glb", "out": "lamp-wall.glb" },
+    { "id": "potted-plant", "src": "pottedPlant.glb", "out": "potted-plant.glb" },
+    { "id": "plant-small-1", "src": "plantSmall1.glb", "out": "plant-small-1.glb" },
+    { "id": "plant-small-2", "src": "plantSmall2.glb", "out": "plant-small-2.glb" },
+    { "id": "plant-small-3", "src": "plantSmall3.glb", "out": "plant-small-3.glb" },
+    { "id": "rug-rectangle", "src": "rugRectangle.glb", "out": "rug-rectangle.glb" },
+    { "id": "rug-round", "src": "rugRound.glb", "out": "rug-round.glb" },
+    { "id": "speaker", "src": "speaker.glb", "out": "speaker.glb" },
+    { "id": "speaker-small", "src": "speakerSmall.glb", "out": "speaker-small.glb" },
+    { "id": "radio", "src": "radio.glb", "out": "radio.glb" },
+    { "id": "side-table", "src": "sideTable.glb", "out": "side-table.glb" },
+    { "id": "side-table-drawers", "src": "sideTableDrawers.glb", "out": "side-table-drawers.glb" },
+    { "id": "coat-rack-standing", "src": "coatRackStanding.glb", "out": "coat-rack-standing.glb" },
+    { "id": "cardboard-box-open", "src": "cardboardBoxOpen.glb", "out": "cardboard-box-open.glb" },
+    { "id": "lounge-sofa", "src": "loungeSofa.glb", "out": "lounge-sofa.glb" },
+    { "id": "lounge-design-sofa", "src": "loungeDesignSofa.glb", "out": "lounge-design-sofa.glb" },
+    { "id": "lounge-chair", "src": "loungeChair.glb", "out": "lounge-chair.glb" },
+    { "id": "lounge-chair-relax", "src": "loungeChairRelax.glb", "out": "lounge-chair-relax.glb" },
+    { "id": "table-coffee", "src": "tableCoffee.glb", "out": "table-coffee.glb" },
+    { "id": "cabinet-television", "src": "cabinetTelevision.glb", "out": "cabinet-television.glb" },
+    { "id": "television-vintage", "src": "televisionVintage.glb", "out": "television-vintage.glb" },
+    { "id": "television-modern", "src": "televisionModern.glb", "out": "television-modern.glb" },
+    { "id": "pillow", "src": "pillow.glb", "out": "pillow.glb" },
+    { "id": "pillow-blue", "src": "pillowBlue.glb", "out": "pillow-blue.glb" },
+    { "id": "table-round", "src": "tableRound.glb", "out": "table-round.glb" },
+    { "id": "table", "src": "table.glb", "out": "table.glb" },
+    { "id": "table-cloth", "src": "tableCloth.glb", "out": "table-cloth.glb" },
+    { "id": "table-cross", "src": "tableCross.glb", "out": "table-cross.glb" },
+    { "id": "chair", "src": "chair.glb", "out": "chair.glb" },
+    { "id": "chair-cushion", "src": "chairCushion.glb", "out": "chair-cushion.glb" },
+    { "id": "chair-rounded", "src": "chairRounded.glb", "out": "chair-rounded.glb" },
+    { "id": "chair-modern-cushion", "src": "chairModernCushion.glb", "out": "chair-modern-cushion.glb" },
+    { "id": "stool-bar", "src": "stoolBar.glb", "out": "stool-bar.glb" },
+    { "id": "kitchen-bar", "src": "kitchenBar.glb", "out": "kitchen-bar.glb" },
+    { "id": "kitchen-bar-end", "src": "kitchenBarEnd.glb", "out": "kitchen-bar-end.glb" },
+    { "id": "kitchen-coffee-machine", "src": "kitchenCoffeeMachine.glb", "out": "kitchen-coffee-machine.glb" },
+    { "id": "kitchen-blender", "src": "kitchenBlender.glb", "out": "kitchen-blender.glb" },
+    { "id": "kitchen-cabinet-upper", "src": "kitchenCabinetUpper.glb", "out": "kitchen-cabinet-upper.glb" },
+    { "id": "toaster", "src": "toaster.glb", "out": "toaster.glb" },
+    { "id": "bench-cushion", "src": "benchCushion.glb", "out": "bench-cushion.glb" },
+    { "id": "trashcan", "src": "trashcan.glb", "out": "trashcan.glb" },
+    { "id": "bear", "src": "bear.glb", "out": "bear.glb" }
+  ],
+  "themes": {
+    "studio": {
+      "label": "작업실 (Alice My Room)",
+      "props": [
+        { "id": "desk", "role": "메인 책상" },
+        { "id": "chair-desk", "role": "책상 의자" },
+        { "id": "computer-screen", "role": "책상 위 모니터" },
+        { "id": "computer-keyboard", "role": "책상 위 키보드" },
+        { "id": "computer-mouse", "role": "책상 위 마우스" },
+        { "id": "laptop", "role": "보조 노트북 (선택)" },
+        { "id": "bookcase-open", "role": "벽 책장 (기억 선반 후보)" },
+        { "id": "books", "role": "책상/선반 위 책 더미" },
+        { "id": "lamp-square-table", "role": "책상 스탠드 (InteriorLights 연동)" },
+        { "id": "lamp-round-floor", "role": "구석 플로어 스탠드" },
+        { "id": "potted-plant", "role": "화분" },
+        { "id": "rug-rectangle", "role": "바닥 러그" },
+        { "id": "speaker", "role": "스피커" },
+        { "id": "side-table", "role": "보조 테이블" },
+        { "id": "coat-rack-standing", "role": "코트 걸이 (문 근처)" },
+        { "id": "cardboard-box-open", "role": "잡동사니 박스" }
+      ]
+    },
+    "lounge": {
+      "label": "라운지·서재 (Bob My Room)",
+      "props": [
+        { "id": "lounge-sofa", "role": "메인 소파" },
+        { "id": "lounge-design-sofa", "role": "보조 소파 (선택)" },
+        { "id": "lounge-chair", "role": "1인 라운지 의자" },
+        { "id": "lounge-chair-relax", "role": "리클라이너 풍 의자" },
+        { "id": "table-coffee", "role": "소파 앞 커피 테이블" },
+        { "id": "bookcase-closed-wide", "role": "서재 와이드 책장 (기억 선반 후보)" },
+        { "id": "bookcase-closed", "role": "서재 책장" },
+        { "id": "books", "role": "책 더미" },
+        { "id": "cabinet-television", "role": "TV 장" },
+        { "id": "television-vintage", "role": "TV 장 위 빈티지 TV" },
+        { "id": "lamp-round-floor", "role": "플로어 스탠드" },
+        { "id": "lamp-round-table", "role": "사이드 테이블 스탠드" },
+        { "id": "side-table-drawers", "role": "사이드 테이블" },
+        { "id": "rug-round", "role": "원형 러그" },
+        { "id": "pillow", "role": "소파 쿠션" },
+        { "id": "pillow-blue", "role": "소파 쿠션(파랑)" },
+        { "id": "potted-plant", "role": "화분" },
+        { "id": "plant-small-2", "role": "작은 화분" },
+        { "id": "radio", "role": "라디오" },
+        { "id": "speaker-small", "role": "작은 스피커" }
+      ]
+    },
+    "cafe": {
+      "label": "카페 (Our Room 기본)",
+      "props": [
+        { "id": "table-round", "role": "카페 원형 테이블" },
+        { "id": "chair-rounded", "role": "카페 의자" },
+        { "id": "chair", "role": "카페 의자(대안)" },
+        { "id": "stool-bar", "role": "바 스툴" },
+        { "id": "kitchen-bar", "role": "바 카운터" },
+        { "id": "kitchen-bar-end", "role": "바 카운터 끝" },
+        { "id": "kitchen-coffee-machine", "role": "바 위 커피 머신 (계획의 프리미티브 에스프레소 머신 대안)" },
+        { "id": "kitchen-blender", "role": "바 위 블렌더" },
+        { "id": "kitchen-cabinet-upper", "role": "벽 상부장" },
+        { "id": "toaster", "role": "토스터" },
+        { "id": "bench-cushion", "role": "벽 벤치" },
+        { "id": "table-coffee", "role": "낮은 테이블" },
+        { "id": "lamp-wall", "role": "벽 조명" },
+        { "id": "plant-small-3", "role": "테이블 위 작은 화분" },
+        { "id": "potted-plant", "role": "화분" },
+        { "id": "trashcan", "role": "쓰레기통" }
+      ],
+      "variants": {
+        "home": {
+          "label": "우리 가족: 식탁과 러그",
+          "props": [
+            { "id": "table", "role": "식탁" },
+            { "id": "table-cloth", "role": "식탁(식탁보 버전)" },
+            { "id": "chair-cushion", "role": "식탁 의자" },
+            { "id": "rug-rectangle", "role": "식탁 아래 러그" },
+            { "id": "rug-round", "role": "거실 쪽 원형 러그" },
+            { "id": "lamp-round-table", "role": "식탁 옆 스탠드" },
+            { "id": "pillow", "role": "벤치 쿠션" },
+            { "id": "bear", "role": "곰 인형 (가정 분위기)" }
+          ]
+        },
+        "meeting": {
+          "label": "팀: 긴 테이블과 화이트보드",
+          "props": [
+            { "id": "table-cross", "role": "긴 회의 테이블 (스케일 X로 늘려 쓰거나 2개 이어 붙임)" },
+            { "id": "chair-modern-cushion", "role": "회의 의자" },
+            { "id": "chair-desk", "role": "회의 의자(대안)" },
+            { "id": "television-modern", "role": "벽 프레젠테이션 화면" },
+            { "id": "laptop", "role": "테이블 위 노트북" },
+            { "id": "speaker", "role": "스피커" }
+          ],
+          "primitives": ["whiteboard"]
+        }
+      }
+    }
+  },
+  "primitives": [
+    "capsule-shell", "base-tray", "seam-ring", "pendant-bulb", "pebbles", "bread-dessert",
+    "arch-shelf", "picture-frame(board card)", "whiteboard", "espresso-machine(대안: kitchen-coffee-machine)"
+  ],
+  "hdri": {
+    "polyhaven": "venice_sunset",
+    "resolution": "1k",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/venice_sunset_1k.hdr",
+    "md5": "a5ec4d30fc3421c214a17b208fb66d5f",
+    "srcDir": "polyhaven-hdri",
+    "srcFile": "venice_sunset_1k.hdr",
+    "out": "hdri/sunset_1k.hdr",
+    "author": "Greg Zaal",
+    "pageUrl": "https://polyhaven.com/a/venice_sunset",
+    "license": "CC0"
+  },
+  "textures": {
+    "polyhaven": "sand_01",
+    "resolution": "1k",
+    "srcDir": "polyhaven-textures",
+    "author": "Rob Tuytel",
+    "pageUrl": "https://polyhaven.com/a/sand_01",
+    "license": "CC0",
+    "files": [
+      { "map": "diffuse", "srcFile": "sand_01_diff_1k.jpg", "out": "textures/sand_diff_1k.jpg", "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_01/sand_01_diff_1k.jpg", "md5": "c914c8edb419f040e04224081a3f79a5" },
+      { "map": "normal", "srcFile": "sand_01_nor_gl_1k.jpg", "out": "textures/sand_nor_gl_1k.jpg", "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_01/sand_01_nor_gl_1k.jpg", "md5": "369b82aa417c77ec85c4c07c4c7b60a0" },
+      { "map": "roughness", "srcFile": "sand_01_rough_1k.jpg", "out": "textures/sand_rough_1k.jpg", "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_01/sand_01_rough_1k.jpg", "md5": "663d0ddf782a427b7da4e247c939e73b" }
+    ]
+  },
+  "fonts": {
+    "family": "Noto Sans KR",
+    "srcDir": "noto-sans-kr",
+    "srcFile": "NotoSansKR[wght].ttf",
+    "url": "https://github.com/google/fonts/raw/main/ofl/notosanskr/NotoSansKR%5Bwght%5D.ttf",
+    "licenseUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanskr/OFL.txt",
+    "licenseFile": "OFL.txt",
+    "pageUrl": "https://github.com/google/fonts/tree/main/ofl/notosanskr",
+    "license": "OFL-1.1",
+    "weight": 700,
+    "out": "fonts/NotoSansKR-Bold-subset.ttf",
+    "licenseOut": "fonts/OFL.txt"
+  }
+}

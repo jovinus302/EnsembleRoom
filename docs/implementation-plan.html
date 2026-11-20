@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ensemble Room 구현 계획 (최종판)</title>
+<style>
+:root{
+  --bg:#0b1020; --panel:#151d30; --panel2:#1b2540; --line:#2c3858;
+  --text:#e9edf7; --muted:#aab5cf; --mint:#64e4bd; --mint-dim:#3baf96; --orange:#ffc88c;
+  --me:#ff8f7a; --we:#c6aabc; --other:#8ec5ff;
+  --sky1:#2b2150; --sky2:#8a4a73; --sky3:#e9946f; --sand:#4a3a35; --sand2:#2a2230;
+  --code:#0f1626;
+  --font:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Segoe UI',system-ui,sans-serif;
+  --mono:Consolas,'Cascadia Mono','D2Coding',monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:17px;line-height:1.75;color-scheme:dark;-webkit-text-size-adjust:100%}
+a{color:var(--mint);overflow-wrap:anywhere}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:3px solid var(--mint);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);border:1px solid var(--line);border-radius:5px;padding:.08em .38em;overflow-wrap:anywhere;color:#d6f7ec}
+strong{color:#fff}
+.skip{position:absolute;left:-999px;top:0;background:var(--mint);color:#04210f;padding:8px 14px;z-index:99}
+.skip:focus{left:8px;top:8px}
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:24px 16px;border-right:1px solid var(--line);background:#0a0e1b}
+nav.toc .brand{font-weight:700;color:var(--mint);font-size:15px;margin:0 0 14px;line-height:1.4}
+nav.toc summary{list-style:none;cursor:pointer;font-weight:700;color:var(--mint);font-size:15px;margin-bottom:12px}
+nav.toc summary::-webkit-details-marker{display:none}
+nav.toc ol{list-style:none;margin:0;padding:0}
+nav.toc li{margin:2px 0;max-width:none}
+nav.toc a{display:block;padding:6px 10px;border-left:3px solid transparent;color:var(--muted);text-decoration:none;font-size:15px;line-height:1.45;border-radius:0 6px 6px 0}
+nav.toc a:hover{color:var(--text);background:var(--panel)}
+nav.toc a[aria-current="true"]{color:var(--mint);border-left-color:var(--mint);background:var(--panel);font-weight:700}
+nav.toc a.ask{color:var(--orange)}
+nav.toc a.ask[aria-current="true"]{border-left-color:var(--orange);color:var(--orange)}
+main{padding:0 40px 80px;min-width:0}
+.wrap{max-width:980px;margin:0 auto}
+.hero{margin:28px 0 8px;border-radius:20px;overflow:hidden;position:relative;border:1px solid var(--line);
+  background:linear-gradient(180deg,#171236 0%,#3a2557 38%,#9a4a72 70%,#e08a6c 100%)}
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,16,32,.55),rgba(11,16,32,.15) 40%,rgba(11,16,32,.9) 100%)}
+.hero .inner{position:relative;padding:44px 36px 28px}
+.hero .capsule-deco{position:absolute;right:36px;top:34px;width:210px;height:70px;border-radius:35px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);box-shadow:inset 0 0 22px rgba(255,255,255,.12)}
+.hero .capsule-deco::before,.hero .capsule-deco::after{content:"";position:absolute;top:6px;bottom:6px;width:2px;background:rgba(255,255,255,.28)}
+.hero .capsule-deco::before{left:70px}.hero .capsule-deco::after{left:140px}
+.eyebrow{color:var(--mint);font-weight:700;font-size:15px;letter-spacing:.04em;margin:0 0 8px}
+h1{font-size:2.4rem;line-height:1.25;margin:0 0 14px;color:#fff}
+.hero .lead{font-size:1.15rem;max-width:44em;margin:0 0 12px;color:#f1f4fb}
+.hero .note{margin:0 0 20px;color:#d3daea;font-size:15px}
+.cta{display:inline-block;background:var(--orange);color:#2a1700;font-weight:700;text-decoration:none;padding:10px 18px;border-radius:999px;margin:0 0 6px}
+.cta:hover{filter:brightness(1.08)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;padding:0 36px 36px;position:relative}
+.card{background:rgba(21,29,48,.94);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card h2{font-size:1.02rem;margin:0 0 6px;color:var(--mint);line-height:1.4}
+.card p{margin:0 0 8px;font-size:15.5px;line-height:1.65;color:var(--text)}
+.card a.more{font-size:14.5px}
+section.group{padding-top:56px}
+section.group>h2{font-size:1.75rem;margin:0 0 6px;padding-bottom:10px;border-bottom:2px solid var(--line);line-height:1.35;color:#fff}
+section.group>h2::before{content:"";display:inline-block;width:10px;height:1.1em;background:var(--mint);border-radius:3px;margin-right:12px;vertical-align:-.15em}
+section.group.ask>h2::before{background:var(--orange)}
+.gintro{color:var(--muted);margin:10px 0 22px;max-width:46em}
+h3{font-size:1.4rem;margin:44px 0 12px;color:var(--mint);line-height:1.4}
+h4{font-size:1.15rem;margin:30px 0 8px;color:#fff;line-height:1.45;padding-left:10px;border-left:3px solid var(--mint-dim)}
+p,li{max-width:46em}
+p{margin:0 0 14px}
+ul,ol{margin:0 0 16px;padding-left:1.4em}
+li{margin:3px 0}
+li>ul,li>ol{margin:4px 0 6px}
+blockquote{margin:0 0 14px;padding:10px 16px;border-left:4px solid var(--mint-dim);background:var(--panel);border-radius:0 8px 8px 0}
+.tablewrap{overflow-x:auto;margin:6px 0 20px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.tablewrap:focus-visible{outline-offset:0}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15.5px;line-height:1.6}
+th,td{padding:9px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+thead th{background:var(--panel2);color:var(--mint);white-space:nowrap}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+tbody th{white-space:nowrap;color:var(--mint);background:rgba(100,228,189,.05)}
+tbody tr:hover td,tbody tr:hover th{background:rgba(255,255,255,.03)}
+td{overflow-wrap:anywhere}
+pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:16px;overflow:auto;font-family:var(--mono);font-size:14px;line-height:1.55;margin:10px 0 18px;max-width:100%}
+pre:focus-visible{outline-offset:0}
+details{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:14px 0;padding:0}
+details>summary{cursor:pointer;padding:12px 16px;font-weight:700;list-style:none;color:var(--text);display:flex;gap:10px;align-items:baseline}
+details>summary::before{content:"\25B8";color:var(--mint);flex:none}
+details[open]>summary::before{content:"\25BE"}
+details>summary::-webkit-details-marker{display:none}
+details>summary p{margin:0;display:inline}
+details>.dbody{padding:2px 18px 12px;border-top:1px solid var(--line)}
+details>.dbody>*:first-child{margin-top:12px}
+figure{margin:12px 0 26px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+figure svg{width:100%;height:auto;display:block}
+figcaption{color:var(--muted);font-size:15px;margin:10px 4px 0}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin:12px 4px 2px;padding:0;list-style:none;font-size:15px}
+.legend li{margin:0;max-width:none;display:flex;align-items:center;gap:8px}
+.sw{width:18px;height:18px;border-radius:5px;border:2px solid;display:inline-block;flex:none}
+.sw.me{border-color:var(--me);background:rgba(255,143,122,.3)}
+.sw.we{border-color:transparent;background:linear-gradient(135deg,rgba(255,143,122,.55),rgba(142,197,255,.55)) padding-box,linear-gradient(135deg,var(--me),var(--other)) border-box}
+.sw.other{border-color:var(--other);background:rgba(142,197,255,.4);border-style:dashed}
+svg text{font-family:var(--font);fill:var(--text)}
+svg .sub{fill:var(--muted)}
+.askbox{border:2px solid var(--orange);background:linear-gradient(180deg,rgba(255,200,140,.10),rgba(21,29,48,.95));border-radius:16px;padding:20px 24px 8px;margin:10px 0 10px}
+.askbox>ol{list-style:none;counter-reset:q;padding:0;margin:0}
+.askbox>ol>li{counter-increment:q;position:relative;margin:0 0 22px;padding-left:46px;max-width:none}
+.askbox>ol>li::before{content:counter(q);position:absolute;left:0;top:2px;width:32px;height:32px;border-radius:50%;background:var(--orange);color:#2a1700;font-weight:800;display:grid;place-items:center}
+.askbox>ol>li>strong:first-child{color:var(--orange);font-size:1.12rem}
+.askbox ul{list-style:none;padding:0;margin:10px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.askbox ul li{max-width:none;margin:0;background:var(--panel);border:1px solid var(--orange);border-radius:10px;padding:10px 14px}
+.opt{display:inline-block;min-width:1.7em;text-align:center;background:var(--orange);color:#2a1700;font-weight:800;border-radius:6px;margin-right:8px;padding:0 6px}
+ol.timeline{list-style:none;padding:0;margin:8px 0 20px;counter-reset:step -1;border-left:3px solid var(--mint-dim);margin-left:18px}
+ol.timeline>li{counter-increment:step;position:relative;max-width:none;margin:0 0 18px;padding:14px 18px 8px 26px;background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-left:22px}
+ol.timeline>li::before{content:counter(step);position:absolute;left:-46px;top:12px;width:30px;height:30px;border-radius:50%;background:var(--mint);color:#04210f;font-weight:800;display:grid;place-items:center;border:3px solid var(--bg)}
+ol.timeline>li>strong:first-child{color:var(--mint);font-size:1.08rem}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px;padding:0;list-style:none}
+.chips li{margin:0;max-width:none}
+.chips a{display:block;padding:3px 11px;border:1px solid var(--mint-dim);border-radius:999px;text-decoration:none;font-size:14.5px;font-weight:700;background:var(--panel)}
+.chips a:hover{background:var(--panel2)}
+footer{margin-top:70px;color:var(--muted);font-size:14.5px;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:980px){
+  .layout{display:block}
+  nav.toc{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}
+  nav.toc .brand{display:none}
+  main{padding:0 16px 60px}
+  .hero .inner{padding:30px 20px 20px}
+  .hero .capsule-deco{display:none}
+  .cards{padding:0 20px 24px}
+  h1{font-size:1.85rem}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#content">본문으로 건너뛰기</a>
+<div class="layout">
+<nav class="toc" aria-label="목차">
+<details id="tocd" open>
+<summary>목차</summary>
+<p class="brand" aria-hidden="true">Ensemble Room<br>구현 계획 (최종판)</p>
+<ol>
+<li><a href="#top">요약 · 핵심 결정</a></li>
+<li><a href="#overview">한눈에 보기</a></li>
+<li><a href="#decide" class="ask">결정이 필요한 질문 3개</a></li>
+<li><a href="#scope">범위 · 데모 시나리오</a></li>
+<li><a href="#screens">화면 설계</a></li>
+<li><a href="#tech">기술 설계</a></li>
+<li><a href="#steps">구현 단계 S0~S20</a></li>
+<li><a href="#assets">에셋 · 사실/추론 · 출처</a></li>
+</ol>
+</details>
+</nav>
+<main id="content">
+<div class="wrap">
+
+<header class="hero" id="top">
+<div class="capsule-deco" aria-hidden="true"></div>
+<div class="inner">
+<p class="eyebrow">구현 계획 · 승인 검토용</p>
+<h1>Ensemble Room 구현 계획 (최종판)</h1>
+<p class="lead">노을 진 해변 위의 유리 캡슐 하나가 Room 하나입니다. 메신저로 들어가 3D 캡슐 월드로 진입하고, 사람과 Claude Agent가 Room 안에서 함께 일하며, 기억은 Room마다 격리됩니다. S0~S20 순서대로 구현합니다.</p>
+<p class="note">원문: 이 문서 하나로 완결된다. implementer는 9절 단계 순서대로 구현한다.</p>
+<a class="cta" href="#decide">승인 전에 답이 필요한 질문 3개 &rarr;</a>
+</div>
+<div class="cards">
+<article class="card"><h2>형태 · 스택</h2><p>로컬 단일 프로세스 웹 앱입니다. npm workspaces 모노레포, 프런트는 Vite + React + TypeScript + Tailwind + zustand, 서버는 Node 24 + Fastify, DB는 내장 node:sqlite입니다.</p><a class="more" href="#s1">1. 확정 스택 보기</a></article>
+<article class="card"><h2>메신저 진입</h2><p>메신저는 직접 구현합니다. 좌측 목록, 가운데 대화창, 우측 Room 미리보기의 3단 구성이고, [들어가기]를 누르면 카메라가 1.4초 동안 캡슐로 날아갑니다.</p><a class="more" href="#s8-1">8.1~8.2 보기</a></article>
+<article class="card"><h2>3D 캡슐 월드</h2><p>R3F로 만든 노을 해변에 유리 캡슐이 놓입니다. 내 캡슐과 내가 속한 Our 캡슐은 투명하고 남의 캡슐은 서리 유리여서, 유리가 소유·권한·기억의 경계를 보여 줍니다.</p><a class="more" href="#s8-3">8.3 보기</a></article>
+<article class="card"><h2>Claude Agent</h2><p>Personal Agent는 사람마다 1개, Room Agent는 Our Room마다 1개입니다. 발언자는 결정적 규칙으로 고르고, 턴당 행동은 1개이며, <code>AGENT_MODE=mock</code>으로 API 없이도 시연할 수 있습니다.</p><a class="more" href="#s6">6. Agent 런타임 보기</a></article>
+<article class="card"><h2>메모리 격리</h2><p>메모리 접근은 서버의 gateway 한 곳만 거칩니다. 도구에는 ns 파라미터가 없고, 방문 Agent가 가져 나오는 것은 공개된 <code>public_takeout</code>뿐입니다. Hindsight는 1차에서 채택하지 않습니다.</p><a class="more" href="#s7">7. 메모리 설계 보기</a></article>
+<article class="card"><h2>캐릭터 · swarm</h2><p>Personal Agent는 알형, Room Agent는 유령형 캐릭터를 빌보드로 그립니다. swarm은 GPGPU 입자이고 품질은 low/mid/high 3단계(입자 4,096~65,536)로 자동 조절됩니다.</p><a class="more" href="#s8-4">8.4~8.6 보기</a></article>
+</div>
+</header>
+
+<section class="group" id="overview" aria-labelledby="h-overview">
+<h2 id="h-overview">한눈에 보기</h2>
+<p class="gintro">월드 배치와 시스템 구조를 그림 두 장으로 먼저 보세요. 자세한 내용은 아래 각 절에 있습니다.</p>
+
+<figure>
+<svg viewBox="0 0 760 450" role="img" aria-labelledby="t1 d1">
+<title id="t1">월드 배치도</title>
+<desc id="d1">해변 위에 앞 중앙의 내 캡슐, 그 뒤에 친구들, 우리 가족, 팀 Our 캡슐 3개, 가장 뒤에 서리 유리의 상대 캡슐이 있고 유리 튜브로 연결되어 있다.</desc>
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--sky1)"/><stop offset=".6" style="stop-color:var(--sky2)"/><stop offset="1" style="stop-color:var(--sky3)"/></linearGradient>
+<linearGradient id="tubeA" gradientUnits="userSpaceOnUse" x1="0" y1="340" x2="0" y2="284"><stop offset="0" style="stop-color:var(--me)"/><stop offset="1" style="stop-color:var(--we)"/></linearGradient>
+<linearGradient id="tubeB" gradientUnits="userSpaceOnUse" x1="0" y1="226" x2="0" y2="170"><stop offset="0" style="stop-color:var(--we)"/><stop offset="1" style="stop-color:var(--other)"/></linearGradient>
+<linearGradient id="weG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color:var(--me)"/><stop offset="1" style="stop-color:var(--other)"/></linearGradient>
+<linearGradient id="weF" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color:var(--me);stop-opacity:.35"/><stop offset="1" style="stop-color:var(--other);stop-opacity:.35"/></linearGradient>
+<linearGradient id="sand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--sand)"/><stop offset="1" style="stop-color:var(--sand2)"/></linearGradient>
+</defs>
+<rect x="0" y="0" width="760" height="140" rx="10" fill="url(#sky)"/>
+<rect x="0" y="140" width="760" height="310" fill="url(#sand)"/>
+<rect x="0" y="0" width="760" height="450" rx="10" fill="none" stroke="var(--line)"/>
+<text x="20" y="32" font-size="14" style="fill:#f3e6ef">노을 진 해변 (원경: 흐린 HDRI)</text>
+<g fill="none" stroke-linecap="round">
+<path d="M380 340 C380 315 150 310 150 284" stroke="url(#tubeA)" stroke-opacity=".6" stroke-width="12"/>
+<path d="M380 340 L380 284" stroke="url(#tubeA)" stroke-opacity=".6" stroke-width="12"/>
+<path d="M380 340 C380 315 610 310 610 284" stroke="url(#tubeA)" stroke-opacity=".6" stroke-width="12"/>
+<path d="M150 226 C150 190 330 210 340 170" stroke="url(#tubeB)" stroke-opacity=".6" stroke-width="12"/>
+<path d="M610 226 C610 190 430 210 420 170" stroke="url(#tubeB)" stroke-opacity=".6" stroke-width="12"/>
+<path d="M380 340 C380 315 150 310 150 284" stroke="var(--text)" stroke-opacity=".7" stroke-width="2" stroke-dasharray="2 7"/>
+<path d="M380 340 L380 284" stroke="var(--text)" stroke-opacity=".7" stroke-width="2" stroke-dasharray="2 7"/>
+<path d="M380 340 C380 315 610 310 610 284" stroke="var(--text)" stroke-opacity=".7" stroke-width="2" stroke-dasharray="2 7"/>
+<path d="M150 226 C150 190 330 210 340 170" stroke="var(--text)" stroke-opacity=".7" stroke-width="2" stroke-dasharray="2 7"/>
+<path d="M610 226 C610 190 430 210 420 170" stroke="var(--text)" stroke-opacity=".7" stroke-width="2" stroke-dasharray="2 7"/>
+</g>
+<g>
+<rect x="290" y="112" width="180" height="58" rx="29" style="fill:var(--other);fill-opacity:.45;stroke:var(--other);stroke-width:2.5;stroke-dasharray:6 4"/>
+<text x="380" y="138" font-size="16" font-weight="700" text-anchor="middle">상대 캡슐</text>
+<text x="380" y="158" font-size="13" text-anchor="middle">서리 유리 · 간판만 읽힘</text>
+</g>
+<g>
+<rect x="55" y="226" width="190" height="58" rx="29" fill="url(#weF)" stroke="url(#weG)" stroke-width="3"/>
+<text x="150" y="252" font-size="17" font-weight="700" text-anchor="middle">친구들</text><text x="150" y="272" font-size="13" text-anchor="middle">Our · Alice, Bob</text>
+<rect x="285" y="226" width="190" height="58" rx="29" fill="url(#weF)" stroke="url(#weG)" stroke-width="3"/>
+<text x="380" y="252" font-size="17" font-weight="700" text-anchor="middle">우리 가족</text><text x="380" y="272" font-size="13" text-anchor="middle">Our · Alice + 엄마(시드)</text>
+<rect x="515" y="226" width="190" height="58" rx="29" fill="url(#weF)" stroke="url(#weG)" stroke-width="3"/>
+<text x="610" y="252" font-size="17" font-weight="700" text-anchor="middle">팀</text><text x="610" y="272" font-size="13" text-anchor="middle">Our · Alice, Bob, Dana(시드)</text>
+</g>
+<g>
+<rect x="250" y="340" width="260" height="84" rx="42" style="fill:var(--me);fill-opacity:.25;stroke:var(--me);stroke-width:3"/>
+<text x="380" y="378" font-size="19" font-weight="700" text-anchor="middle">내 캡슐 (My Room)</text>
+<text x="380" y="402" font-size="14" text-anchor="middle">앞 중앙 · 투명</text>
+</g>
+<text x="20" y="440" font-size="13" style="fill:#f3e6ef">시점 중심 배치 (Alice 창 기준)</text>
+</svg>
+<ul class="legend" aria-label="범례">
+<li><span class="sw me"></span>나(Alice): 코랄 · 내 캡슐 (투명)</li>
+<li><span class="sw we"></span>우리: 구성원 색의 혼합(코랄+스카이 그라데이션) · 내가 속한 Our 캡슐 (투명)</li>
+<li><span class="sw other"></span>상대(Bob): 스카이 · 남의 캡슐 (서리 유리, 방문이 수락되면 투명해짐)</li>
+</ul>
+<figcaption>내 캡슐은 카메라 앞 중앙, Our 캡슐은 그 뒤 부채꼴, 상대 캡슐은 Our 캡슐 뒤편에 놓입니다. 튜브는 출발 쪽 색에서 도착 쪽 색으로 이어집니다. 구성원 표기는 2절의 시드 구성을 따랐고, Bob 창에서는 Bob의 캡슐이 앞 중앙에 오며 라벨이 반대로 붙습니다(8.3).</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 340" role="img" aria-labelledby="t2 d2">
+<title id="t2">시스템 구조도</title>
+<desc id="d2">브라우저 두 창이 WebSocket과 REST로 Node 서버에 연결된다. 서버는 이벤트 로그, 권한, 메모리 게이트웨이, Agent 스케줄러로 구성되며, 이벤트 로그는 SQLite에, 스케줄러는 Claude API에 연결된다.</desc>
+<defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--mint)"/></marker></defs>
+<g>
+<rect x="10" y="60" width="160" height="84" rx="10" style="fill:var(--panel2);stroke:var(--me);stroke-width:2"/>
+<text x="90" y="90" font-size="16" font-weight="700" text-anchor="middle">브라우저 창 1</text><text x="90" y="112" font-size="13" text-anchor="middle" class="sub">Alice · 메신저 + 3D</text><text x="90" y="130" font-size="13" text-anchor="middle" class="sub">sessionStorage 토큰</text>
+<rect x="10" y="190" width="160" height="84" rx="10" style="fill:var(--panel2);stroke:var(--other);stroke-width:2"/>
+<text x="90" y="220" font-size="16" font-weight="700" text-anchor="middle">브라우저 창 2</text><text x="90" y="242" font-size="13" text-anchor="middle" class="sub">Bob · 메신저 + 3D</text><text x="90" y="260" font-size="13" text-anchor="middle" class="sub">sessionStorage 토큰</text>
+</g>
+<g stroke="var(--mint)" stroke-width="2.5" fill="none">
+<line x1="172" y1="102" x2="288" y2="102" marker-start="url(#ar)" marker-end="url(#ar)"/>
+<line x1="172" y1="232" x2="288" y2="232" marker-start="url(#ar)" marker-end="url(#ar)"/>
+</g>
+<text x="230" y="92" font-size="14" font-weight="700" text-anchor="middle">WS / REST</text>
+<text x="230" y="222" font-size="14" font-weight="700" text-anchor="middle">WS / REST</text>
+<rect x="290" y="20" width="300" height="300" rx="14" style="fill:var(--panel);stroke:var(--mint);stroke-width:2"/>
+<text x="440" y="48" font-size="16" font-weight="700" text-anchor="middle">Node 서버 (Fastify)</text>
+<g>
+<rect x="302" y="64" width="136" height="104" rx="9" style="fill:var(--panel2);stroke:var(--line)"/>
+<text x="370" y="92" font-size="15" font-weight="700" text-anchor="middle">권한</text><text x="370" y="114" font-size="13" text-anchor="middle" class="sub">dispatch가 쓰기마다</text><text x="370" y="132" font-size="13" text-anchor="middle" class="sub">capability 재계산</text><text x="370" y="150" font-size="13" text-anchor="middle" class="sub">+ 가시성 필터</text>
+<rect x="446" y="64" width="136" height="104" rx="9" style="fill:var(--panel2);stroke:var(--line)"/>
+<text x="514" y="92" font-size="15" font-weight="700" text-anchor="middle">이벤트 로그</text><text x="514" y="114" font-size="13" text-anchor="middle" class="sub">모든 상태의 원문</text><text x="514" y="132" font-size="13" text-anchor="middle" class="sub">seq 단조 증가</text><text x="514" y="150" font-size="13" text-anchor="middle" class="sub">+ WS hub</text>
+<rect x="302" y="180" width="136" height="124" rx="9" style="fill:var(--panel2);stroke:var(--line)"/>
+<text x="370" y="208" font-size="14" font-weight="700" text-anchor="middle">메모리 게이트웨이</text><text x="370" y="230" font-size="13" text-anchor="middle" class="sub">ns는 서버가 계산</text><text x="370" y="248" font-size="13" text-anchor="middle" class="sub">recallForTurn</text><text x="370" y="266" font-size="13" text-anchor="middle" class="sub">retainFromAgent</text>
+<rect x="446" y="180" width="136" height="124" rx="9" style="fill:var(--panel2);stroke:var(--line)"/>
+<text x="514" y="208" font-size="15" font-weight="700" text-anchor="middle">Agent 스케줄러</text><text x="514" y="230" font-size="13" text-anchor="middle" class="sub">결정적 트리거 규칙</text><text x="514" y="248" font-size="13" text-anchor="middle" class="sub">Room당 턴 직렬 1개</text><text x="514" y="266" font-size="13" text-anchor="middle" class="sub">턴당 행동 1개</text>
+</g>
+<g stroke="var(--mint)" stroke-width="2.5" fill="none">
+<line x1="584" y1="116" x2="648" y2="116" marker-end="url(#ar)"/>
+<line x1="584" y1="240" x2="648" y2="240" marker-start="url(#ar)" marker-end="url(#ar)"/>
+</g>
+<rect x="650" y="70" width="140" height="92" rx="10" style="fill:var(--panel2);stroke:var(--line);stroke-width:2"/>
+<text x="720" y="102" font-size="16" font-weight="700" text-anchor="middle">SQLite</text><text x="720" y="124" font-size="13" text-anchor="middle" class="sub">node:sqlite</text><text x="720" y="142" font-size="13" text-anchor="middle" class="sub">이벤트 · 메모리 · 보드</text>
+<rect x="650" y="194" width="140" height="92" rx="10" style="fill:var(--panel2);stroke:var(--line);stroke-width:2"/>
+<text x="720" y="226" font-size="16" font-weight="700" text-anchor="middle">Claude API</text><text x="720" y="248" font-size="13" text-anchor="middle" class="sub">스트리밍 · tool use</text><text x="720" y="266" font-size="13" text-anchor="middle" class="sub">서버에서만 호출</text>
+</svg>
+<figcaption>두 브라우저 창이 같은 서버를 공유합니다. 모든 쓰기는 권한 검사를 거쳐 이벤트 로그에 쌓이고, WS hub가 구독자별 가시성 필터를 적용해 내려보냅니다. Claude API는 서버에서만 호출합니다.</figcaption>
+</figure>
+</section>
+
+<section class="group ask" id="decide" aria-labelledby="h-decide">
+<h2 id="h-decide">승인 전 답이 필요한 질문 3개</h2>
+<p class="gintro">아래 3가지에 A/B로 답해 주세요. 원문 12절입니다.</p>
+<h3 id="s12">12. 사용자에게 물을 것</h3><div class="askbox"><ol><li><strong>Claude API 접근</strong>: 이 PC와 사내망에서 api.anthropic.com을 직접 호출할 수 있고 키를 받을 수 있는가? 모델 ID는 무엇인가?<ul><li><span class="opt">A</span>가능 → <code>claude</code> 모드</li><li><span class="opt">B</span>불가 → <code>mock</code> 모드로 시연</li></ul></li><li><strong>캐릭터 에셋</strong>: 데모 파일의 캐릭터를 GitHub 저장소(jovinus302/EnsembleRoom)에 커밋해도 되는가? 장식 변종의 고해상도(512px 이상) 원본이 있는가?<ul><li><span class="opt">A</span>커밋 가능 + 원본 제공</li><li><span class="opt">B</span>로컬 추출만, 144px로 진행</li></ul></li><li><strong>Hindsight</strong>: 1차 시연에 실연동이 필요한가?<ul><li><span class="opt">A</span>아니다. 자체 메모리 + 인터페이스(권장)</li><li><span class="opt">B</span>필요하다. Docker나 Python 설치, 임베딩 모델 선택, HuggingFace 다운로드를 허용</li></ul></li></ol></div>
+</section>
+
+<section class="group" id="scope" aria-labelledby="h-scope">
+<h2 id="h-scope">범위와 데모 시나리오</h2>
+<p class="gintro">무엇을 넣고 무엇을 뺄지(2절), 그리고 완성 후 두 창으로 보여 줄 데모의 흐름(11절)입니다.</p>
+<h3 id="s2">2. 범위</h3><p><strong>넣는 것</strong></p>
+<ul><li>메신저 홈: 사람, DM, &quot;우리&quot; 목록, Room 미리보기.</li><li>My Room, Your Room(사람 방문, Agent만 보내기), Our Room.</li><li>Invite / Visit / Leave / Rejoin, 승인(다중 승인자).</li><li>메모리 네임스페이스와 격리.</li><li>Claude Agent: Personal Agent, 그리고 Our Room에만 있는 Room Agent.</li><li>3D 해변 월드와 유리 캡슐 Room(테마별 실내), swarm, 피드백 계층, 타임라인 재생, 지표.</li></ul>
+<p><strong>빼는 것</strong></p>
+<ul><li>Merge와 Split 기능(단, &quot;내 것 + 네 것 → 우리 것&quot;의 합의 연출은 넣는다).</li><li>Skill Agent, 알림, 모바일, 네이티브 앱.</li><li>관계 유형 체계, 실제 인증, CRDT.</li><li>Hindsight 실연동(S20 선택 단계).</li></ul>
+<p><strong>Our Room</strong></p>
+<ul><li>실제 공동 소유 Room이다. 모델은 이름 + 구성원뿐이다.</li><li>시드 3개: &quot;친구들&quot;(Alice, Bob), &quot;우리 가족&quot;(Alice + 시드 사용자 '엄마'), &quot;팀&quot;(Alice, Bob, 시드 사용자 'Dana').</li><li>세 Room 모두 같은 코드로 동작한다. 시드 사용자(<code>users.kind='seed'</code>)의 Agent는 실행하지 않고, 승인자 계산에서도 제외한다.</li><li>&quot;우리 가족&quot;과 &quot;팀&quot;에는 시드 이벤트와 기억을 넣어 격리를 시연한다.</li></ul>
+<p><strong>실내 테마 (1차에 실제 제작은 3세트)</strong></p>
+<ul><li><code>studio</code>(작업실): Alice의 My Room.</li><li><code>lounge</code>(라운지·서재): Bob의 My Room.</li><li><code>cafe</code>(카페): Our Room 기본값.</li><li>&quot;우리 가족&quot;과 &quot;팀&quot;은 <code>cafe</code> 세트를 소품 변형으로 재사용한다. <code>variant: 'home'</code>은 식탁과 러그, <code>'meeting'</code>은 긴 테이블과 화이트보드.</li><li>Our Room에 카페를 쓰는 것은 <strong>선택지</strong>다. 여러 좌석이 있는 공간이라 &quot;우리&quot;에 어울린다는 추정에 따른 것이다. 테마는 <code>rooms.theme</code> 값으로 바꿀 수 있고, 대안은 <code>living</code>(거실)이다.</li></ul><h3 id="s11">11. 데모 시나리오 (나 → 상대 → 우리, 두 창)</h3><ol class="timeline"><li><strong>월드</strong>: Alice가 로그인하면 메신저 뒤로 노을 해변이 보인다. 앞 중앙에 Alice의 작업실 캡슐(투명), 뒤로 Our 캡슐 3개(카페형), 더 뒤에 Bob의 라운지 캡슐(서리 유리)이 있고 유리 튜브로 이어져 있다. Bob 창에서는 Bob의 라운지 캡슐이 앞 중앙이다.</li><li><strong>나</strong><ul><li>Alice가 자기 캡슐에 들어간다. 가운데 마디가 열리고 카메라가 진입한다.</li><li>내 Agent(코랄 알형)와 &quot;주말 아이디어&quot; 카드 3장을 만든다. 카드가 벽 액자로 걸린다.</li><li>기억 선반에 &quot;일요일 오전 가족 행사&quot;(공유 대상: 우리 가족만) 병이 생긴다.</li></ul></li><li><strong>상대</strong><ul><li>DM에서 [방문 요청]을 보내고, Bob 창에서 수락한다.</li><li>Alice 화면에서 Bob 캡슐의 서리가 걷힌다. 카메라가 튜브를 따라 Bob의 라운지로 들어간다.</li><li>Alice는 댓글만 달 수 있다(편집 비활성).</li><li>Alice가 나와 [내 Agent 보내기]를 한다. mandate는 &quot;토요일 오후, 3만원, 확정은 내 승인&quot;. 그리고 Leave한다. Alice 캡슐의 조명이 <code>empty</code>로 바뀐다.</li><li>Alice의 Agent가 입자로 분해돼 내 캡슐 유리를 통과(파문)하고, 튜브를 지나 Bob 캡슐 유리를 통과해 재조립된다.</li><li>Bob의 Agent와 띠로 대화한다. takeout을 공개한 뒤 돌아간다.</li></ul></li><li><strong>인계</strong>: Alice가 돌아오면 조명이 <code>occupied</code>로 점등되고, 내 Agent가 카드 묶음을 내민다. 방문 보고를 확인한다.</li><li><strong>우리</strong><ul><li>두 사람이 &quot;친구들&quot; 카페 캡슐에 각자의 튜브로 들어온다.</li><li>라임 Room Agent가 두 Agent의 제안을 선택지 2개로 정리하고 decision을 연다. 유리 테두리에 오렌지 반짝임이 생기고 두 창 모두에 결정이 뜬다.</li><li>둘 다 승인하면 코랄과 스카이 무리가 카드로 모여 우리 색으로 섞인다. 펜던트 전구가 차례로 켜지고 테두리 그라데이션이 한 바퀴 돌며 하이파이브 Lottie가 나온다.</li><li>Alice가 Leave한다. 카페 조명이 <code>occupied</code>(Bob이 있음) 상태로 유지되는 가운데 Alice의 Agent가 대리 참여를 이어간다. Bob이 시간을 바꾸려 하자 승인이 Alice에게 남는다.</li><li>Alice가 Rejoin해 타임라인을 3D로 되감아 보고(조명과 유리 상태도 함께 되감김), 수정 후 승인한다.</li></ul></li><li><strong>같은 나, 다른 우리</strong><ul><li>&quot;우리 가족&quot;(home variant)에서 &quot;이번 주말 어때?&quot;라고 물으면, Agent가 선반의 가족 공유 병에서 입자를 끌어와(recalling) 일요일 행사를 들어 토요일을 제안한다. 출처 칩은 &quot;내 기억 · 우리 가족에만 공유&quot;다.</li><li>&quot;팀&quot;(meeting variant)에서 같은 질문을 하면 그 병이 선반에 아예 없고, 가족 이야기도 나오지 않는다.</li></ul></li></ol>
+</section>
+
+<section class="group" id="screens" aria-labelledby="h-screens">
+<h2 id="h-screens">화면 설계</h2>
+<p class="gintro">메신저 진입부터 캡슐 월드, Agent, swarm, 피드백까지(원문 8절)입니다.</p>
+<h3 id="s8">8. 화면: 메신저 진입 · 해변의 캡슐 월드 · Agent · swarm · 피드백</h3><h4 id="s8-1">8.1 메신저 구현: (a) 직접 구현</h4><ul><li>기존 이벤트 로그와 WS 위에 만든다. dm Room에는 3D와 Agent가 없다.</li><li>오픈소스 백엔드(Matrix, Rocket.Chat, Tinode)는 별도 서버와 DB가 필요하고 Agent가 봇 수준으로만 들어간다. 과하다.</li><li>chatscope(MIT)는 레이아웃 참고만 한다. 커스텀 요소가 대부분이고 테마가 충돌한다.</li><li>WorkAdventure(AGPL + Commons Clause, 2D 타일맵)는 동선 참고만 한다.</li><li>통째로 쓸 만한 것은 없다.</li></ul><h4 id="s8-2">8.2 진입 흐름 (데스크톱 3단)</h4><ul><li><strong>좌측</strong>: 나(아바타), My Room 카드, &quot;우리&quot;(우리 가족 / 친구들 / 팀), &quot;사람&quot;(DM).</li><li><strong>가운데</strong>: 대화창.</li><li><strong>우측</strong>: Room 미리보기.<ul><li>해당 캡슐을 클로즈업한 정적 렌더</li><li>&quot;내가 없는 동안 변화 N건&quot;</li><li>Agent 상태 칩, 대기 중인 승인 배지, [들어가기]</li></ul></li><li><strong>대화와 Room 피드의 관계</strong><ul><li>Our Room: 메신저 채팅 = 그 Room의 이벤트 스트림이다.</li><li>DM: 별개의 dm Room이다. 방문 요청과 수락은 DM 카드로 오간다. DM 헤더에 [방문 요청] [내 Agent 보내기]가 있다.</li></ul></li><li><strong>메신저 → 3D 전환</strong><ul><li><code>WorldCanvas</code>는 메신저 뒤에 흐리게 깔린 해변 조감 뷰다.</li><li>[들어가기]를 누르면 미리보기 카드가 FLIP으로 사라지고, 카드 위치에서 입자가 버스트한다.</li><li>카메라가 해당 캡슐로 1.4초 비행한다.</li><li>캡슐 <strong>가운데 마디(두 이음매 사이)가 위로 미끄러져 열린다.</strong></li><li>카메라가 안으로 들어가면 유리 불투명도를 0으로 페이드한다.</li><li>메신저 패널은 Room 사이드 패널로 접힌다.</li><li>나오기는 역재생이다.</li></ul></li></ul><h4 id="s8-3">8.3 나 / 너 / 우리: 해변 위의 유리 캡슐</h4><ul><li><strong>색</strong><ul><li>사람마다 고유 색: Alice 코랄, Bob 스카이, 시드 사용자는 각자의 색. 민트와 오렌지는 예약 색이다.</li><li><strong>우리 색</strong> = 구성원 색을 oklch로 혼합한 값. 경계와 장식은 구성원 색의 그라데이션 링으로 그린다.</li><li>민트는 Room Agent와 시스템 전용, <strong>오렌지는 승인 전용</strong>이다.</li></ul></li><li><strong>월드</strong><ul><li>해 질 녘 해변이다. 원경(바다, 하늘, 도시)은 HDRI 배경을 흐리게 해서 쓰고, 근경은 모래 바닥 평면이다.</li><li>낮고 따뜻한 태양광이 유리 하이라이트와 긴 그림자를 만든다.</li><li>TiltShift2로 미니어처 접사 느낌을 준다. 초점 띠는 현재 대상 캡슐을 따라간다.</li></ul></li><li><strong>캡슐 = Room 하나</strong><ul><li>공통 셸: 가로로 누운 알약형(CapsuleGeometry를 회전), 세로 이음매 링 2개, 원목 받침 트레이, 벽 간판(<code>RoomSign</code>).</li><li>My와 Your 캡슐은 길쭉한 비율이고, Our 캡슐은 1.6배 크고 통통하다(좌석이 많다).</li></ul></li><li><strong>배치</strong> (<code>world/layout.ts</code>, viewer 중심)<ul><li>내 캡슐이 카메라 바로 앞 중앙에 있다.</li><li>Our 캡슐들이 그 뒤로 부채꼴로 놓인다.</li><li>각 Our 캡슐 뒤편에 그 Our의 다른 구성원의 캡슐이 놓인다.</li><li><strong>Bob 창에서는 Bob의 캡슐이 앞 중앙</strong>이고, 라벨은 <code>perspective.ts</code>로 &quot;My Room / Alice의 Room&quot;이 반대로 붙는다.</li></ul></li><li><strong>연결: 유리 튜브 통로</strong> (<code>GlassTube</code>)<ul><li>내 캡슐과 내가 속한 Our 캡슐, 그리고 Our 캡슐과 다른 구성원 캡슐을 튜브로 잇는다.</li><li>튜브 안쪽 바닥은 출발 쪽 색에서 도착 쪽 색으로 그라데이션된다. 그래서 &quot;내 영역에서 우리 영역, 다시 상대 영역으로 넘어간다&quot;가 보인다.</li><li><strong>Our 캡슐은 &quot;내 유리와 네 유리가 만나 생긴 공간&quot;</strong>으로 읽히도록 만든다: 튜브가 모이는 위치, 유리 테두리의 구성원 색 그라데이션 링.</li></ul></li><li><strong>유리 = 경계</strong> (소유, 권한, 기억이 1:1로 대응. <code>perspective.glassClarity</code>)<ul><li>내 캡슐, 그리고 내가 구성원인 Our 캡슐: <strong>투명</strong>.</li><li>남의 캡슐: <strong>서리 유리</strong>(roughness 높음). 실내 조명과 실루엣만 보이고 간판은 읽힌다.</li><li>방문이 수락돼 활성이면: 그 캡슐이 나에게 투명해진다(0.6초 전환).</li><li>방문이 끝나면 다시 서리가 낀다.</li><li>대기 중인 승인이 있으면 유리 테두리에 오렌지 반짝임이 생긴다.</li></ul></li><li><strong>조명 단계</strong> (<code>roomState.roomAmbience</code> → <code>InteriorLights</code>)</li></ul>
+<div class="tablewrap" tabindex="0" role="region" aria-label="8.3 나 / 너 / 우리: 해변 위의 유리 캡슐"><table><thead><tr><th scope="col">단계</th><th scope="col">조건</th><th scope="col">표현</th></tr></thead><tbody><tr><td><code>occupied</code></td><td>사람이 있음</td><td>전구와 스탠드 100%, 따뜻한 2700K</td></tr><tr><td><code>agentOnly</code></td><td>사람 없이 Agent만 있음(대리 참여)</td><td>조도 40%, 가장 가까운 등이 Agent 색으로 은은하게</td></tr><tr><td><code>empty</code></td><td>아무도 없음</td><td>꺼짐, 노을 반사만</td></tr><tr><td><code>attention</code></td><td>승인 대기</td><td>단계에 오렌지 보조광 추가</td></tr></tbody></table></div>
+<ul><li>Agent가 drafting 중이면 보드 옆 등이 토큰 속도에 맞춰 미세하게 맥동한다.</li><li><strong>소유 표시</strong></li><li>카드: <code>owner_tag</code> 색 테두리. 우리 카드는 그라데이션과 &quot;우리&quot; 아이콘, 합의된 카드는 금빛 핀.</li><li>실내 벽면 액자 = 보드 카드.</li><li><strong>기억 선반</strong>: 실내 선반의 빛나는 유리병 = 메모리 항목. 내 private은 나에게만 보인다. <code>for:room</code>은 내 색 병, <code>room</code>은 Room 색 병이다.</li><li>Agent 발화의 출처 칩(<code>used_memory_ids</code>): 예 &quot;내 기억 · 우리 가족에만 공유&quot;.</li><li><strong>Our에 속하는 것</strong>: Our Room 보드의 카드, <code>agreement</code>, Room 요약, Room Agent. 개인 Agent와 개인 기억은 Our Room 안에 있어도 각자의 것이다.</li></ul><h4 id="s8-4">8.4 Agent 디자인 (에셋 기준)</h4><ul><li><strong>Personal Agent = 알형 패밀리</strong><ul><li>몸통은 <code>body-blue.png</code>를 소유자 색으로 틴트한다.</li><li>변종(베레모, <code>&lt;/&gt;</code>, 고글)은 메신저 아바타에서 144px로 쓰고, 3D에서는 1차로 장식을 생략한다.</li></ul></li><li><strong>Room Agent = 유령형 패밀리</strong><ul><li><code>body-lime.png</code>와 47장 yaw 아틀라스로 대상 방향으로 몸을 돌린다.</li><li>민트·라임 고정색이다.</li><li>원 데모의 PM Agent → Room Agent 매핑(추론).</li></ul></li><li><strong>크기</strong>: 캡슐 실내 스케일에 맞춰 의자 높이 정도의 미니어처다.</li><li><strong>3D 표현 방식</strong><ul><li>Y축만 회전하는 빌보드 + <code>spriteMaterial</code>: 틴트, 탈색, 밑단 물결, 림 글로우.</li><li>얼굴은 별도 레이어(<code>faceTexture</code>): near/far eye 오프셋, 깜빡임, <strong>입 벌림 ∝ tokensPerSec</strong>.</li><li>절차적 모션: 부유, squash/stretch, 기울기, 점프.</li><li>소유자 연결: 바닥 링 색 = 소유자 색, 동행 중이면 빛의 끈.</li></ul></li><li><strong>사람 아바타</strong>: 무광의 말(pawn) 형태 미니어처, 바닥 링에 소유자 색.</li><li><strong>Lottie</strong> (DOM 오버레이 전용): <code>lime-notify</code>는 승인 토스트, <code>duo-highfive</code>는 합의, <code>lime-jump-yaw</code>는 모든 승인 완료.</li><li><strong>에셋으로 덮이지 않는 상태와 보완 수단</strong><ul><li>승인 대기: 오렌지 결정 + 오렌지 보조광.</li><li>대리 참여: 소유자 좌석, 후광, 입자로 된 소유자 실루엣, <code>agentOnly</code> 조명.</li><li>이동: 입자로 분해되고 유리를 통과한다.</li><li>paused: 탈색되고 입자가 가라앉는다.</li></ul></li></ul><h4 id="s8-5">8.5 상태 머신 ↔ 이벤트 ↔ 3D (`shared/agentState.ts`, 1:1)</h4><ul><li><code>AgentVisualState = {activity, mode, location, target, handoverPending}</code></li><li>mode는 <code>accompanied | representing | visiting | traveling</code>.</li></ul>
+<div class="tablewrap" tabindex="0" role="region" aria-label="8.5 상태 머신 ↔ 이벤트 ↔ 3D (`shared/agentState.ts`, 1:1)"><table><thead><tr><th scope="col">이벤트</th><th scope="col">상태</th><th scope="col">캐릭터</th><th scope="col">swarm / 캡슐</th></tr></thead><tbody><tr><td>(기본)</td><td>idle</td><td>부유, 깜빡임</td><td>느슨한 궤도. 캡슐 안에 머묾</td></tr><tr><td>다른 행위자의 room 이벤트</td><td>idle + lookAt</td><td>그쪽을 봄</td><td>그쪽으로 쏠림</td></tr><tr><td><code>agent_turn_started</code></td><td>thinking</td><td>미세 진동, 눈을 가늘게</td><td>머리 위 응집 소용돌이</td></tr><tr><td><code>agent_step{recalling}</code></td><td>thinking</td><td>동일</td><td>기억 선반의 병에서 입자가 빨려 나옴</td></tr><tr><td><code>agent_step{drafting}</code></td><td>drafting</td><td>보드 쪽으로 기울고 입이 움직임</td><td>벽 액자(카드)로 쏟아짐, 보드 옆 등 맥동</td></tr><tr><td><code>agent_step{talking,target}</code></td><td>talking</td><td>대상 쪽으로 회전</td><td>두 Agent 사이의 띠</td></tr><tr><td><code>approval_requested</code></td><td>awaiting</td><td>승인자 좌석을 봄</td><td>오렌지로 응결, 유리 테두리 오렌지 반짝임</td></tr><tr><td><code>agent_turn_ended{pass}</code></td><td>idle</td><td>끄덕임</td><td>수축</td></tr><tr><td><code>agent_paused</code></td><td>paused</td><td>탈색</td><td>가라앉음</td></tr><tr><td><code>member_left</code>(소유자)</td><td>representing</td><td>소유자 좌석으로 이동</td><td>소유자 실루엣, 조명 <code>agentOnly</code></td></tr><tr><td><code>agent_departed</code></td><td>traveling</td><td>문 쪽으로 감</td><td>무리로 분해 → <strong>내 캡슐 유리를 통과(파문)</strong> → 튜브를 따라 흐름</td></tr><tr><td><code>agent_arrived</code></td><td>visiting</td><td>호스트 캡슐 안 문 앞에서 재조립</td><td><strong>호스트 유리를 통과(파문)</strong>, 방문 배지(점선 링)</td></tr><tr><td><code>visit_takeout</code></td><td>visiting</td><td>작은 카드를 품에 안음</td><td>—</td></tr><tr><td><code>agent_returned</code> + <code>visit_report</code></td><td>handoverPending</td><td>카드 묶음을 내밂</td><td>역방향 유리 통과</td></tr><tr><td><code>member_rejoined</code>(missed&gt;0)</td><td>handoverPending</td><td>동일</td><td>소유자에게 흘러 들어감, 조명 <code>occupied</code>로 점등</td></tr><tr><td><code>digest_viewed</code></td><td>인계 해제</td><td>점프</td><td>해소 링</td></tr><tr><td><code>agreement_formed</code></td><td>(Our)</td><td>구성원 Agent와 Room Agent가 모여 점프 + 하이파이브 Lottie</td><td>양쪽 색 무리가 카드로 모여 우리 색으로 섞임. 전구가 차례로 켜지고 유리 테두리 그라데이션이 한 바퀴 돎</td></tr></tbody></table></div>
+<ul><li><code>tokensPerSec</code>는 상태를 바꾸지 않는다. 입, 밀도, 등 맥동의 강도만 조절한다.</li><li><strong>타임라인 재생</strong>: <code>replaySeq</code>까지 리듀싱한 결과가 3D(조명 단계와 유리 투명도 포함)로 그대로 재생된다. 재생 중에는 휘발성 효과를 끈다.</li></ul><h4 id="s8-6">8.6 swarm과 유리 렌더링</h4><ul><li><strong>해석</strong>: 커서를 따라 무리 짓는 입자(boids)로 진행한다. 확신은 중간이다.</li><li><strong>시뮬레이션</strong> (<code>swarmSim.ts</code>)<ul><li>GPUComputationRenderer로 위치·속도 텍스처를 만들고, 입자마다 그룹 id를 둔다(최대 12개: 사람별 ambient, Agent별, Room Agent).</li><li>그룹별 uniform: 목표, 모드(orbit/cohere/vortex/flow/condense/scatter/settle), 강도, 색, <strong>소속 캡슐 id</strong>.</li><li><strong>캡슐 SDF 제약</strong>: 캡슐 소속 그룹은 그 캡슐 안에 머문다. 이동 모드에서만 제약을 풀고, 유리를 통과하는 지점에 <code>GlassRipple</code> 이벤트를 낸다.</li><li>커서 ambient 무리는 캡슐 밖(해변)이나, 캡슐에 들어가 있으면 그 캡슐 안을 따라다닌다.</li><li>힘: 목표 유도 + curl noise + 분리 + 커서 인력·척력 + 회피 구(얼굴과 라벨).</li><li>렌더: Points, additive blending.</li></ul></li><li><strong>커서</strong><ul><li>바닥이나 캡슐 바닥에 레이캐스트해 내 색 무리가 따라온다.</li><li>같은 Room이나 같은 월드에 있는 상대의 커서 무리도 보인다(WS <code>cursor</code>).</li></ul></li><li><strong>유리 렌더</strong> (<code>GlassMaterial.tsx</code>)<ul><li><strong>월드 전체에서 <code>MeshTransmissionMaterial</code>이 하나의 공유 버퍼(drei 공유 버퍼 패턴)를 쓴다.</strong> 투과 패스는 프레임당 1회다.</li><li><code>backside=false</code>.</li><li>초점 캡슐과 화면 안의 가까운 캡슐 2개까지만 투과 유리를 쓰고, 나머지와 튜브는 가짜 유리(<code>MeshPhysicalMaterial</code> transparent + envMap 반사 + 프레넬 림)를 쓴다.</li><li>서리 효과는 roughness로 낸다.</li><li>파문은 <code>GlassRipple</code>이 통과 지점과 시각을 uniform으로 넘기고, 셰이더가 노멀을 교란해 굴절 링을 만든다.</li></ul></li><li><strong>품질 단계</strong> (<code>quality.ts</code>, drei <code>PerformanceMonitor</code>로 자동 하향. <code>?q=</code>로 강제 가능)</li></ul>
+<div class="tablewrap" tabindex="0" role="region" aria-label="8.6 swarm과 유리 렌더링"><table><thead><tr><th scope="col">단계</th><th scope="col">입자</th><th scope="col">유리</th><th scope="col">후처리</th><th scope="col">기타</th></tr></thead><tbody><tr><td>high</td><td>65,536(256²)</td><td>투과 3개, resolution 512, samples 6</td><td>Bloom, TiltShift2, AGX, Vignette, N8AO</td><td>실내 PointLight 4</td></tr><tr><td>mid(시작값)</td><td>16,384(128²)</td><td>투과 1개(초점), resolution 256, samples 3</td><td>Bloom, TiltShift2, AGX</td><td>PointLight 2</td></tr><tr><td>low</td><td>4,096(64²)</td><td>전부 가짜 유리</td><td>AGX만</td><td>PointLight 0(emissive만), dpr 1</td></tr></tbody></table></div>
+<ul><li>mid에서 60fps가 2초 유지되면 high로 올린다.</li><li>float 렌더 타깃을 지원하지 않으면 CPU InstancedMesh 1,000개로 폴백한다.</li><li>그림자는 정적으로 베이크하고, 이후 캡슐 상태가 바뀌어도 다시 굽지 않는다.</li><li>실내 소품은 glb를 최적화하고 인스턴싱한다(같은 소품 재사용).</li><li><strong>R3F 유지</strong>: WebGPU 경로(v10 알파)는 1차에서 쓰지 않는다.</li></ul><h4 id="s8-7">8.7 반응성과 인과 연출</h4><div class="tablewrap" tabindex="0" role="region" aria-label="8.7 반응성과 인과 연출"><table><thead><tr><th scope="col">입력</th><th scope="col">즉시 반응(3D, 다음 프레임)</th><th scope="col">즉시 반응(2D)</th><th scope="col">서버 확정 후</th></tr></thead><tbody><tr><td>캡슐 호버(조감)</td><td>캡슐이 스프링으로 0.05 떠오름, 유리 프레넬 림 밝아짐, 실내 조명 +20%, 간판 발광, 내 무리가 캡슐 주위로 모임</td><td>이름, 상태, 변화 수 툴팁</td><td>—</td></tr><tr><td>캡슐 클릭</td><td>가운데 마디 열림 → 카메라 진입(8.2)</td><td>미리보기 패널이 Room 패널로 바뀜</td><td>snapshot 수신</td></tr><tr><td>호버(Agent·사람·카드)</td><td>스케일 1.08, 림 밝아짐, 무리가 모임</td><td>툴팁, 피드 하이라이트</td><td>—</td></tr><tr><td>클릭(Agent)</td><td>눌림, 카메라 미세 접근</td><td>Agent 패널</td><td>—</td></tr><tr><td>드래그(빈 공간)</td><td>제한 회전 ±25°, 무리 관성</td><td>—</td><td>—</td></tr><tr><td>드래그(카드 → Agent)</td><td>카드 사본이 따라가다 Agent로 날아감</td><td>&quot;보여 줌&quot;</td><td><code>card_pointed</code> → turn_started</td></tr><tr><td>메시지 전송</td><td>내 좌석에서 수신자로 빛 투사체</td><td>말풍선이 &quot;보냄&quot;(테두리만)</td><td>ack 시 채워짐</td></tr><tr><td>Agent 호출</td><td>투사체 + &quot;!&quot; 펄스</td><td>&quot;부름&quot;</td><td>thinking 소용돌이(150ms 이내)</td></tr><tr><td>방문 요청</td><td>내 캡슐에서 상대 캡슐로 튜브를 따라 신호 입자</td><td>DM &quot;요청 중…&quot;</td><td>상대 창: DM 카드 등장, 그 사람의 캡슐 유리가 깜빡임</td></tr><tr><td>방문 수락</td><td>튜브가 밝아지고 상대 캡슐 유리 서리가 걷힘</td><td>&quot;수락됨&quot;</td><td>요청자 창: [들어가기] 맥동</td></tr><tr><td>Agent 보내기</td><td>Agent가 문으로 감</td><td>&quot;출발 중&quot;</td><td>departed / arrived 연출</td></tr><tr><td>승인 / 수정 / 거절</td><td>결정이 터짐 / 녹아서 바뀜 / 흩어짐, Agent 반응, 유리의 오렌지 반짝임 해제</td><td>결과 칩</td><td>적용 연출</td></tr></tbody></table></div>
+<p><strong>지연 예산</strong></p>
+<ul><li>로컬 피드백 16ms 이내, ack 100ms 이내, turn_started 150ms 이내.</li><li>Claude 첫 토큰까지의 빈 시간은 thinking 연출과 &quot;생각 중 · 사유&quot;가 채운다. 이후는 스트리밍이 연속 피드백이 된다.</li><li>실패하면 무리가 흩어지고 &quot;다시 시도&quot; 버튼이 뜬다.</li></ul>
+<p><strong>인과 궤적</strong></p>
+<ul><li>모든 연출은 <code>fxStore.emit({kind, from, to, priority, color})</code>를 거친다.</li><li>로컬의 낙관적 입력과 원격 이벤트가 같은 emit을 쓴다. <code>clientId</code>로 중복 재생을 막는다.</li><li>캡슐 사이를 오가는 연출은 반드시 해당 튜브 경로를 따라간다.</li></ul>
+<p><strong>과함 방지</strong></p>
+<ul><li>우선순위는 L1 승인 &gt; L2 Agent 행동 &gt; L3 분위기·커서다.<ul><li>L1이 활성이면 L3를 30%로 낮추고 블룸을 낮추며, 카메라는 승인자 쪽으로 미세 이동한다.</li><li>L2는 동시 2개까지, 250ms 간격으로 순차 재생하고, 이때 L3는 50%로 낮춘다.</li></ul></li><li>카메라 미세 이동은 내가 대상이거나 내가 일으킨 행동일 때만 한다.</li><li>가독성 규칙:<ul><li>라벨과 승인은 DOM(drei <code>Html</code>)으로 그리므로 블룸, 입자, 유리 굴절에 덮이지 않는다.</li><li>유리 반사 강도는 실내 인물이 읽히는 수준으로 제한한다(초점 캡슐의 envMapIntensity 상한).</li><li>회피 구, <code>AgentStatusList</code>(aria-live), <code>prefers-reduced-motion</code>을 지킨다.</li></ul></li></ul>
+<p><strong>수동 검증 체크리스트</strong></p>
+<ol><li>두 창에서 한쪽이 보낸 메시지의 투사체가 다른 창에서도 1초 안에 보인다.</li><li>Agent를 부르면 0.2초 안에 thinking이 시작된다.</li><li>승인이 대기 중이면 분위기 연출이 줄고, 결정과 유리의 오렌지 반짝임이 보인다.</li><li>무리, 유리 반사, 굴절이 얼굴과 라벨을 가리지 않는다.</li><li>내장 그래픽 노트북에서 low/mid 단계로 30fps 이상이 나온다.</li><li>상대 커서 무리가 보인다.</li><li>Bob 창의 월드가 Alice 창과 대칭이다(앞 중앙 캡슐과 라벨이 반대).</li><li>타임라인을 되감으면 3D, 조명, 유리 상태가 과거로 돌아간다.</li><li>방문을 수락하면 상대 캡슐의 서리가 걷히고, 종료하면 다시 낀다.</li><li>Agent가 유리를 통과할 때 파문이 보인다.</li></ol>
+</section>
+
+<section class="group" id="tech" aria-labelledby="h-tech">
+<h2 id="h-tech">기술 설계</h2>
+<p class="gintro">스택, 디렉터리, 데이터 모델, 이벤트와 API, Agent 런타임, 메모리(원문 1, 3~7절)입니다. 길고 세부적인 부분은 접어 두었으니 펼쳐서 보세요.</p>
+<h3 id="s1">1. 확정 스택과 3D 기술</h3><div class="tablewrap" tabindex="0" role="region" aria-label="확정 스택"><table><thead><tr><th scope="col">층</th><th scope="col">선택</th><th scope="col">근거</th></tr></thead><tbody><tr><td>모노레포</td><td>npm workspaces: <code>packages/shared</code>, <code>apps/server</code>, <code>apps/web</code> + 루트 <code>concurrently</code></td><td><code>npm install &amp;&amp; npm run dev</code> 하나로 뜬다</td></tr><tr><td>프런트</td><td>Vite + React + TypeScript + Tailwind + zustand</td><td>SSR 불필요, 3D와 DOM이 스토어 하나를 공유</td></tr><tr><td>3D</td><td><strong>@react-three/fiber v9 + three + @react-three/drei + @react-three/postprocessing(WebGL2)</strong></td><td>아래 근거</td></tr><tr><td>유리</td><td>drei <code>MeshTransmissionMaterial</code>(공유 버퍼), 하위 단계는 <code>MeshPhysicalMaterial</code> + 프레넬 가짜 유리</td><td></td></tr><tr><td>환경·조명</td><td>drei <code>Environment files=</code>(자체 호스팅 Poly Haven CC0 sunset HDRI, <code>backgroundBlurriness</code>), 낮은 각도의 따뜻한 DirectionalLight, 실내 PointLight 최대 4개(나머지 전구는 emissive)</td><td></td></tr><tr><td>그림자</td><td>drei <code>AccumulativeShadows</code> + <code>RandomizedLight</code>(정적 베이크) 또는 <code>ContactShadows</code>(frames=1)</td><td>정적인 모래 위 그림자</td></tr><tr><td>후처리</td><td>Bloom(luminanceThreshold), TiltShift2(미니어처), ToneMapping(AGX), Vignette, N8AO(high 단계만)</td><td></td></tr><tr><td>입자</td><td>three <code>GPUComputationRenderer</code>(examples/jsm) GPGPU</td><td>수만 개 입자</td></tr><tr><td>텍스트</td><td>drei <code>Text</code>(troika) + Noto Sans KR 서브셋(OFL), 라벨은 drei <code>Html</code></td><td>한글 간판·라벨</td></tr><tr><td>2D 애니메이션</td><td>lottie-web(DOM 오버레이 전용)</td><td>에셋이 Lottie</td></tr><tr><td>서버</td><td>Node 24 + Fastify + @fastify/websocket + zod</td><td>로컬 단일 프로세스</td></tr><tr><td>DB</td><td>node:sqlite(내장). 문제가 있으면 better-sqlite3로 <code>db/index.ts</code>만 교체</td><td>네이티브 빌드 위험 회피</td></tr><tr><td>LLM</td><td>@anthropic-ai/sdk, 스트리밍 + tool use. env는 <code>ANTHROPIC_API_KEY</code>, <code>ANTHROPIC_MODEL_AGENT</code>, <code>ANTHROPIC_MODEL_LIGHT</code></td><td>서버에서만 호출</td></tr><tr><td>에셋 처리</td><td><code>@gltf-transform/cli</code>(glb 최적화), Kenney 원본이 OBJ/FBX뿐이면 <code>obj2gltf</code>(미검증)</td><td></td></tr><tr><td>테스트</td><td>vitest(shared, server) + 수동 체크리스트(web)</td><td></td></tr></tbody></table></div>
+<p><strong>3D 근거</strong></p>
+<ul><li>DOM UI(메신저, 패널, 승인)와 3D가 이벤트 리듀서 결과 하나를 공유해야 한다. R3F는 이를 동기화 코드 없이 해결한다.</li><li>유리 투과, 환경 맵, 틸트 시프트, 블룸, GPGPU가 drei와 postprocessing에 이미 부품으로 있다.</li><li>2D 캐릭터는 빌보드로 충분하다.</li></ul>
+<p><strong>대안</strong></p>
+<ul><li>Babylon.js: React 동기화를 직접 짜야 한다.</li><li>PixiJS 2.5D: 유리, 카메라 비행, 입자 표현이 약하다.</li><li>R3F v10/WebGPU: 알파 단계라 불안정하다.</li><li>Unity/Godot 웹: 무겁고 DOM UI와 결합하기 어렵다.</li></ul>
+<p><strong>호스팅으로 옮길 때 바꿀 지점</strong> (코드에 <code>// HOSTING:</code> 표시)</p>
+<ul><li><code>db/index.ts</code>: SQLite → Postgres</li><li><code>realtime/hub.ts</code>: 메모리 → Redis pub/sub</li><li><code>agents/scheduler.ts</code>: 프로세스 내 큐 → 내구성 있는 큐</li><li><code>auth.ts</code>: 이름 로그인 → 실제 인증</li><li>web: <code>VITE_API_BASE</code></li></ul>
+<p><strong>가정이 틀렸을 때 바뀌는 부분</strong></p>
+<ul><li>Claude API가 막혀 있다 → <code>agents/claude.ts</code>만 교체하고, 그동안 <code>AGENT_MODE=mock</code>으로 시연한다.</li><li>외부 배포를 한다 → HOSTING 지점과 인증을 교체한다.</li><li>노트북 GPU가 약하다 → 품질 low가 기본값이 된다(가짜 유리, 입자 4k).</li><li>node:sqlite를 쓸 수 없다 → better-sqlite3로 교체한다.</li></ul><h3 id="s3">3. 디렉터리 구조와 파일 책임</h3><details><summary>디렉터리 구조 전체 보기</summary><div class="dbody"><pre tabindex="0"><code>EnsembleRoom/
+  package.json            # workspaces; scripts: dev, build, test, typecheck, seed, assets:extract, assets:props
+  tsconfig.base.json  .gitignore(data/, .env, node_modules, assets-src/)  .env.example  README.md  CREDITS.md
+  docs/implementation-plan.md
+  tools/extract-demo-assets.mjs   # 캐릭터 에셋 추출 (10.1)
+  tools/import-props.mjs          # 소품 glb 가져오기·최적화 (10.2)
+  tools/props-manifest.json       # 테마별로 가져올 소품 목록(원본 파일명 → 출력명, 라이선스)
+  assets-src/                     # 사용자가 내려받은 원본 zip 압축 해제 위치 (커밋 안 함)
+  packages/shared/src/
+    events.ts  api.ts  permissions.ts  namespaces.ts
+    agentState.ts   # 이벤트 → AgentVisualState
+    roomState.ts    # 이벤트 → board/members/presence/visits/approvals + roomAmbience(조명 단계)
+    perspective.ts  # relation(viewer, room) → mine|yours|ours, 라벨, glassClarity(viewer, room, visits)
+    colors.ts       # 팔레트, oklch 혼합
+    themes.ts       # 테마 id 목록과 좌석 수 등 서버·클라이언트 공통 메타
+    index.ts
+  packages/shared/test/
+  apps/server/src/
+    index.ts  config.ts  auth.ts
+    db/schema.sql  db/index.ts  db/repo.ts  db/seed.ts
+    events/store.ts  realtime/hub.ts
+    domain/actions.ts  domain/presence.ts  domain/visits.ts  domain/approvals.ts  domain/rooms.ts
+    memory/types.ts  memory/localStore.ts  memory/gateway.ts  memory/summarizer.ts  memory/hindsightStore.ts(S20)
+    agents/scheduler.ts  agents/runTurn.ts  agents/context.ts  agents/tools.ts  agents/prompts.ts  agents/llm.ts  agents/claude.ts  agents/mock.ts
+    routes/auth.ts  rooms.ts  visits.ts  approvals.ts  memory.ts  metrics.ts
+  apps/server/test/
+  apps/web/
+    vite.config.ts  index.html
+    public/assets/characters/*  avatars/*  lottie/*  props/*.glb  hdri/*.hdr  textures/*  fonts/*
+    src/main.tsx  App.tsx
+    src/api/client.ts  api/ws.ts
+    src/store/session.ts  worldStore.ts  roomStore.ts  fxStore.ts
+    src/messenger/MessengerHome.tsx Sidebar.tsx ConversationView.tsx MessageList.tsx Composer.tsx RoomPreviewPanel.tsx VisitCards.tsx
+    src/room/RoomView.tsx ActivityFeed.tsx BoardPanel.tsx ApprovalPanel.tsx LeaveSheet.tsx SendAgentSheet.tsx TimelineScrubber.tsx MemoryPanel.tsx AgentStatusList.tsx
+    src/scene/WorldCanvas.tsx      # 앱 루트에 1회 마운트
+    src/scene/CameraRig.tsx        # 원근 접사 카메라, 조감 ↔ 캡슐 진입 비행, 초점 거리 제어
+    src/scene/quality.ts           # 품질 단계 (8.6)
+    src/scene/world/Beach.tsx      # 모래 바닥, 원경 HDRI, 노을 태양광, 베이크 그림자
+    src/scene/world/layout.ts      # 시점 중심 캡슐 배치
+    src/scene/world/GlassTube.tsx  # 캡슐 사이 유리 튜브 통로
+    src/scene/capsule/CapsuleShell.tsx    # 공통 캡슐: 유리, 이음매 링, 받침, 열리는 가운데 마디
+    src/scene/capsule/GlassMaterial.tsx   # 품질 단계별 유리(투과 / 가짜), 서리 정도, 파문 uniform
+    src/scene/capsule/RoomSign.tsx        # 벽 간판(Room 이름, drei Text)
+    src/scene/capsule/InteriorLights.tsx  # 조명 단계 → 전구·스탠드 강도와 색
+    src/scene/interiors/themes.tsx        # 테마 id → 실내 컴포넌트, 앵커(좌석, Agent 위치, 보드, 조명, 문), 팔레트
+    src/scene/interiors/Studio.tsx  Lounge.tsx  Cafe.tsx  # 소품 배치 (glb + 프리미티브)
+    src/scene/interiors/Prop.tsx          # useGLTF 래퍼 + 프리미티브 대체
+    src/scene/BoardObject.tsx  HumanAvatar.tsx
+    src/scene/agents/AgentSprite.tsx spriteMaterial.ts faceTexture.ts useYawAtlas.ts
+    src/scene/fx/Swarm.tsx swarmSim.ts swarmDirector.ts Projectile.tsx Tether.tsx ApprovalCrystal.tsx GlassRipple.ts Postfx.tsx
+    src/overlay/LottieMoment.tsx
+    src/pages/Login.tsx Metrics.tsx SceneLab.tsx</code></pre></div></details><p><strong>두 창 시연</strong>: 토큰을 <strong>sessionStorage</strong>에 저장한다. 같은 브라우저의 두 창에서 다른 사용자로 로그인할 수 있다.</p><h3 id="s4">4. 데이터 모델 (SQLite)</h3><ul><li><code>users(id, name, color, kind 'person'|'seed')</code></li><li><code>sessions(token, user_id)</code></li><li><code>agents(id, owner_id, name, persona_public, variant)</code></li><li><code>room_agents(id, room_id, name)</code>: Our Room 전용</li><li><code>rooms(id, kind 'my'|'our'|'dm', owner_id NULL, title, theme 'studio'|'lounge'|'cafe', theme_variant NULL|'home'|'meeting')</code></li><li><code>room_members(room_id, user_id)</code></li><li><code>visits(id, host_room_id, visitor_kind, visitor_user_id, visitor_agent_id, status requested|active|ended|declined, permissions_json, mandate_json, start_seq, end_seq, requested_in_dm_room_id)</code></li><li><code>events(room_id, seq, ts, actor_kind human|agent|room_agent|system, actor_id, type, payload_json, visibility 'room'|'private:&lt;userId&gt;', turn_id)</code>, PK <code>(room_id, seq)</code></li><li><code>board_cards(room_id, card_id, title, body, owner_tag 'user:&lt;id&gt;'|'agent:&lt;id&gt;'|'ours', version, agreed)</code></li><li><code>approvals(id, room_id, kind edit|decision|visit|takeout, requested_by, payload_json, status, created_at)</code></li><li><code>approval_votes(approval_id, user_id, decision approve|edit|reject, edited_json)</code></li><li><code>memory_items(id, ns, kind fact|preference|agreement|summary, text, source_room_id, source_seqs, created_by, status, created_at)</code></li><li><code>room_summaries(room_id, upto_seq, text)</code></li><li><code>read_cursors(user_id, room_id, last_seen_seq, left_at_seq)</code></li></ul><h3 id="s5">5. 이벤트 타입 · API · 실시간 채널</h3><details><summary><strong>영속 이벤트</strong> (<code>packages/shared/src/events.ts</code>, zod discriminated union)</summary><div class="dbody"><ul><li><strong>Room / 구성원</strong>: <code>room_created</code>, <code>member_entered{userId, role owner|member|visitor}</code>, <code>member_left{userId, implicit, mandate?}</code>, <code>member_rejoined{userId, missedCount}</code>, <code>digest_viewed{userId}</code></li><li><strong>방문</strong>:<ul><li><code>visit_requested{visitId, visitorKind}</code> (DM과 호스트 Room 양쪽에 기록)</li><li><code>visit_accepted{visitId, permissions}</code>, <code>visit_declined</code></li><li><code>agent_departed{agentId, visitId, toRoomId}</code>, <code>agent_arrived{agentId, visitId, fromRoomId}</code></li><li><code>visit_takeout{visitId, text}</code> (호스트 Room에 공개)</li><li><code>visit_ended{visitId, reason}</code></li><li><code>agent_returned{agentId, visitId}</code>, <code>visit_report{visitId, summary}</code> (출발 Room, private:소유자)</li></ul></li><li><strong>내용</strong>: <code>message{text, to?, memoryRefs?}</code>, <code>card_created</code>, <code>card_updated{cardId, patch, version}</code>, <code>comment_added{cardId, text}</code>, <code>card_pointed{cardId, toAgentId}</code></li><li><strong>Agent</strong>:<ul><li><code>agent_turn_started{agentId, turnId, trigger{seq, reason}}</code></li><li><code>agent_step{agentId, turnId, kind reading|recalling|drafting|talking, target?}</code> (턴당 최대 3개)</li><li><code>agent_turn_ended{agentId, turnId, result acted|pass|error, passReason?}</code></li><li><code>agent_paused{agentId, reason chain_limit|budget|visit_turn_limit}</code></li></ul></li><li><strong>승인</strong>: <code>approval_requested{approvalId, approvers[], kind, summary, publicRationale}</code>, <code>approval_voted</code>, <code>approval_resolved{approvalId, outcome}</code></li><li><strong>합의</strong>: <code>agreement_formed{cardId, memberIds}</code></li><li><strong>메모리</strong>: <code>memory_retained{itemId, ns, kind}</code> (ns가 private이면 가시성도 private:소유자)</li></ul></div></details>
+<p><strong>휘발성 메시지</strong>: <code>activity{agentId, turnId, text, tokensPerSec}</code>, <code>cursor{userId, x, y, z, roomId|null}</code>(20Hz), <code>presence{roomId, userIds}</code></p>
+<details><summary><strong>REST</strong> (Bearer 토큰)</summary><div class="dbody"><ul><li>세션·사용자: <code>POST /api/login{name}</code>, <code>GET /api/me</code>, <code>GET /api/users</code></li><li>월드: <code>GET /api/world</code> (Room 목록, 테마, 미리보기: 안 읽은 수, 부재 중 변화 수, Agent 상태, 대기 중인 승인 수, 조명 단계, 유리 투명도)</li><li>Room 조회: <code>GET /api/rooms/:id/snapshot</code></li><li>Room 쓰기: <code>POST /api/rooms/:id/messages{text,to?,clientId}</code>, <code>POST .../cards</code>, <code>PATCH .../cards/:cardId</code>, <code>POST .../comments</code>, <code>POST .../point{cardId, agentId}</code>, <code>POST .../leave{mandate}</code>, <code>POST .../rejoin</code>, <code>POST .../seen{seq}</code></li><li>방문: <code>POST /api/rooms/:id/visits{kind:'human'}</code>, <code>POST /api/rooms/:id/visits/agent{mandate}</code>, <code>POST /api/visits/:id/accept{permissions}</code>, <code>POST /api/visits/:id/decline</code>, <code>POST /api/visits/:id/end</code></li><li>승인: <code>GET /api/approvals?mine=pending</code>, <code>POST /api/approvals/:id/vote{decision, edited?}</code></li><li>메모리: <code>GET/POST/DELETE /api/memory</code>, <code>GET /api/rooms/:id/memory</code></li><li>지표: <code>GET /api/metrics</code></li></ul></div></details>
+<details><summary><strong>WS</strong> <code>/ws?token=</code></summary><div class="dbody"><ul><li>클라이언트 → 서버: <code>subscribe{roomId}</code>, <code>unsubscribe</code>, <code>cursor</code>, <code>subscribe_world</code></li><li>서버 → 클라이언트: <code>event</code>, <code>ack{clientId, seq}</code>, <code>activity</code>, <code>cursor</code>, <code>presence</code>, <code>world_preview</code></li><li>가시성 필터는 hub에서 구독자별로 적용한다.</li></ul></div></details>
+<p><strong>가시성 규칙</strong> (<code>canSee</code>)</p>
+<ul><li><code>private:X</code> → X만 본다.</li><li><code>room</code> 이벤트:<ul><li>my Room: 소유자는 전부 본다. 방문자는 자기 방문의 <code>start_seq</code> 이상, 방문이 active인 동안만 본다.</li><li>our/dm Room: 구성원이 본다.</li></ul></li><li><code>world_preview</code>도 같은 규칙을 따른다. 남의 캡슐에 대해서는 이름, 테마, 조명 단계만 내려보내고 내용 요약은 보내지 않는다.</li></ul>
+<h3 id="s6">6. Agent 런타임</h3><p><strong>Agent 종류</strong></p>
+<ul><li>Personal Agent: 사람마다 1개.</li><li>Room Agent: Our Room마다 1개. 중립 조율자로서 요약하고, 충돌을 선택지로 정리하고, 합의 카드를 정리한다. 지목되면 답하고, 결정하지 않는다.</li></ul>
+<p><strong>트리거 규칙</strong> (<code>scheduler.ts</code>. 결정적 규칙이며 LLM으로 발언자를 고르지 않는다)</p>
+<ol><li><strong>사람 이벤트</strong>(message, card 계열, point)가 오면 <code>chainCount</code>를 0으로 되돌리고 paused를 해제한다. 대상은 다음 순서로 고른다.<ul><li><code>to</code>나 <code>point</code>로 지정된 Agent</li><li>my Room에서 작성자가 소유자 → 소유자의 Agent</li><li>방문자의 메시지이고 소유자가 부재 → 호스트 Agent</li><li>Our Room: 작성자의 Agent는 부르지 않는다. 질문이나 &quot;정리&quot;가 있거나 부재 구성원과 관련된 내용이면 Room Agent를 부른다(키워드와 <code>to</code>로 판정).</li></ul></li><li><strong>Agent 이벤트</strong>: <code>to</code>로 지정된 다른 Agent만 부른다. <code>chainCount</code>를 1 올리고, <code>AGENT_CHAIN_LIMIT</code>(기본 4)에 도달하면 <code>agent_paused</code>를 기록한다.</li><li><code>agent_arrived</code> → 방문한 Agent에게 도착 턴을 1회 준다.</li><li>방문 턴 수가 <code>VISIT_MAX_TURNS</code>(기본 6)에 도달하면 <code>end_visit</code>만 허용하는 턴을 강제한다.</li><li>Room당 턴은 직렬 1개다. 대기열 중복은 제거하고, Agent는 자기 이벤트로 깨어나지 않는다. 시간당 상한은 <code>MAX_TURNS_PER_ROOM_HOUR</code>(60)이다.</li><li><strong>트리거 판정 직후, LLM 호출 전에 <code>agent_turn_started</code>를 동기로 append한다.</strong></li></ol>
+<p><strong>Claude 호출</strong> (<code>claude.ts</code>, <code>runTurn.ts</code>)</p>
+<ul><li><code>messages.stream</code>에 tools를 넣고 <code>tool_choice:{type:'any'}</code>로 호출한다. <strong>턴당 행동은 1개</strong>다.</li><li>tool_use가 여러 개면 첫 번째만 실행한다. tool_result 루프는 없다.</li><li><code>max_tokens</code>는 1024. 실패하면 1회 재시도하고, 그래도 실패하면 <code>agent_turn_ended{error}</code>.</li><li>스트리밍:<ul><li>tool 블록이 시작되면 <code>agent_step{drafting}</code>을 기록한다.</li><li>입력 JSON에서 <code>to</code>가 Agent로 확인되면 <code>agent_step{talking,target}</code>을 기록한다.</li><li><code>say.text</code>, <code>comment.text</code>만 <code>activity</code>로 흘려보낸다(80ms 간격 묶음).</li><li>SDK의 partial JSON 이벤트 이름은 설치 버전 문서로 확인한다(미검증).</li></ul></li><li><code>AGENT_MODE=mock</code>이면 <code>mock.ts</code>가 결정적 응답을 낸다.<ul><li>예: <code>@</code>로 불리면 <code>say</code>, 문장에 &quot;확정&quot;이 있으면 <code>request_approval</code>, 도착하면 인사.</li></ul></li></ul>
+<p><strong>도구</strong> (권한으로 걸러서 쓸 수 없는 도구는 주지 않는다)</p>
+<ul><li>공통 필드: <code>public_rationale?</code>, <code>owner_note?</code>(private:소유자), <code>used_memory_ids?</code></li></ul>
+<div class="tablewrap" tabindex="0" role="region" aria-label="Agent 도구"><table><thead><tr><th scope="col">도구</th><th scope="col">사용 주체 / 비고</th></tr></thead><tbody><tr><td><code>say{text, to?}</code></td><td>모두</td></tr><tr><td><code>comment{card_id, text}</code></td><td>모두</td></tr><tr><td><code>propose_edit{card_id?, title?, body?}</code></td><td>모두</td></tr><tr><td><code>edit_board{op, card_id?, title?, body?}</code></td><td>동행 중인 My Room 소유자 Agent만</td></tr><tr><td><code>request_approval{question, options[2-4]}</code></td><td>모두. 승인자는 서버가 정한다</td></tr><tr><td><code>remember{text, kind}</code></td><td>모두. ns는 서버가 정한다</td></tr><tr><td><code>end_visit{public_takeout, report_for_owner}</code></td><td>방문 중인 Agent만</td></tr><tr><td><code>pass{reason: not_addressed|nothing_to_add|waiting_for_human|outside_mandate}</code></td><td>모두</td></tr></tbody></table></div>
+<p><strong>권한 강제</strong> (<code>shared/permissions.ts</code> + <code>domain/actions.ts</code>, 두 겹)</p>
+<ul><li>역할별 capability:<ul><li>my Room 소유자(사람): 전부.</li><li>소유자 Agent 동행 중: <code>chat, comment, edit_board, remember</code>.</li><li>소유자 Agent 대리 참여 중: <code>edit_board</code>를 빼고 <code>propose_edit</code>(승인자는 소유자).</li><li>방문자(사람): grant ⊆ <code>{chat, comment, propose_edit}</code>.</li><li>방문 Agent: grant ∩ <code>mandate.allowedActions</code>. <code>edit_board</code>와 <code>remember</code>는 없다.</li><li>Our Room 구성원(사람): <code>chat, comment, edit_board</code>(합의된 카드는 decision 승인을 거쳐야 수정 가능).</li><li>Our Room 구성원 Agent: <code>chat, comment, propose_edit, remember</code>. <code>propose_edit</code> 승인자는 소유자를 제외한 사람 구성원 1인.</li><li>Room Agent: <code>chat, comment, propose_edit, request_approval</code>. decision 승인자는 시드가 아닌 사람 구성원 전원.</li></ul></li><li><code>dispatch(actorCtx, action)</code>가 모든 쓰기 직전에 서버 진실로 <code>effectiveCapabilities</code>를 다시 계산한다. 위반하면 403과 <code>agent_turn_ended{error}</code>.</li><li><code>to</code>, <code>card_id</code>, <code>used_memory_ids</code>가 실제로 존재하는지, 이번 턴에 제공된 항목의 부분집합인지 검증한다.</li></ul>
+<p><strong>프롬프트</strong> (<code>context.ts</code>, 상한 약 9k 토큰)</p>
+<ul><li>역할 규칙(모드별: 동행/대리/방문/Our)</li><li><code>persona_public</code></li><li>mandate</li><li>gateway가 허용한 기억 항목(최근 20개, 1.5k 토큰 이하, id 포함)</li><li>Room 요약(600 토큰 이하)</li><li>보이는 이벤트 최근 30개(3k 토큰 이하)</li><li>보드 스냅샷(1.5k 토큰 이하)</li></ul>
+<p><strong>행동 규칙</strong></p>
+<ul><li><strong>Personal Agent</strong><ul><li>동행 중: 거의 침묵한다. 불렸을 때나 소유자 기준과 충돌할 때만 말한다.</li><li>대리·방문 중: mandate 안에서 코멘트, 제안, 응답을 스스로 한다.</li><li>승인으로 넘길 것: 확정, mandate 밖의 일, 소유자 선호와 상충하는 타협, 돈이나 시간이 드는 약속.</li><li>금지: 제공되지 않은 정보 추측, 한 턴에 2개 이상 행동.</li></ul></li><li><strong>Room Agent</strong>: 편을 들지 않는다. 의견이 갈리면 선택지 2~3개로 <code>request_approval</code>.</li></ul><h3 id="s7">7. 메모리 설계 (Hindsight 검토 포함)</h3><div class="tablewrap" tabindex="0" role="region" aria-label="메모리 네임스페이스"><table><thead><tr><th scope="col">ns</th><th scope="col">귀속</th><th scope="col">내용</th><th scope="col">쓰기</th><th scope="col">읽기</th></tr></thead><tbody><tr><td><code>room:&lt;roomId&gt;</code></td><td>Room(My/Our)</td><td>활동 요약, 합의, 결과물 사실</td><td>그 Room 안의 Agent, 승인 해소 시 시스템</td><td>그 Room 안에서만</td></tr><tr><td><code>agent:&lt;agentId&gt;:private</code></td><td>Personal Agent</td><td>소유자의 개인 기억</td><td>소유자, 또는 My Room 단독일 때 Agent의 <code>remember</code></td><td>My Room에 소유자와 그 Agent만 있을 때만</td></tr><tr><td><code>agent:&lt;agentId&gt;:for:&lt;roomId&gt;</code></td><td>Personal Agent</td><td>소유자가 이 Room에 공유하기로 고른 개인 기억</td><td>소유자(MemoryPanel에서 항목별 지정)</td><td>그 Room 안의 그 Agent만</td></tr><tr><td><code>visit:&lt;visitId&gt;</code></td><td>호스트 Room</td><td>호스트 Room 이벤트 범위(<code>start_seq..end_seq</code>)로 표현</td><td>—</td><td>방문 중인 Agent와 호스트</td></tr></tbody></table></div>
+<p><strong>방문 후 가지고 나오는 것</strong></p>
+<ul><li><code>end_visit.public_takeout</code>만 가지고 나온다.</li><li>이 텍스트는 호스트 Room에 <code>visit_takeout</code>으로 <strong>공개 기록</strong>된다.</li><li>출발 Room에는 <code>visit_report</code>로 저장되고, 소유자가 원하면 private로 승격할 수 있다.</li><li>방문 Agent의 프롬프트에는 개인 ns를 넣지 않는다. <code>persona_public</code>, mandate, 방문 범위의 이벤트만 들어간다.</li></ul>
+<p><strong>강제 지점</strong></p>
+<ul><li><code>memory/gateway.ts</code>의 <code>recallForTurn(agentId, roomId)</code>와 <code>retainFromAgent(...)</code>만 메모리에 접근한다.</li><li>ns는 <code>allowedNamespaces</code> / <code>writableNamespace</code>가 서버 진실로 계산한다. 도구에 ns 파라미터는 없다.</li><li>private ns의 조건: room.kind='my' AND 소유자 일치 AND presence가 {소유자, 그 Agent}뿐.</li><li><code>memoryIsolation.test.ts</code>로 확인할 것:<ul><li>가족 Room의 항목이 팀 Room 턴에 없다.</li><li>방문자가 있을 때 private 항목이 없다.</li><li>방문 Agent 프롬프트에 개인 ns가 없다.</li><li>허용 밖의 <code>used_memory_ids</code>는 거부된다.</li></ul></li></ul>
+<p><strong>원문과 추출의 구분</strong></p>
+<ul><li>원문은 <code>events</code>다.</li><li>추출은 <code>memory_items</code>(승인 해소 시 agreement 자동 기록, <code>remember</code>, 사람 입력)와 <code>room_summaries</code>(30이벤트마다, 그리고 Rejoin 시점에 LIGHT 모델로 갱신)다.</li><li><strong>Rejoin 다이제스트</strong> = <code>left_at_seq</code> 이후 이벤트의 LIGHT 요약 + 보드 diff + 대기 중인 승인.</li><li>시연 규모에서는 최근순과 키워드로 충분하다. 벡터 검색은 넣지 않는다.</li></ul>
+<p><strong>Hindsight 판단: 1차는 채택하지 않는다.</strong> S20에 <code>MEMORY_BACKEND=hindsight</code> 어댑터를 선택 단계로 둔다.</p>
+<ul><li>맞는 점: MIT. bank 격리가 ns와 1:1로 매핑된다. Anthropic 지원. npm 클라이언트가 있다.</li><li>맞지 않는 점<ul><li>Docker나 Python 프로세스가 추가로 필요하다.</li><li>기본 임베딩이 영어 중심이라 한국어 품질이 떨어질 수 있고(추정), HuggingFace 다운로드가 사내망에서 막힐 수 있다.</li><li>retain마다 LLM 비용이 든다.</li><li>시연 규모에서는 이점이 작다.</li></ul></li><li><code>MemoryStore</code>(<code>retain</code>, <code>recall(nsList, query, tokenBudget)</code>, <code>list</code>)를 Hindsight 연산 모양으로 맞춰 둔다.</li><li>다른 후보(미검증): Mem0는 벡터 DB가 필요하고, Zep/Graphiti는 그래프 DB가 필요하며, Letta는 런타임을 대체하므로 과하다.</li></ul>
+</section>
+
+<section class="group" id="steps" aria-labelledby="h-steps">
+<h2 id="h-steps">구현 단계</h2>
+<p class="gintro">implementer가 1회분씩 순서대로 진행합니다(원문 9절). 표의 마지막 열이 각 단계의 완료 확인 방법입니다.</p>
+<h3 id="s9">9. 구현 단계 (implementer 1회분씩, 순서대로)</h3><ul class="chips" aria-label="단계 바로가기"><li><a href="#S0">S0</a></li><li><a href="#S1">S1</a></li><li><a href="#S2">S2</a></li><li><a href="#S3">S3</a></li><li><a href="#S4">S4</a></li><li><a href="#S5">S5</a></li><li><a href="#S6">S6</a></li><li><a href="#S7">S7</a></li><li><a href="#S8">S8</a></li><li><a href="#S9">S9</a></li><li><a href="#S10">S10</a></li><li><a href="#S11">S11</a></li><li><a href="#S12">S12</a></li><li><a href="#S13">S13</a></li><li><a href="#S14">S14</a></li><li><a href="#S15">S15</a></li><li><a href="#S16">S16</a></li><li><a href="#S17">S17</a></li><li><a href="#S18">S18</a></li><li><a href="#S19">S19</a></li><li><a href="#S20">S20</a></li></ul><div class="tablewrap" tabindex="0" role="region" aria-label="구현 단계 S0~S20"><table><thead><tr><th scope="col">#</th><th scope="col">내용 (주요 파일)</th><th scope="col">완료 확인</th></tr></thead><tbody><tr><th scope="row" id="S0">S0</th><td>모노레포 골격, Fastify <code>/api/health</code>, Vite 프록시</td><td><code>npm install &amp;&amp; npm run dev</code> → <code>localhost:5173</code>에서 health OK 표시, <code>npm run typecheck</code></td></tr><tr><th scope="row" id="S1">S1</th><td>shared: <code>events.ts</code>, <code>api.ts</code>, <code>permissions.ts</code> + 테스트</td><td><code>npm test -w packages/shared</code></td></tr><tr><th scope="row" id="S2">S2</th><td>shared: <code>agentState.ts</code>, <code>roomState.ts</code>(roomAmbience 포함), <code>namespaces.ts</code>, <code>perspective.ts</code>(glassClarity 포함), <code>colors.ts</code>, <code>themes.ts</code> + 테스트</td><td>8.5 표 각 행, 조명 4단계, 유리 투명도 규칙, 두 시점 대칭</td></tr><tr><th scope="row" id="S3">S3</th><td>server: db(schema, index, repo, seed: 사용자 4명, My Room 테마 studio/lounge, Our 3개 cafe(+variant), DM, 시드 이벤트와 기억), <code>events/store.ts</code>, <code>auth.ts</code>, <code>routes/auth.ts</code></td><td>seq 단조 증가, 가시성 테스트, <code>npm run seed</code> 후 <code>curl /api/login</code></td></tr><tr><th scope="row" id="S4">S4</th><td><code>realtime/hub.ts</code>, <code>domain/actions.ts</code>, <code>domain/rooms.ts</code>, <code>routes/rooms.ts</code></td><td>403 테스트, WS 클라이언트 2개 수신, 가시성 필터</td></tr><tr><th scope="row" id="S5">S5</th><td>web 메신저: Login, MessengerHome, Sidebar, ConversationView(MessageList, Composer), api, session/worldStore</td><td>두 창에서 DM과 &quot;친구들&quot; 채팅이 실시간, 낙관적 &quot;보냄 → 확정&quot;</td></tr><tr><th scope="row" id="S6">S6</th><td><code>domain/presence.ts</code>, <code>domain/visits.ts</code>, <code>routes/visits.ts</code>, VisitCards, RoomPreviewPanel</td><td>방문 가시성 테스트, 암묵적 퇴장 30초, DM 요청·수락</td></tr><tr><th scope="row" id="S7">S7</th><td><code>memory/types.ts</code>, <code>localStore.ts</code>, <code>gateway.ts</code>, <code>routes/memory.ts</code>, MemoryPanel</td><td><code>memoryIsolation.test.ts</code> 4케이스</td></tr><tr><th scope="row" id="S8">S8</th><td>Agent 코어(mock): scheduler, runTurn, context, tools, prompts, llm, mock</td><td>연쇄 상한, 동기 turn_started, 금지 도구 거부, private 제외</td></tr><tr><th scope="row" id="S9">S9</th><td><code>claude.ts</code>, <code>config.ts</code>(claude 모드에서 키가 없으면 기동 실패)</td><td>키를 넣고 My Room 대화 스트리밍, mock 모드에서 동일 흐름</td></tr><tr><th scope="row" id="S10">S10</th><td><code>domain/approvals.ts</code>, <code>routes/approvals.ts</code>, Agent 방문(departed/arrived/takeout/report, 턴 상한), <code>memory/summarizer.ts</code></td><td>mock: 보내기 → 방문 → 보고 도착, Our 결정 2인 승인 시 <code>agreement_formed</code></td></tr><tr><th scope="row" id="S11">S11</th><td>2D Room UI: RoomView, ActivityFeed, BoardPanel, ApprovalPanel, AgentStatusList</td><td>3D 없이 My/Your/Our 전체 흐름 동작</td></tr><tr><th scope="row" id="S12">S12</th><td>LeaveSheet, SendAgentSheet, TimelineScrubber, Rejoin 다이제스트, replaySeq</td><td>Leave → 진행 → Rejoin 요약·diff·승인, 피드 되감기</td></tr><tr><th scope="row" id="S13">S13</th><td>캐릭터 에셋 추출 <code>tools/extract-demo-assets.mjs</code>와 실행(10.1)</td><td>파일 목록과 PNG 시그니처 검사, <code>/lab</code>에서 로드</td></tr><tr><th scope="row" id="S14">S14</th><td>소품·환경 에셋 가져오기: <code>tools/import-props.mjs</code>, <code>tools/props-manifest.json</code>, HDRI·모래 텍스처·폰트 배치, <code>CREDITS.md</code>(10.2)</td><td><code>npm run assets:props</code> → <code>public/assets/props/*.glb</code> 생성, 각 파일 1MB 이하, CREDITS에 출처와 라이선스, <code>/lab</code>에서 glb 표시</td></tr><tr><th scope="row" id="S15">S15</th><td>해변 월드: WorldCanvas, CameraRig(원근 접사), <code>world/Beach.tsx</code>, <code>world/layout.ts</code>, <code>world/GlassTube.tsx</code>, Postfx(TiltShift2, Bloom, AGX)</td><td>메신저 뒤 해변 조감 뷰, 두 창 대칭, 튜브 연결</td></tr><tr><th scope="row" id="S16">S16</th><td>캡슐: <code>capsule/CapsuleShell.tsx</code>, <code>GlassMaterial.tsx</code>(공유 버퍼, 가짜 유리, 서리), <code>RoomSign.tsx</code>, <code>InteriorLights.tsx</code>, <code>quality.ts</code></td><td>초점 캡슐만 투과, 서리 ↔ 투명 전환, 조명 4단계 토글(<code>/lab</code>), <code>?q=</code> 단계별 fps HUD</td></tr><tr><th scope="row" id="S17">S17</th><td>실내 세트: <code>interiors/themes.tsx</code>, <code>Studio.tsx</code>, <code>Lounge.tsx</code>, <code>Cafe.tsx</code>(variant home/meeting), <code>Prop.tsx</code>, BoardObject(벽 액자), HumanAvatar. 진입 시 가운데 마디가 열리는 비행</td><td>테마 3종과 variant 2종 확인, 캡슐 진입·퇴장</td></tr><tr><th scope="row" id="S18">S18</th><td>Agent 스프라이트: AgentSprite, spriteMaterial, faceTexture, useYawAtlas, SceneLab</td><td><code>/lab</code>에서 상태 10종이 8.5 표대로, mock 이벤트로 구동</td></tr><tr><th scope="row" id="S19">S19</th><td>피드백·swarm·큰 순간: fxStore, Projectile, Tether, ApprovalCrystal, GlassRipple, swarmSim, Swarm, swarmDirector, cursor 브로드캐스트, 합의·도착·인계 연출, LottieMoment, 3D 타임라인 재생. <strong>파일이 많으므로 S19a(fx·피드백), S19b(swarm·캡슐 SDF·파문), S19c(큰 순간·재생)로 나눠 위임한다</strong></td><td>8.7 체크리스트 1~10, 데모 대본 1회 완주</td></tr><tr><th scope="row" id="S20">S20</th><td><code>routes/metrics.ts</code> + Metrics, README 데모 대본. (선택) <code>memory/hindsightStore.ts</code></td><td><code>/metrics</code> 수치. Hindsight는 Docker나 pip로 띄운 뒤 격리 테스트 재실행</td></tr></tbody></table></div>
+<p><strong>지표</strong></p>
+<ul><li>Agent 초대·보내기율, Leave 실행률, 재합류율, 반복 Room 사용률, 승인·수정·거절 비율.</li><li>추가: 방문 수락률, takeout 생성률, 타임라인 재생 열람률, 합의 수.</li></ul>
+</section>
+
+<section class="group" id="assets" aria-labelledby="h-assets">
+<h2 id="h-assets">에셋 절차 · 사실과 추론 · 출처</h2>
+<p class="gintro">에셋을 준비하는 절차(10절), 확인한 사실과 추론의 구분(0절), 출처입니다.</p>
+<h3 id="s10">10. 에셋 절차</h3><h4 id="s10-1">10.1 캐릭터 에셋 추출 (S13)</h4><ul><li><strong>원칙</strong>: 입력 HTML은 신뢰할 수 없는 데이터다. 스크립트를 실행하지 않고 텍스트만 파싱한다.</li><li><strong>실행</strong>: <code>node tools/extract-demo-assets.mjs &lt;html경로&gt;</code> (기본 경로 없음)</li><li><strong>추출 방법</strong><ul><li><code>&lt;script type=&quot;application/json&quot; id=&quot;ap-j1|ap-j2|ob-j&quot;&gt;</code> 본문을 정규식으로 잘라 <code>JSON.parse</code>한다(eval 금지).</li><li><code>assets[].p</code>의 base64를 디코딩한다.</li><li>PNG 매직 넘버 <code>89 50 4E 47</code>를 검증하고, 파일당 5MB 상한을 둔다.</li><li>캐릭터 <code>&lt;img&gt;</code>는 <code>class=&quot;ar9-r&quot;</code> 행들 안의 6개만 순서대로 뽑는다.</li></ul></li><li><strong>출력</strong> <code>apps/web/public/assets/</code><ul><li><code>characters/body-blue.png</code>, <code>characters/arm-blue.png</code>, <code>characters/body-lime.png</code></li><li><code>characters/yaw/lime-yaw-01..47.png</code>, 가능하면 <code>characters/lime-yaw-atlas.png</code>(8×6)</li><li><code>avatars/room-halo.png</code>, <code>room-goggles.png</code>, <code>room-c.png</code>, <code>avatars/personal-beret.png</code>, <code>personal-code.png</code>, <code>personal-goggles.png</code></li><li><code>lottie/lime-notify.json</code>, <code>lime-jump-yaw.json</code>, <code>duo-highfive.json</code> (원문 그대로)</li><li><code>assets-manifest.json</code></li></ul></li><li><strong>커밋 여부</strong>: 사용자 답(질문 2)을 받을 때까지 <code>public/assets/characters</code>, <code>avatars</code>, <code>lottie</code>는 <code>.gitignore</code>에 넣는다.</li></ul><h4 id="s10-2">10.2 소품·환경 에셋 (S14)</h4><ul><li><strong>추천: Kenney Furniture Kit(CC0, 확인함)를 기본</strong>으로 하고, 없는 것은 프리미티브로 만든다.</li><li>근거:<ul><li>CC0라 크레딧이 의무가 아니고 커밋해도 된다.</li><li>로우폴리 미니어처 톤이 접사 룩과 맞는다.</li><li>실내 3세트에 필요한 기본 가구(책상, 의자, 서랍장, 선반, 소파, 스탠드, 화분, 테이블, 스툴)를 덮는 것으로 예상한다(추정. 압축을 풀어 확인).</li></ul></li><li><strong>프리미티브로 만들 것</strong>: 캡슐 셸, 받침 트레이, 이음매 링, 펜던트 전구(emissive 구 + 코드선), 조약돌, 빵·디저트(눌린 캡슐과 구), 에스프레소 머신(RoundedBox 조합), 아치 선반, 액자 = 보드 카드.</li><li><strong>보조</strong>: Quaternius(CC0, 1차 출처 미검증)는 필요할 때 페이지에서 직접 확인하고 쓴다. Poly Pizza는 모델별로 라이선스를 확인하고, CC-BY면 <code>CREDITS.md</code>에 작성자를 기록한다. 기본적으로는 쓰지 않는다.</li><li><strong>절차</strong><ol><li>사용자(또는 implementer가 사용자 승인 아래)가 kenney.nl에서 Furniture Kit zip을 내려받아 <code>assets-src/kenney-furniture-kit/</code>에 푼다. 인터넷 다운로드는 자동화하지 않는다.</li><li><code>tools/props-manifest.json</code>에 <code>{ &quot;src&quot;: &quot;&lt;원본 상대경로&gt;&quot;, &quot;out&quot;: &quot;studio-desk.glb&quot;, &quot;theme&quot;: &quot;studio&quot;, &quot;license&quot;: &quot;CC0&quot;, &quot;source&quot;: &quot;Kenney Furniture Kit&quot; }</code> 형식으로 목록을 쓴다.</li><li><code>npm run assets:props</code> → <code>tools/import-props.mjs</code>가 처리한다.<ul><li>원본이 glb/gltf면 <code>gltf-transform optimize</code>(weld, dedup, meshopt, 텍스처 리사이즈 512)를 적용한다.</li><li>OBJ/FBX뿐이면 OBJ를 <code>obj2gltf</code>로 변환한다(미검증). FBX는 건너뛰고 경고만 낸다.</li><li>결과는 <code>apps/web/public/assets/props/&lt;out&gt;</code>에 쓰고, 파일당 1MB 상한을 둔다.</li></ul></li><li><strong>HDRI</strong>: Poly Haven(CC0)의 sunset HDRI 1k 또는 2k(예: venice_sunset. 해변이 아니어도 배경을 흐리게 하므로 무방하다)를 <code>public/assets/hdri/sunset_1k.hdr</code>에 둔다. drei preset의 CDN은 쓰지 않는다.</li><li><strong>모래</strong>: Poly Haven CC0 모래 텍스처 1k(구체 에셋은 미검증, 페이지에서 확인)를 <code>public/assets/textures/sand_*</code>에 둔다. 없으면 절차적 노이즈 셰이더로 대체한다.</li><li><strong>폰트</strong>: Noto Sans KR(OFL)의 간판용 서브셋을 <code>public/assets/fonts/</code>에 둔다.</li><li><code>CREDITS.md</code>에 에셋별 출처 URL, 라이선스, 내려받은 날짜를 기록한다.</li></ol></li></ul><h3 id="s0">0. 확인한 사실 / 추론 구분</h3><p><strong>로컬에서 확인</strong></p>
+<ul><li>로컬 Node는 v24.16.0, npm은 11.13.0이다.</li><li>저장소 <code>C:\Users\siheon.ryu\Desktop\workspace\R2P\EnsembleRoom</code>는 <code>.git</code>만 있다(origin github.com/jovinus302/EnsembleRoom).</li></ul>
+<p><strong>컨셉 문서</strong> (<code>C:\Users\siheon.ryu\Downloads\ensemble_room_concept.html</code>, 10장)</p>
+<ul><li>Room은 &quot;채팅방·Task Board가 아니다&quot;(03). My/Your/Our Room 3분 구도(03).</li><li>Agent는 팀원이다(01). 개인 Agent 정보는 자동 공유하지 않는다(04).</li><li>상호작용 문법은 Invite/Visit/Leave/Merge/Split/Rejoin이다(05). 히어로 인터랙션은 &quot;Leave My Agent Here&quot;(06).</li><li>MVP는 Invite→Leave→Rejoin이다(09). 지표: 초대율, Leave 실행률, 재합류율, 반복 Room 사용률, 승인/수정 비율.</li><li>색: Agent 민트(#3baf96/#64e4bd), Skill 보라(#8f7dbd), 강조 오렌지(#ffc88c).</li></ul>
+<p><strong>캐릭터 에셋 파일</strong> (<code>C:\Users\siheon.ryu\Downloads\ensemble-demo-v33.0.html</code>, 16.7MB, 4466줄)</p>
+<ul><li>3D 라이브러리가 없다. CSS keyframes와 lottie-web(SVG)으로 만든 2D 피치덱 12장이다.</li><li><code>swarm</code>, <code>boid</code>, <code>flock</code>, <code>mouse</code>는 0건이다.</li><li><strong>Lottie 3종</strong> (60fps, PNG가 base64로 임베드됨)<ul><li><code>ap-j1</code> &quot;Lime cheerful notification → idle&quot;: 512², 마커 action과 idle.</li><li><code>ap-j2</code> &quot;Lime jump + upright yaw 360&quot;: 7.5° 간격 회전 프레임 47장, 각 512².</li><li><code>ob-j</code> &quot;Blue and lime high-five then idle&quot;: 768×512, 마커 conversation, agreement, prepare, joint jump, high five, landing.</li></ul></li><li>Lottie 레이어가 눈(near/far), 입, 몸 부유, 밑단 물결로 분리돼 있다.</li><li><strong>캐릭터 <code>&lt;img&gt;</code> 6종</strong> (모두 144×144)<ul><li>유령형(라임·초록, &quot;PM Agent &gt; A/B/C 프로젝트&quot; 행): 별 후광, 고글 등의 장식.</li><li>알형(하늘·청록, 팔과 발, &quot;팀 Agent&quot; 행): 베레모, <code>&lt;/&gt;</code>, 고글.</li><li>얼굴은 공통으로 검은 타원 눈 두 개와 미소.</li></ul></li><li><strong>고해상도 몸통</strong>: <code>blue_body</code> 512²(얼굴 없음), <code>blue_arm</code> 160×208, <code>lime_body</code> 1254²(얼굴 없음).</li><li>위 구분은 행 순서로 판단한 것이라 추정을 포함한다.</li></ul>
+<p><strong>Room 비주얼 참고 이미지</strong></p>
+<ul><li>1번(직접 확인함): 노을 진 해변 모래 위의 가로로 누운 알약형 투명 유리 캡슐.<ul><li>안에 미니어처 작업실이 들어 있다: 원목 바닥, 흰 벽, 책상, 모니터, 의자, 서랍장, 스탠드, 액자, 화분, 조약돌.</li><li>유리에 세로 이음매 링이 2개 있고, 벽에 이름 간판이 있다.</li><li>얕은 피사계 심도로 접사 느낌이 난다.</li></ul></li><li>2번(묘사만 전달받음): 같은 계열의 더 통통한 캡슐 안에 카페가 있다. 원목 바 카운터, 에스프레소 머신, 빵, 펜던트 전구 2개, 원형 테이블·스툴 여럿, 아치 선반, 덩굴 식물.</li><li>간판 문구와 특정 디자인은 복제하지 않는다.</li></ul>
+<p><strong>WebSearch / WebFetch로 확인</strong></p>
+<ul><li>Hindsight: MIT. bank는 strictly isolated. Anthropic 제공자 지원. npm 클라이언트 <code>@vectorize-io/hindsight-client</code>. Docker 또는 pip(Python)로 실행하고 기본 DB는 임베디드 pg0. 기본 임베딩은 <code>BAAI/bge-small-en-v1.5</code>(local), 리랭커는 <code>ms-marco-MiniLM</code>. Windows x86_64 지원.</li><li>chatscope chat-ui-kit-react: MIT(v2.1.1).</li><li>WorkAdventure: AGPL v3 + Commons Clause(비OSI).</li><li>Rocket.Chat: 코어 MIT, 엔터프라이즈는 별도 라이선스.</li><li>Tinode, Synapse, Conduit: 라이선스 표기가 출처마다 다르다.</li><li>R3F: 안정판 v9, v10은 WebGPU 우선 알파.</li><li>drei <code>MeshTransmissionMaterial</code>: <code>samples</code>, <code>resolution</code>, <code>backside</code>, <code>backsideResolution</code> 옵션이 있다. backside는 추가 패스다. 여러 오브젝트가 <strong>공유 버퍼</strong>를 쓰는 예제가 있다.</li><li>@react-three/postprocessing: <code>TiltShift2</code>, <code>N8AO</code>, <code>ToneMapping</code>(AGX 등 모드) 제공.</li><li>drei <code>Environment</code>: preset은 CDN에 의존하므로 프로덕션 사용은 권장하지 않는다. <code>files</code>로 자체 HDR을 지정할 수 있다. sunset preset은 venice_sunset_1k.</li><li>Poly Haven: 모든 에셋 CC0.</li><li>Kenney Furniture Kit: CC0, &quot;140×&quot; 파일, 2018 v1.0(파일 형식은 페이지에서 확인 못 함).</li><li>Quaternius: CC0(2차 출처, 미검증).</li><li>Poly Pizza: 모델별 라이선스이고 대부분 CC-BY라 크레딧이 필요하다.</li><li>&quot;mouse swarm&quot;과 가까운 레퍼런스: GitHub &quot;Swarm&quot;(DrBaph, Apache-2.0, 커서를 쫓는 무리), three.js 포럼의 R3F + WebGPU/TSL 무리 장면.</li></ul>
+<p><strong>그 외 설계 판단은 추론이다.</strong> 기억에 의존한 주장은 &quot;(미검증)&quot;으로 표시한다.</p><h3 id="sources">출처</h3><ul><li>Hindsight: <a href="https://github.com/vectorize-io/hindsight" target="_blank" rel="noopener noreferrer">https://github.com/vectorize-io/hindsight</a> , <a href="https://hindsight.vectorize.io/" target="_blank" rel="noopener noreferrer">https://hindsight.vectorize.io/</a> , <a href="https://arxiv.org/html/2512.12818v1" target="_blank" rel="noopener noreferrer">https://arxiv.org/html/2512.12818v1</a> , <a href="https://vectorize.io/blog/introducing-hindsight-agent-memory-that-works-like-human-memory" target="_blank" rel="noopener noreferrer">https://vectorize.io/blog/introducing-hindsight-agent-memory-that-works-like-human-memory</a> , <a href="https://cdn.jsdelivr.net/npm/pi-hindsight@1.4.2/skills/hindsight-docs/references/developer/configuration.md" target="_blank" rel="noopener noreferrer">https://cdn.jsdelivr.net/npm/pi-hindsight@1.4.2/skills/hindsight-docs/references/developer/configuration.md</a> , <a href="https://cdn.jsdelivr.net/npm/pi-hindsight@1.4.2/skills/hindsight-docs/references/developer/installation.md" target="_blank" rel="noopener noreferrer">https://cdn.jsdelivr.net/npm/pi-hindsight@1.4.2/skills/hindsight-docs/references/developer/installation.md</a> , <a href="https://pypi.org/project/hindsight-api/" target="_blank" rel="noopener noreferrer">https://pypi.org/project/hindsight-api/</a></li><li>chatscope: <a href="https://www.github.com/chatscope/chat-ui-kit-react" target="_blank" rel="noopener noreferrer">https://www.github.com/chatscope/chat-ui-kit-react</a> , <a href="https://npmjs.com/@chatscope/chat-ui-kit-react" target="_blank" rel="noopener noreferrer">https://npmjs.com/@chatscope/chat-ui-kit-react</a></li><li>WorkAdventure: <a href="https://workadventu.re/faq/what-is-the-license-of-the-self-hosted-version-of-workadventure/" target="_blank" rel="noopener noreferrer">https://workadventu.re/faq/what-is-the-license-of-the-self-hosted-version-of-workadventure/</a> , <a href="https://workadventu.re/support/pricing-and-licensing/" target="_blank" rel="noopener noreferrer">https://workadventu.re/support/pricing-and-licensing/</a></li><li>메신저 비교: <a href="https://openapps.pro/apps/rocket-chat" target="_blank" rel="noopener noreferrer">https://openapps.pro/apps/rocket-chat</a> , <a href="https://mintlify.com/awesome-selfhosted/awesome-selfhosted/categories/communication/custom-systems" target="_blank" rel="noopener noreferrer">https://mintlify.com/awesome-selfhosted/awesome-selfhosted/categories/communication/custom-systems</a> , <a href="https://selfhostyourself.com/alternative-to/telegram" target="_blank" rel="noopener noreferrer">https://selfhostyourself.com/alternative-to/telegram</a></li><li>swarm: <a href="https://awesome.ecosyste.ms/projects/github.com%2Fsaganaki22%2Fswarm" target="_blank" rel="noopener noreferrer">https://awesome.ecosyste.ms/projects/github.com%2Fsaganaki22%2Fswarm</a> , <a href="https://discourse.threejs.org/t/interactive-3d-scene-built-with-three-js-webgpu-and-tsl/90492" target="_blank" rel="noopener noreferrer">https://discourse.threejs.org/t/interactive-3d-scene-built-with-three-js-webgpu-and-tsl/90492</a> , <a href="https://tympanus.net/codrops/2019/01/17/interactive-particles-with-three-js/" target="_blank" rel="noopener noreferrer">https://tympanus.net/codrops/2019/01/17/interactive-particles-with-three-js/</a></li><li>R3F, WebGPU, 후처리: <a href="https://www.utsubo.com/blog/threejs-2026-what-changed" target="_blank" rel="noopener noreferrer">https://www.utsubo.com/blog/threejs-2026-what-changed</a> , <a href="https://newreleases.io/project/npm/@react-three/fiber/release/10.0.0-alpha.6" target="_blank" rel="noopener noreferrer">https://newreleases.io/project/npm/@react-three/fiber/release/10.0.0-alpha.6</a> , <a href="https://github.com/pmndrs/react-postprocessing" target="_blank" rel="noopener noreferrer">https://github.com/pmndrs/react-postprocessing</a> , <a href="https://react-postprocessing.docs.pmnd.rs/effects/tilt-shift-2" target="_blank" rel="noopener noreferrer">https://react-postprocessing.docs.pmnd.rs/effects/tilt-shift-2</a> , <a href="https://react-postprocessing.docs.pmnd.rs/effects/tone-mapping" target="_blank" rel="noopener noreferrer">https://react-postprocessing.docs.pmnd.rs/effects/tone-mapping</a></li><li>유리: <a href="https://drei.docs.pmnd.rs/shaders/mesh-transmission-material" target="_blank" rel="noopener noreferrer">https://drei.docs.pmnd.rs/shaders/mesh-transmission-material</a> , <a href="https://discourse.threejs.org/t/transmission-effect-pbr-material-performance/59274" target="_blank" rel="noopener noreferrer">https://discourse.threejs.org/t/transmission-effect-pbr-material-performance/59274</a> , <a href="https://discourse.threejs.org/t/meshtransmissionmaterial-poor-performances-urgent/68566" target="_blank" rel="noopener noreferrer">https://discourse.threejs.org/t/meshtransmissionmaterial-poor-performances-urgent/68566</a></li><li>환경: <a href="https://drei.docs.pmnd.rs/staging/environment" target="_blank" rel="noopener noreferrer">https://drei.docs.pmnd.rs/staging/environment</a> , <a href="https://docs.polyhaven.com/en/faq" target="_blank" rel="noopener noreferrer">https://docs.polyhaven.com/en/faq</a> , <a href="https://polyhaven.com/a/venice_sunset" target="_blank" rel="noopener noreferrer">https://polyhaven.com/a/venice_sunset</a></li><li>소품: <a href="https://kenney.nl/assets/furniture-kit" target="_blank" rel="noopener noreferrer">https://kenney.nl/assets/furniture-kit</a> , <a href="https://app.cinevva.com/guides/free-3d-model-sites" target="_blank" rel="noopener noreferrer">https://app.cinevva.com/guides/free-3d-model-sites</a> , <a href="https://opengameart.org/content/furniture-kit" target="_blank" rel="noopener noreferrer">https://opengameart.org/content/furniture-kit</a></li><li>로컬 파일: <code>C:\Users\siheon.ryu\Downloads\ensemble_room_concept.html</code>, <code>C:\Users\siheon.ryu\Downloads\ensemble-demo-v33.0.html</code>, 참고 이미지 1(<code>C:\Users\siheon.ryu\AppData\Local\Temp\claude\778d790de123c958\ffaf0d4f-ea9e-4da1-84db-ca43150ec33f\images\1.webp</code>)</li></ul>
+</section>
+
+<footer>이 페이지는 docs/implementation-plan.md를 원본으로 만든 읽기용 문서입니다. 사실·수치·파일명·단계 번호는 원문 그대로입니다.</footer>
+</div>
+</main>
+</div>
+<script>
+(function(){
+  var d=document.getElementById('tocd');
+  var mq=window.matchMedia('(max-width:980px)');
+  function sync(){ d.open=!mq.matches; }
+  sync(); if(mq.addEventListener){mq.addEventListener('change',sync);}
+  var links=[].slice.call(document.querySelectorAll('nav.toc a[href^="#"]'));
+  var map={}; links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+  var secs=[].slice.call(document.querySelectorAll('header.hero, section.group'));
+  function cur(){
+    var y=window.innerHeight*0.3, best=secs[0];
+    secs.forEach(function(s){ if(s.getBoundingClientRect().top<=y){best=s;} });
+    links.forEach(function(a){a.removeAttribute('aria-current');});
+    if(best&&map[best.id]){map[best.id].setAttribute('aria-current','true');}
+  }
+  var t=null;
+  window.addEventListener('scroll',function(){ if(t)return; t=setTimeout(function(){t=null;cur();},80); },{passive:true});
+  window.addEventListener('resize',cur); cur();
+  links.forEach(function(a){a.addEventListener('click',function(){ if(mq.matches){d.open=false;} });});
+})();
+</script>
+</body>
+</html>

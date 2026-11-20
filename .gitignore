@@ -1,0 +1,27 @@
+# secrets (.env.txt에 실제 키가 들어 있다. .env.example만 추적)
+.env
+.env.*
+!.env.example
+.env.txt
+
+# runtime data
+data/
+
+# dependencies
+node_modules/
+
+# 원본 에셋 압축 해제 위치 (커밋 안 함)
+assets-src/
+
+# build outputs
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

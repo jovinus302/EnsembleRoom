@@ -1,0 +1,479 @@
+{
+  "atlas": "생성됨",
+  "files": [
+    {
+      "file": "avatars/personal-beret.png",
+      "source": "html img.ar9-r #4 (\"x 팀\")",
+      "width": 144,
+      "height": 144,
+      "bytes": 18032,
+      "use": "144px 캐릭터 아바타"
+    },
+    {
+      "file": "avatars/personal-code.png",
+      "source": "html img.ar9-r #5 (\"y 팀\")",
+      "width": 144,
+      "height": 144,
+      "bytes": 19616,
+      "use": "144px 캐릭터 아바타"
+    },
+    {
+      "file": "avatars/personal-goggles.png",
+      "source": "html img.ar9-r #6 (\"z 팀\")",
+      "width": 144,
+      "height": 144,
+      "bytes": 19037,
+      "use": "144px 캐릭터 아바타"
+    },
+    {
+      "file": "avatars/room-chat.png",
+      "source": "html img.ar9-r #3 (\"C 프로젝트\")",
+      "width": 144,
+      "height": 144,
+      "bytes": 13994,
+      "use": "144px 캐릭터 아바타"
+    },
+    {
+      "file": "avatars/room-goggles.png",
+      "source": "html img.ar9-r #2 (\"B 프로젝트\")",
+      "width": 144,
+      "height": 144,
+      "bytes": 17124,
+      "use": "144px 캐릭터 아바타"
+    },
+    {
+      "file": "avatars/room-halo.png",
+      "source": "html img.ar9-r #1 (\"A 프로젝트\")",
+      "width": 144,
+      "height": 144,
+      "bytes": 17247,
+      "use": "144px 캐릭터 아바타"
+    },
+    {
+      "file": "characters/arm-blue.png",
+      "source": "ob-j:blue_arm",
+      "width": 160,
+      "height": 208,
+      "bytes": 18273,
+      "use": "알형 파란 캐릭터 팔"
+    },
+    {
+      "file": "characters/body-blue.png",
+      "source": "ob-j:blue_body",
+      "width": 512,
+      "height": 512,
+      "bytes": 97018,
+      "use": "알형 파란 캐릭터 몸통(얼굴 없음)"
+    },
+    {
+      "file": "characters/body-lime.png",
+      "source": "ob-j:lime_body",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 755708,
+      "use": "유령형 라임 캐릭터 몸통(얼굴 없음)"
+    },
+    {
+      "file": "characters/lime-yaw-atlas.png",
+      "source": "ap-j2:approved_yaw_001..047 합성",
+      "width": 2048,
+      "height": 1536,
+      "bytes": 2184400,
+      "use": "8x6 격자(행 우선, 좌상단부터 프레임 1..47, 마지막 칸 비어 있음)"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-01.png",
+      "source": "ap-j2:approved_yaw_001",
+      "width": 256,
+      "height": 256,
+      "bytes": 32109,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-02.png",
+      "source": "ap-j2:approved_yaw_002",
+      "width": 256,
+      "height": 256,
+      "bytes": 31287,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-03.png",
+      "source": "ap-j2:approved_yaw_003",
+      "width": 256,
+      "height": 256,
+      "bytes": 30315,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-04.png",
+      "source": "ap-j2:approved_yaw_004",
+      "width": 256,
+      "height": 256,
+      "bytes": 29025,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-05.png",
+      "source": "ap-j2:approved_yaw_005",
+      "width": 256,
+      "height": 256,
+      "bytes": 28015,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-06.png",
+      "source": "ap-j2:approved_yaw_006",
+      "width": 256,
+      "height": 256,
+      "bytes": 26968,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-07.png",
+      "source": "ap-j2:approved_yaw_007",
+      "width": 256,
+      "height": 256,
+      "bytes": 26378,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-08.png",
+      "source": "ap-j2:approved_yaw_008",
+      "width": 256,
+      "height": 256,
+      "bytes": 26137,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-09.png",
+      "source": "ap-j2:approved_yaw_009",
+      "width": 256,
+      "height": 256,
+      "bytes": 26046,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-10.png",
+      "source": "ap-j2:approved_yaw_010",
+      "width": 256,
+      "height": 256,
+      "bytes": 25929,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-11.png",
+      "source": "ap-j2:approved_yaw_011",
+      "width": 256,
+      "height": 256,
+      "bytes": 26169,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-12.png",
+      "source": "ap-j2:approved_yaw_012",
+      "width": 256,
+      "height": 256,
+      "bytes": 26745,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-13.png",
+      "source": "ap-j2:approved_yaw_013",
+      "width": 256,
+      "height": 256,
+      "bytes": 26333,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-14.png",
+      "source": "ap-j2:approved_yaw_014",
+      "width": 256,
+      "height": 256,
+      "bytes": 26156,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-15.png",
+      "source": "ap-j2:approved_yaw_015",
+      "width": 256,
+      "height": 256,
+      "bytes": 25980,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-16.png",
+      "source": "ap-j2:approved_yaw_016",
+      "width": 256,
+      "height": 256,
+      "bytes": 26009,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-17.png",
+      "source": "ap-j2:approved_yaw_017",
+      "width": 256,
+      "height": 256,
+      "bytes": 26330,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-18.png",
+      "source": "ap-j2:approved_yaw_018",
+      "width": 256,
+      "height": 256,
+      "bytes": 26797,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-19.png",
+      "source": "ap-j2:approved_yaw_019",
+      "width": 256,
+      "height": 256,
+      "bytes": 27794,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-20.png",
+      "source": "ap-j2:approved_yaw_020",
+      "width": 256,
+      "height": 256,
+      "bytes": 28876,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-21.png",
+      "source": "ap-j2:approved_yaw_021",
+      "width": 256,
+      "height": 256,
+      "bytes": 29941,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-22.png",
+      "source": "ap-j2:approved_yaw_022",
+      "width": 256,
+      "height": 256,
+      "bytes": 30856,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-23.png",
+      "source": "ap-j2:approved_yaw_023",
+      "width": 256,
+      "height": 256,
+      "bytes": 31994,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-24.png",
+      "source": "ap-j2:approved_yaw_024",
+      "width": 256,
+      "height": 256,
+      "bytes": 32736,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-25.png",
+      "source": "ap-j2:approved_yaw_025",
+      "width": 256,
+      "height": 256,
+      "bytes": 31763,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-26.png",
+      "source": "ap-j2:approved_yaw_026",
+      "width": 256,
+      "height": 256,
+      "bytes": 30947,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-27.png",
+      "source": "ap-j2:approved_yaw_027",
+      "width": 256,
+      "height": 256,
+      "bytes": 29987,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-28.png",
+      "source": "ap-j2:approved_yaw_028",
+      "width": 256,
+      "height": 256,
+      "bytes": 28909,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-29.png",
+      "source": "ap-j2:approved_yaw_029",
+      "width": 256,
+      "height": 256,
+      "bytes": 27705,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-30.png",
+      "source": "ap-j2:approved_yaw_030",
+      "width": 256,
+      "height": 256,
+      "bytes": 26618,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-31.png",
+      "source": "ap-j2:approved_yaw_031",
+      "width": 256,
+      "height": 256,
+      "bytes": 26132,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-32.png",
+      "source": "ap-j2:approved_yaw_032",
+      "width": 256,
+      "height": 256,
+      "bytes": 26007,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-33.png",
+      "source": "ap-j2:approved_yaw_033",
+      "width": 256,
+      "height": 256,
+      "bytes": 25945,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-34.png",
+      "source": "ap-j2:approved_yaw_034",
+      "width": 256,
+      "height": 256,
+      "bytes": 25691,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-35.png",
+      "source": "ap-j2:approved_yaw_035",
+      "width": 256,
+      "height": 256,
+      "bytes": 26073,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-36.png",
+      "source": "ap-j2:approved_yaw_036",
+      "width": 256,
+      "height": 256,
+      "bytes": 26493,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-37.png",
+      "source": "ap-j2:approved_yaw_037",
+      "width": 256,
+      "height": 256,
+      "bytes": 26080,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-38.png",
+      "source": "ap-j2:approved_yaw_038",
+      "width": 256,
+      "height": 256,
+      "bytes": 25971,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-39.png",
+      "source": "ap-j2:approved_yaw_039",
+      "width": 256,
+      "height": 256,
+      "bytes": 26098,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-40.png",
+      "source": "ap-j2:approved_yaw_040",
+      "width": 256,
+      "height": 256,
+      "bytes": 26262,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-41.png",
+      "source": "ap-j2:approved_yaw_041",
+      "width": 256,
+      "height": 256,
+      "bytes": 26661,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-42.png",
+      "source": "ap-j2:approved_yaw_042",
+      "width": 256,
+      "height": 256,
+      "bytes": 26964,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-43.png",
+      "source": "ap-j2:approved_yaw_043",
+      "width": 256,
+      "height": 256,
+      "bytes": 28078,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-44.png",
+      "source": "ap-j2:approved_yaw_044",
+      "width": 256,
+      "height": 256,
+      "bytes": 29118,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-45.png",
+      "source": "ap-j2:approved_yaw_045",
+      "width": 256,
+      "height": 256,
+      "bytes": 30318,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-46.png",
+      "source": "ap-j2:approved_yaw_046",
+      "width": 256,
+      "height": 256,
+      "bytes": 31337,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "characters/yaw/lime-yaw-47.png",
+      "source": "ap-j2:approved_yaw_047",
+      "width": 256,
+      "height": 256,
+      "bytes": 32157,
+      "use": "라임 캐릭터 yaw 회전 프레임"
+    },
+    {
+      "file": "lottie/duo-highfive.json",
+      "source": "ob-j",
+      "bytes": 2005533,
+      "use": "Blue+Lime 하이파이브 -> idle (768x512, 60fps)"
+    },
+    {
+      "file": "lottie/lime-jump-yaw.json",
+      "source": "ap-j2",
+      "bytes": 2789486,
+      "use": "Lime 점프 + yaw 360 (512x512, 60fps)"
+    },
+    {
+      "file": "lottie/lime-notify.json",
+      "source": "ap-j1",
+      "bytes": 992330,
+      "use": "Lime 알림 -> idle (512x512, 60fps)"
+    }
+  ]
+}

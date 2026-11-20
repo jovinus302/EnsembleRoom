@@ -1,0 +1,10 @@
+export { WorldCanvas } from './WorldCanvas';
+export type { WorldCanvasProps, WorldUser, CapsuleModel, CapsuleInteriorContext } from './types';
+export { layoutWorld } from './layout';
+export type { WorldLayout, Placement } from './layout';
+export { capsuleDims, MINI_SCALE } from './capsule/dims';
+export type { CapsuleDims } from './capsule/dims';
+export { QUALITY, usePerf } from './quality';
+export type { QualityTier } from './quality';
+export { Diorama, interiorSeats, interiorBoard, interiorMemoryShelf, preloadInteriors, SEAT_CLEARANCE } from './interiors';
+export type { InteriorSeat, BoardAnchor, BoardSlot, MemoryShelfAnchor } from './interiors';
