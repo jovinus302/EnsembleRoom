@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import {
+  AnswerBlockSchema,
+  MAX_BLOCKS_PER_MESSAGE,
   effectiveCapabilities,
+  type AnswerBlock,
   type BoardToolInitInput,
   type BoardToolOpInput,
   type CardPatch,
@@ -35,7 +38,7 @@ import { requireRoom, resolveSubject, type ActorCtx } from './rooms';
  */
 
 export type Action =
-  | { type: 'send_message'; roomId: string; text: string; to?: string; clientId?: string; memoryRefs?: string[]; recipients?: string[]; replyTo?: number }
+  | { type: 'send_message'; roomId: string; text: string; to?: string; clientId?: string; memoryRefs?: string[]; recipients?: string[]; replyTo?: number; blocks?: AnswerBlock[] }
   | { type: 'create_card'; roomId: string; title: string; body: string; ownerTag?: OwnerTag }
   | { type: 'update_card'; roomId: string; cardId: string; patch: CardPatch; baseVersion: number }
   | { type: 'add_comment'; roomId: string; cardId: string; text: string }
@@ -159,6 +162,11 @@ const sendMessage: ActionHandler<Extract<Action, { type: 'send_message' }>> = {
     if (a.recipients !== undefined || a.replyTo !== undefined) {
       if (env.actor.kind !== 'agent' && env.actor.kind !== 'room_agent') throw forbidden('agent_only_field', 'recipients·replyTo는 Agent만 쓸 수 있습니다');
     }
+    // 답변 카드(blocks)도 Agent 전용. 내용은 서버가 정규화한 것만 온다
+    if (a.blocks !== undefined) {
+      if (env.actor.kind !== 'agent' && env.actor.kind !== 'room_agent') throw forbidden('agent_only_field', 'blocks는 Agent만 쓸 수 있습니다');
+      if (!AnswerBlockSchema.array().max(MAX_BLOCKS_PER_MESSAGE).safeParse(a.blocks).success) throw badRequest('invalid_blocks', '답변 카드 형식이 올바르지 않습니다');
+    }
     if (a.recipients !== undefined) {
       if (a.recipients.length < 1 || a.recipients.length > 3) throw badRequest('invalid_recipients', '수신 Agent는 1~3명이어야 합니다');
       if (new Set(a.recipients).size !== a.recipients.length) throw badRequest('invalid_recipients', '수신 Agent가 중복되었습니다');
@@ -179,6 +187,7 @@ const sendMessage: ActionHandler<Extract<Action, { type: 'send_message' }>> = {
           clientId: a.clientId,
           ...(a.recipients ? { recipients: a.recipients } : {}),
           ...(a.replyTo !== undefined ? { replyTo: a.replyTo } : {}),
+          ...(a.blocks?.length ? { blocks: a.blocks } : {}),
         },
       ],
     };

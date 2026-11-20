@@ -199,7 +199,19 @@ function resolveEffects(
     if (outcome === 'rejected') return [resolved()];
     const base: EditProposal = (row.payload.proposal as EditProposal | undefined) ?? st.proposal ?? {};
     const applied: EditProposal = { ...base, ...(edited ?? {}) };
-    return [resolved({ applied }), ...applyProposal(env, applied, row.requestedBy)];
+    const cardBefore = applied.cardId ? ctx.repo.getCard(room.id, applied.cardId) : undefined;
+    const events: EventDraft[] = [resolved({ applied }), ...applyProposal(env, applied, row.requestedBy)];
+    // Our Room에서 Agent가 올린 수정안이 반영되면 합의 내용을 방 기억에 남긴다(확정 단계)
+    if (room.kind === 'our' && row.requestedBy) {
+      const title = applied.title?.trim() || cardBefore?.title || '';
+      const bodyText = applied.body ?? applied.title ?? '';
+      const text = (title ? `${title}: ${bodyText}` : bodyText).trim();
+      if (text) {
+        const item = ctx.memory.commit(nsRoom(room.id), { kind: 'agreement', text, sourceRoomId: room.id, createdBy: 'system' });
+        events.push({ type: 'memory_retained', itemId: item.id, ns: item.ns, kind: 'agreement', asSystem: true });
+      }
+    }
+    return events;
   }
 
   if (row.kind === 'decision') {
@@ -220,6 +232,11 @@ function resolveEffects(
         sourceRoomId: room.id,
         createdBy: 'system',
       });
+      events.push({ type: 'memory_retained', itemId: item.id, ns: item.ns, kind: 'agreement', asSystem: true });
+    } else if (room.kind === 'our' && option) {
+      // 승인자가 1명뿐이면 합의 카드는 만들지 않고 방 기억만 남긴다
+      const question = (row.payload.question as string | undefined) ?? st.summary;
+      const item = ctx.memory.commit(nsRoom(room.id), { kind: 'agreement', text: `${question} → ${option}`, sourceRoomId: room.id, createdBy: 'system' });
       events.push({ type: 'memory_retained', itemId: item.id, ns: item.ns, kind: 'agreement', asSystem: true });
     }
     return events;

@@ -809,3 +809,29 @@ describe('활동 채널 (휘발성)', () => {
     expect(fast).toBeLessThan(60);
   });
 });
+
+describe('My Room: 소유자의 질문은 자기 Agent에게 한 말이다', () => {
+  beforeEach(() => start());
+
+  it('"토요일에 뭐 있어?" 같은 질문에는 say로 답한다', async () => {
+    enter(alice, R.myAlice);
+    say(alice, R.myAlice, '토요일에 뭐 있어?');
+    await ctx.agents.drain();
+    expect(lastOutcome()).toMatchObject({ agentId: A.alice, result: 'acted', tool: 'say' });
+    const msgs = ofType(R.myAlice, 'message');
+    expect(msgs).toHaveLength(2);
+    expect(msgs[1]).toMatchObject({ actorKind: 'agent', actorId: A.alice });
+  });
+
+  it('owner_message 트리거의 마지막 지시와 accompanied 규칙이 프롬프트에 실린다', async () => {
+    const p = spy();
+    ctx.agents.setProvider(p);
+    enter(alice, R.myAlice);
+    say(alice, R.myAlice, '이번 주 일정 알려줘');
+    await ctx.agents.drain();
+    const input = p.inputs.find((i) => i.trigger.reason === 'owner_message')!;
+    expect(input.prompt).toContain('소유자가 자기 Room에서 당신에게 말했다');
+    expect(input.system).toContain('소유자의 질문은 당신에게 한 말이다');
+    expect(input.system).toContain('번역·음역 금지');
+  });
+});

@@ -4,11 +4,14 @@ import {
   PassReasonSchema,
   TOOL_NAMES,
   allowedTools,
+  privateNamespaceOpen,
   privateTo,
   type PassReason,
   type PermissionSubject,
+  type SourceChip,
   type ToolName,
 } from '@ensemble/shared';
+import { namespaceContextFor } from '../memory/nsContext';
 import type { AppContext } from '../context';
 import { dispatch, type Action } from '../domain/actions';
 import { requireRoom, resolveSubject, type ActorCtx } from '../domain/rooms';
@@ -16,6 +19,7 @@ import { endVisit } from '../domain/visits';
 import { badRequest, forbidden } from '../errors';
 import { validateUsedMemoryIds } from '../memory/gateway';
 import { BOARD_TOOL_DEFS, BOARD_TOOL_INPUT_SCHEMAS, executeBoardToolCall } from './boardToolTools';
+import { memoryChipResolver, normalizeBlocks } from './answerBlocks';
 import type { ToolSpec } from './types';
 
 /**
@@ -32,12 +36,13 @@ const common = {
 const obj = <S extends z.ZodRawShape>(shape: S) => z.object({ ...shape, ...common }).strict();
 
 export const TOOL_INPUT_SCHEMAS = {
-  say: obj({ text: z.string().min(1).max(2000), to: z.string().min(1).optional() }),
+  say: obj({ text: z.string().min(1).max(2000), to: z.string().min(1).optional(), blocks: z.array(z.unknown()).max(6).optional() }),
   comment: obj({ card_id: z.string().min(1), text: z.string().min(1).max(1000) }),
   propose_edit: obj({
     card_id: z.string().min(1).optional(),
     title: z.string().max(200).optional(),
     body: z.string().max(4000).optional(),
+    room_message: z.string().min(1).max(500).optional(),
   }),
   edit_board: obj({
     op: z.enum(['create', 'update', 'delete']),
@@ -85,7 +90,15 @@ export const TOOL_DEFS: Record<ToolName, ToolSpec> = {
   propose_edit: {
     name: 'propose_edit',
     description: '카드 수정(또는 새 카드)을 제안한다. 승인자가 확인해야 반영된다.',
-    inputSchema: schema({ card_id: { type: 'string' }, title: { type: 'string' }, body: { type: 'string' } }, []),
+    inputSchema: schema(
+      {
+        card_id: { type: 'string' },
+        title: { type: 'string' },
+        body: { type: 'string' },
+        room_message: { type: 'string', description: '제안을 올린 뒤 Room에 함께 남길 짧은 안내·요약 한두 문장(선택, 권장).' },
+      },
+      [],
+    ),
   },
   edit_board: {
     name: 'edit_board',
@@ -135,8 +148,135 @@ export const TOOL_DEFS: Record<ToolName, ToolSpec> = {
   ...BOARD_TOOL_DEFS,
 };
 
-export function toolSpecs(names: readonly ToolName[]): ToolSpec[] {
-  return names.map((n) => TOOL_DEFS[n]);
+/* ---- say.blocks (답변 카드): My Room에서 소유자와 단둘이 있을 때만 스키마에 넣는다(토큰 절약) ---- */
+
+const strS = { type: 'string' };
+const srcS = { type: 'array', items: { type: 'string' }, maxItems: 4, description: '근거 id(mem_…, d…, #번호). 제공된 것만. 없으면 항목이 지워진다' };
+const arr = (items: Record<string, unknown>, max: number, min?: number) => ({ type: 'array', items, maxItems: max, ...(min ? { minItems: min } : {}) });
+const objS = (properties: Record<string, unknown>, required: string[]) => ({ type: 'object', properties, required });
+
+const BLOCK_SCHEMAS: Record<string, unknown>[] = [
+  objS(
+    {
+      type: { const: 'schedule' },
+      title: strS,
+      days: arr(
+        objS(
+          {
+            label: { type: 'string', description: '요일/날짜 라벨 (예: 토)' },
+            items: arr(
+              objS(
+                {
+                  start: { type: 'string', description: 'HH:MM' },
+                  end: { type: 'string', description: 'HH:MM' },
+                  when: { type: 'string', description: '시각 대신 쓰는 짧은 말 (예: 저녁)' },
+                  title: strS,
+                  with: strS,
+                  room: strS,
+                  status: { type: 'string', enum: ['fixed', 'tentative', 'pending', 'free', 'conflict'] },
+                  src: srcS,
+                },
+                ['title', 'status', 'src'],
+              ),
+              8,
+            ),
+          },
+          ['label', 'items'],
+        ),
+        7,
+      ),
+      verdict: strS,
+    },
+    ['type', 'days'],
+  ),
+  objS(
+    {
+      type: { const: 'profile' },
+      title: strS,
+      groups: arr(
+        objS(
+          { label: strS, chips: arr(objS({ text: strS, tone: { type: 'string', enum: ['like', 'dislike', 'note'] }, src: srcS }, ['text', 'tone', 'src']), 6) },
+          ['label', 'chips'],
+        ),
+        4,
+      ),
+    },
+    ['type', 'title', 'groups'],
+  ),
+  objS(
+    {
+      type: { const: 'compare' },
+      question: strS,
+      options: arr(
+        objS(
+          {
+            label: strS,
+            pros: arr(strS, 3),
+            cons: arr(strS, 3),
+            people: arr(objS({ name: strS, ok: { type: 'string', enum: ['yes', 'no', 'maybe'] }, note: strS }, ['name', 'ok']), 6),
+            recommended: { type: 'boolean' },
+          },
+          ['label'],
+        ),
+        4,
+        2,
+      ),
+      recommendation: strS,
+    },
+    ['type', 'question', 'options'],
+  ),
+  objS(
+    {
+      type: { const: 'checklist' },
+      title: strS,
+      items: arr(objS({ text: strS, due: strS, room: strS, done: { type: 'boolean' }, src: srcS }, ['text']), 8),
+    },
+    ['type', 'title', 'items'],
+  ),
+  objS(
+    {
+      type: { const: 'money' },
+      title: strS,
+      total: { type: 'integer' },
+      lines: arr(objS({ label: strS, amount: { type: 'integer' }, from: strS, to: strS }, ['label', 'amount']), 8),
+      note: strS,
+    },
+    ['type', 'title', 'lines'],
+  ),
+  objS(
+    {
+      type: { const: 'status' },
+      rooms: arr(
+        objS(
+          {
+            room: strS,
+            items: arr(objS({ text: strS, state: { type: 'string', enum: ['decided', 'pending_approval', 'waiting', 'todo'] }, src: srcS }, ['text', 'state', 'src']), 4),
+          },
+          ['room', 'items'],
+        ),
+        4,
+      ),
+    },
+    ['type', 'rooms'],
+  ),
+];
+
+const BLOCKS_PROP = {
+  type: 'array',
+  maxItems: 2,
+  items: { anyOf: BLOCK_SCHEMAS },
+  description: '답변 카드(선택, 보통 1개). 사용 기준은 시스템 프롬프트의 [답변 카드]. 항목마다 src에 근거 id를 적는다.',
+};
+
+export function toolSpecs(names: readonly ToolName[], opts: { allowBlocks?: boolean } = {}): ToolSpec[] {
+  return names.map((n) => {
+    const def = TOOL_DEFS[n];
+    if (n !== 'say' || !opts.allowBlocks) return def;
+    const props = def.inputSchema.properties as Record<string, unknown>;
+    // text, to, blocks 순서: 스트리밍 미리보기가 text를 먼저 읽을 수 있게 한다
+    const { text, to, ...rest } = props;
+    return { ...def, inputSchema: { ...def.inputSchema, properties: { text, to, blocks: BLOCKS_PROP, ...rest } } };
+  });
 }
 
 /**
@@ -150,13 +290,16 @@ export function toolsForTurn(
   forced: ToolName | null,
   autoReply = false,
   seedOwner = false,
-  opts: { allowAsk?: boolean } = {},
+  opts: { allowAsk?: boolean; noApproval?: boolean; closingOnly?: boolean } = {},
 ): ToolName[] {
   if (!subject) return [];
   let allowed = allowedTools(subject);
   if (autoReply) allowed = allowed.filter((t) => AUTO_REPLY_TOOLS.includes(t));
+  // 마무리(확정) 턴: say/pass만. 새 질문·승인을 만들 수 없다
+  if (opts.closingOnly) allowed = allowed.filter((t) => t === 'say' || t === 'pass');
   // 시드 사용자(엄마·Dana)는 로그인하지 않아 승인해 줄 사람이 없다: 승인 요청 없이 대화(say)만, 인물 설정 범위 안에서 스스로 답한다
-  if (seedOwner) allowed = allowed.filter((t) => t !== 'request_approval');
+  // Room Agent가 물은 답 턴(noApproval)도 의견만 말한다
+  if (seedOwner || opts.noApproval) allowed = allowed.filter((t) => t !== 'request_approval');
   // ask_agents는 capability 도구가 아니다. 스케줄러가 정한 allowAsk일 때만, 강제 턴이 아니고 say가 허용된 경우에 pass 앞에 붙인다.
   if (opts.allowAsk && !autoReply && !forced && allowed.includes('say')) {
     const i = allowed.indexOf('pass');
@@ -181,6 +324,12 @@ export interface ExecContext {
   autoReply?: boolean;
   /** 이 턴에 ask_agents를 줄 수 있는가 (스케줄러가 정한다) */
   allowAsk?: boolean;
+  /** Room Agent가 물은 답 턴: request_approval 제외 */
+  noApproval?: boolean;
+  /** 마무리(확정) 턴: say/pass만 */
+  closingOnly?: boolean;
+  /** 답변 카드(say.blocks) 허용: 서버가 My Room 소유자 단독 상황에서만 준다. 근거 id 검증에 쓸 서버 진실을 함께 싣는다 */
+  blocks?: { digestRefs: ReadonlyMap<string, SourceChip>; eventSeqs: readonly number[] };
   /** ask_agents로 물을 수 있는 Agent id (서버가 턴 시작 때 계산) */
   askable?: readonly string[];
   /** A2A 답·정리 턴: 내 발화에 붙일 replyTo(질문 seq)와 강제 수신자(답 턴이면 질문자) */
@@ -258,7 +407,11 @@ function executeToolInner(ctx: AppContext, ex: ExecContext, name: ToolName, rawI
   // 1) 서버 진실로 권한 재계산: 이 도구를 지금 써도 되는가
   const subject = resolveSubject(ctx, room, actor);
   if (!subject) throw forbidden('not_in_room', '이 Room에 접근할 수 없습니다');
-  const tools = toolsForTurn(subject, ex.forcedTool, ex.autoReply, isSeedAgent(ctx, ex.agentId), { allowAsk: ex.allowAsk });
+  const tools = toolsForTurn(subject, ex.forcedTool, ex.autoReply, isSeedAgent(ctx, ex.agentId), {
+    allowAsk: ex.allowAsk,
+    noApproval: ex.noApproval,
+    closingOnly: ex.closingOnly,
+  });
   if (!tools.includes(name)) throw forbidden('tool_not_allowed', `이 상황에서 쓸 수 없는 도구: ${name}`);
 
   // 2) 입력 검증
@@ -278,14 +431,26 @@ function executeToolInner(ctx: AppContext, ex: ExecContext, name: ToolName, rawI
   switch (name) {
     case 'say': {
       const i = parsed.data as z.infer<typeof TOOL_INPUT_SCHEMAS.say>;
+      // 답변 카드는 허용된 턴에서만. 아니면 조용히 버리고 평문만 보낸다. 검증을 통과한 블록만 남는다
+      // 실행 시점에 방문자가 들어왔으면(스트리밍 중 입장) 소유자 전용 카드는 버린다
+      const blocks = ex.blocks && i.blocks?.length && privateNamespaceOpen(namespaceContextFor(ctx, ex.agentId, ex.roomId))
+        ? normalizeBlocks(i.blocks, {
+            providedIds: ex.providedMemoryIds,
+            digestRefs: ex.blocks.digestRefs,
+            eventSeqs: ex.blocks.eventSeqs,
+            memoryChip: memoryChipResolver(ctx),
+          })
+        : [];
       const r = run({
         type: 'send_message',
         roomId: ex.roomId,
         text: i.text,
         // A2A 답 턴은 모델이 준 to를 무시하고 질문자에게 간다
-        to: ex.reply?.forceTo ?? i.to,
+        // 마무리(closing) 턴은 다른 Agent를 지목하지 못한다(새 승인 연쇄 방지)
+        to: ex.reply?.forceTo ?? (ex.closingOnly ? undefined : i.to),
         memoryRefs: i.used_memory_ids?.length ? i.used_memory_ids : undefined,
         ...(ex.reply ? { replyTo: ex.reply.seq } : {}),
+        ...(blocks.length ? { blocks } : {}),
       });
       return { result: 'acted', tool: name, data: r.data };
     }
@@ -304,6 +469,20 @@ function executeToolInner(ctx: AppContext, ex: ExecContext, name: ToolName, rawI
         body: i.body,
         rationale,
       });
+      // 방에 보일 요약·안내는 제안이 만들어진 뒤에만 남기고, 실패해도 제안은 유지한다
+      if (i.room_message?.trim()) {
+        try {
+          run({
+            type: 'send_message',
+            roomId: ex.roomId,
+            text: i.room_message.trim(),
+            ...(ex.reply?.forceTo ? { to: ex.reply.forceTo } : {}),
+            ...(ex.reply ? { replyTo: ex.reply.seq } : {}),
+          });
+        } catch (err) {
+          console.error('[agent] room_message failed', err);
+        }
+      }
       return { result: 'acted', tool: name, data: r.data };
     }
     case 'edit_board': {

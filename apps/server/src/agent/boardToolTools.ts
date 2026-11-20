@@ -160,7 +160,7 @@ export const BOARD_TOOL_DEFS: Record<BoardToolToolName, ToolSpec> = {
   create_board_tool: {
     name: 'create_board_tool',
     description:
-      "보드(탁자)에 함께 쓰는 도구를 올려놓는다. ladder=누가 할지/살지 정하는 사다리타기(participants=참가자 이름, outcomes=결과 항목, 모자라면 '꽝'으로 채움, 실행은 사람이 한다), settlement=돈 정산표(expenses: 누가 얼마 냈고 누구 몫인지), trip=여행·일정 계획(days, items: 일차·시간·장소, checklist: 준비물), custom=위 셋에 맞지 않는 요청(투표, 할 일 나누기, 간단한 체크 등)을 위한 메모판(blocks: text/checklist/vote/counter 블록 조합, 대화에 나온 내용만 담고 지어내지 않는다). 같은 종류 도구가 [보드 도구]에 있으면 새로 만들지 말고 update_board_tool을 쓴다. room_message에는 방에 남길 안내 한 문장.",
+      "보드(탁자)에 함께 쓰는 도구를 올려놓는다. ladder=누가 할지/살지 정하는 사다리타기(participants=참가자 이름, outcomes=결과 항목, 모자라면 '꽝'으로 채움, 실행은 사람이 한다), settlement=돈 정산표(expenses: 누가 얼마 냈고 누구 몫인지), trip=여행·일정 계획(days, items: 일차·시간·장소, checklist: 준비물), custom=위 셋에 맞지 않는 요청(투표, 할 일 나누기, 간단한 체크 등)을 위한 메모판(blocks: text/checklist/vote/counter 블록 조합, 대화에 나온 내용만 담고 지어내지 않는다). 같은 종류 도구가 [보드 도구]에 있어도 사람의 새 요청이면 말로만 답하지 않는다: 정산표는 새 지출을 update_board_tool(expense_add)로 추가하고, 사다리는 이미 실행했거나 다른 주제·결과의 새 내기면 새로 만든다. room_message에는 방에 남길 안내 한 문장.",
     inputSchema: schema(
       {
         kind: { type: 'string', enum: [...BOARD_TOOL_KINDS] },
@@ -449,6 +449,6 @@ export const BOARD_TOOL_RULES: readonly string[] = [
   '- "얼마씩 내?", 정산, n빵, 더치페이: create_board_tool(kind=settlement). 대화에 나온 금액·지불자만 expenses에 넣고 지어내지 않는다(없으면 빈 정산표).',
   '- "여행 가자", 일정 짜자, 나들이: create_board_tool(kind=trip). 대화에 나온 장소·시간만 items에, 준비물은 checklist에 넣는다. 날짜·장소를 지어내지 않는다.',
   '- 위 3종에 맞지 않는 요청(투표, 할 일 나누기, 간단한 체크, 횟수 세기 등)은 create_board_tool(kind=custom, blocks=[text|checklist|vote|counter]). 대화에 나온 선택지·할 일만 넣고 지어내지 않는다(투표 선택지가 없으면 options를 비워 사람이 추가한다). 투표와 카운터는 사람만 조작한다.',
-  '- [보드 도구]에 같은 종류가 이미 있으면 새로 만들지 말고 update_board_tool을 쓴다. 만들거나 고칠 때 room_message로 방에 안내 한 문장을 함께 남긴다(별도 say 없음).',
+  '- [보드 도구]에 같은 종류가 이미 있어도 사람이 방금 한 새 요청을 말로만 답하지 않는다("이미 있어요"만 하고 끝내지 않는다). 정산표: 사람이 방금 말한 새 지출("~원 냈어")은 표에 같은 지불자·금액이 있어도 update_board_tool(expense_add)로 추가한다(그 발화 뒤 이미 추가했으면 다시 하지 않는다). 사다리: 기존 사다리가 이미 실행됐거나 결과 항목·주제가 다른 새 내기면 create_board_tool(kind=ladder)로 새로 만들고 제목에 주제를 쓴다. 실행 전인 같은 주제 사다리가 이미 있을 때만 새로 만들지 말고 그 사다리를 실행하라고 한 문장으로 안내한다. 여행·투표·체크리스트도 새 요청이면 새로 만든다. 만들거나 고칠 때 room_message로 방에 안내 한 문장을 함께 남긴다(별도 say 없음).',
   '- 도구는 결정을 대신하지 않는다: 날짜·장소·금액을 확정하는 일은 여전히 request_approval.',
 ];

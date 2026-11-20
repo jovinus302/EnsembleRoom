@@ -27,6 +27,14 @@ export interface TurnJob {
   ask?: A2AJob;
   /** 이 턴에 ask_agents를 줄지(스케줄러가 startJob에서 정한다) */
   allowAsk?: boolean;
+  /** 마무리(확정) 턴: say/pass만 허용 (승인 해소로 깨어난 요청자) */
+  closing?: boolean;
+}
+
+/** 같은 질문의 답 턴을 병렬로 호출할 때의 실행 게이트: 앞 순번이 도구 실행·기록을 마친 뒤에만 내 도구를 실행한다 */
+export interface TurnGate {
+  wait(): Promise<void>;
+  done(): void;
 }
 
 const MAX_STEPS = 3;
@@ -84,7 +92,7 @@ async function collectToolCall(
   provider: AgentProvider,
   input: Parameters<AgentProvider['stream']>[0],
   hooks: {
-    onPhase(p: 'thinking' | 'recalling' | 'writing'): void;
+    onPhase(p: 'thinking' | 'recalling' | 'writing' | 'composing'): void;
     onToolStart(t: ToolName): void;
     onTarget(to: string): void;
     onText(d: string): void;
@@ -131,6 +139,22 @@ export async function runTurn(
   job: TurnJob,
   turnId: string,
   signal?: AbortSignal,
+  gate?: TurnGate,
+): Promise<TurnOutcome> {
+  try {
+    return await runTurnInner(ctx, provider, job, turnId, signal, gate);
+  } finally {
+    gate?.done();
+  }
+}
+
+async function runTurnInner(
+  ctx: AppContext,
+  provider: AgentProvider,
+  job: TurnJob,
+  turnId: string,
+  signal: AbortSignal | undefined,
+  gate: TurnGate | undefined,
 ): Promise<TurnOutcome> {
   const { roomId, agentId, agentKind } = job;
   const actor = actorOf({ agentId, agentKind, turnId });
@@ -160,7 +184,9 @@ export async function runTurn(
     // 보수적 턴: 자동 대리(auto_reply)와 A2A 답 턴(a2a_ask). 도구를 say/request_approval/pass로 제한한다.
     const autoReply = job.trigger.reason === 'auto_reply' || job.trigger.reason === 'a2a_ask';
     const allowAsk = !!job.allowAsk && !autoReply;
-    const toolNames = toolsForTurn(subject, job.forced, autoReply, isSeedAgent(ctx, agentId), { allowAsk });
+    const noApproval = job.trigger.reason === 'a2a_ask' && job.ask?.askerKind === 'room_agent';
+    const closingOnly = !!job.closing;
+    const toolNames = toolsForTurn(subject, job.forced, autoReply, isSeedAgent(ctx, agentId), { allowAsk, noApproval, closingOnly });
     if (toolNames.length === 0) throw forbidden('no_tools', '쓸 수 있는 도구가 없습니다');
 
     // 기억: gateway만 통과한다. ns는 서버가 정한다.
@@ -184,6 +210,7 @@ export async function runTurn(
       recall,
       ask: job.ask,
       allowAsk: toolNames.includes('ask_agents'),
+      closing: closingOnly,
     });
 
     let talkingDone = false;
@@ -221,6 +248,9 @@ export async function runTurn(
       if (Array.isArray(ids) && typeof ids[0] === 'string') markTalking(ids[0]);
     }
 
+    // 병렬 답 턴: 앞 순번이 실행을 마칠 때까지 기다려 기록 순서를 수신자 순서로 유지한다
+    if (gate) await gate.wait();
+    if (signal?.aborted) throw abortedError();
     const res = executeTool(
       ctx,
       {
@@ -232,6 +262,9 @@ export async function runTurn(
         providedMemoryIds: recall.providedIds,
         autoReply,
         allowAsk,
+        noApproval,
+        closingOnly,
+        ...(input.allowBlocks && input.digest ? { blocks: { digestRefs: input.digest.refs, eventSeqs: input.events.map((e) => e.seq) } } : {}),
         askable: input.askable.map((a) => a.id),
         ...(job.ask ? { reply: { seq: job.ask.askSeq, ...(job.ask.role === 'answer' ? { forceTo: job.ask.askerId } : {}) } } : {}),
       },

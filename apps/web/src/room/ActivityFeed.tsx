@@ -22,7 +22,7 @@ export function ActivityFeed({ model, leftReason }: { model: RoomModel; leftReas
       <div data-room-kind={model.room.kind} className="flex min-h-0 flex-1 flex-col">
         <MessageList roomId={model.roomId} meId={model.meId} users={model.users} replaySeq={model.replaySeq} />
         <Composer
-          placeholder={`${title}에 메시지 보내기`}
+          placeholder="메시지 보내기"
           targets={targets}
           disabledReason={disabledReason}
           onSend={(t, to) => void sendMessage(model.roomId, t, undefined, to)}

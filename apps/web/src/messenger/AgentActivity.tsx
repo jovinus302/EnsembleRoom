@@ -5,6 +5,7 @@ export const PHASE_LABEL: Record<ActivityPhase, string> = {
   thinking: '생각 중',
   recalling: '기억 떠올리는 중',
   writing: '쓰는 중',
+  composing: '카드 정리 중',
   acting: '실행 중',
 };
 

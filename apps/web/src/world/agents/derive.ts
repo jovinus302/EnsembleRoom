@@ -75,7 +75,7 @@ function speechFor(
   act: ActivityEntry | undefined,
 ): CharacterInput['speech'] {
   if (!model.replaying && act) {
-    const phase = act.phase;
+    const phase = act.phase === 'composing' ? 'writing' : act.phase; // 카드 정리 중은 3D에서 쓰는 중과 같은 표현
     if (act.text) return { text: clipSpeech(act.text), phase, tokensPerSec: act.tokensPerSec };
     return { text: '', phase: recalling ? 'recalling' : phase, tokensPerSec: act.tokensPerSec };
   }

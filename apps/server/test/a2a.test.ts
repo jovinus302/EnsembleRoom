@@ -97,7 +97,7 @@ describe('ask_agents: 질문 → 답 → 정리(fan-in)', () => {
     await ctx.agents.drain();
     const names = (i: TurnInput) => i.tools.map((t) => t.name);
     const answerTurn = p.inputs.find((i) => i.trigger.reason === 'a2a_ask')!;
-    expect(names(answerTurn)).toEqual(['say', 'request_approval', 'pass']);
+    expect(names(answerTurn)).toEqual(['say', 'pass']); // 질문자가 Room Agent면 의견만(request_approval 없음)
     expect(answerTurn.a2a).toMatchObject({ role: 'answer', askerId: RA.team });
     const collect = p.inputs.find((i) => i.trigger.reason === 'a2a_collect')!;
     expect(names(collect)).toContain('propose_edit');
@@ -151,7 +151,7 @@ describe('ask_agents: 질문 → 답 → 정리(fan-in)', () => {
 
 describe('라운드·상한', () => {
   it('라운드(1)가 끝난 정리 턴에는 ask_agents가 없고, 강제로 호출해도 두 번째 질문이 생기지 않는다', async () => {
-    start();
+    start({ a2aMaxRounds: 1 });
     const p = scripted((i) => {
       if (i.trigger.reason === 'a2a_ask') return call('say', { text: '답' });
       if (i.trigger.reason === 'a2a_collect') return call('ask_agents', { agent_ids: [A.bob], question: '또 질문' }); // 허용 안 됨
@@ -168,8 +168,8 @@ describe('라운드·상한', () => {
     expect(lastEnded).toMatchObject({ result: 'error', errorCode: 'tool_not_allowed' });
   });
 
-  it('A2A_MAX_ROUNDS=2면 정리 턴에서 한 번 더 물을 수 있다', async () => {
-    start({ a2aMaxRounds: 2 });
+  it('기본 라운드(2)에서는 정리 턴에서 한 번 더 물을 수 있다', async () => {
+    start();
     const p = scripted((i) => {
       if (i.trigger.reason === 'a2a_ask') return call('say', { text: '답' });
       if (i.tools.some((t) => t.name === 'ask_agents')) return call('ask_agents', { agent_ids: [A.bob], question: `질문 ${msgs(R.team).filter((m) => m.recipients).length + 1}` });
@@ -358,5 +358,147 @@ describe('입력 검증', () => {
     expect(() => send({ recipients: ['nobody'] })).toThrowError(expect.objectContaining({ code: 'unknown_recipient' }));
     expect(() => send({ replyTo: 99999 })).toThrowError(expect.objectContaining({ code: 'invalid_reply_to' }));
     expect(() => send({ replyTo: 1 })).not.toThrow();
+  });
+});
+
+describe('A1+: 재조율·전체 턴 상한·확정 에피소드 상한·병렬 답', () => {
+  const vote = (userId: string, roomId: string, approvalId: string, option?: string) =>
+    dispatch(ctx, { kind: 'human', userId }, { type: 'vote_approval', roomId, approvalId, decision: 'approve', ...(option ? { option } : {}) });
+  const approvalsOf = (roomId: string) =>
+    all(roomId).filter((e): e is Extract<RoomEvent, { type: 'approval_requested' }> => e.type === 'approval_requested');
+
+  it('역제안 답이 오면 정리 턴이 한 번 더 묻고, 두 번째 정리 턴에는 ask_agents가 없어 propose_edit로 끝난다', async () => {
+    start();
+    const p = scripted((i) => {
+      if (i.trigger.reason === 'a2a_ask') return call('say', { text: '그 시간은 어렵고 15시 반이면 좋아요' });
+      if (i.trigger.reason === 'a2a_collect') {
+        if (i.tools.some((t) => t.name === 'ask_agents')) return call('ask_agents', { agent_ids: [A.bob, A.dana], question: '15시 반으로 다시 맞춰 보려는데 괜찮을까요?' });
+        return call('propose_edit', { title: '회고 15시 반', body: '금요일 15시 반', room_message: '정리했어요.' });
+      }
+      if (i.agent.kind === 'room_agent' && i.tools.some((t) => t.name === 'ask_agents')) return call('ask_agents', { agent_ids: [A.bob, A.dana], question: '14시 반 괜찮을까요?' });
+      return call('pass', { reason: 'nothing_to_add' });
+    });
+    ctx.agents.setProvider(p);
+    enter(alice, R.team);
+    say(alice, R.team, '금요일 회고 14시 반으로 당길까?');
+    await ctx.agents.drain();
+    expect(msgs(R.team).filter((m) => m.recipients)).toHaveLength(2);
+    const collects = p.inputs.filter((i) => i.trigger.reason === 'a2a_collect');
+    expect(collects).toHaveLength(2);
+    expect(collects[0]!.tools.map((t) => t.name)).toContain('ask_agents');
+    expect(collects[1]!.tools.map((t) => t.name)).not.toContain('ask_agents');
+    expect(approvalsOf(R.team).at(-1)).toMatchObject({ kind: 'edit', actorId: RA.team });
+    expect(p.inputs).toHaveLength(7); // Room Agent 1, 답 2, 정리 겸 재질문 1, 답 2, 정리 1
+  });
+
+  it('maxTurnsPerHumanEvent: 사람 메시지 1건당 전체 턴이 상한을 넘으면 agent_paused(chain_limit), 다음 사람 발언에서 리셋', async () => {
+    start({ a2aMaxTurnsPerHumanEvent: 3 });
+    ctx.agents.setProvider(askScript([A.bob, A.dana]));
+    say(alice, R.team, '금요일 회고 14시 반으로 당길까?');
+    await ctx.agents.drain();
+    // Room Agent 1 + 답 2 = 3턴. a2a_collect(정리)는 전체 상한에서 면제라 4번째로 실행된다
+    expect(turns(R.team)).toHaveLength(4);
+    expect(turns(R.team).filter((x) => x.reason === 'a2a_collect')).toHaveLength(1);
+    expect(all(R.team).filter((e) => e.type === 'agent_paused')).toHaveLength(0);
+    say(alice, R.team, '그럼 15시는 어때?');
+    await ctx.agents.drain();
+    expect(turns(R.team)).toHaveLength(8);
+    expect(all(R.team).filter((e) => e.type === 'agent_paused')).toHaveLength(0);
+  });
+
+  it('maxTurnsPerResolution: 승인 1건당 카운터가 새로 시작되어 대화 없이 4건을 연달아 처리해도 마무리 턴이 pause되지 않는다', async () => {
+    start();
+    const p = scripted((i) => {
+      if (i.trigger.reason === 'approval_resolved' || (i.trigger.reason === 'room_agent_call' && i.agent.kind === 'room_agent')) {
+        return call('request_approval', { question: '다음은요?', options: ['가', '나'] });
+      }
+      return call('pass', { reason: 'nothing_to_add' });
+    });
+    ctx.agents.setProvider(p);
+    enter(alice, R.team);
+    say(alice, R.team, '정해 보자');
+    await ctx.agents.drain();
+    for (let n = 0; n < 4; n++) {
+      const open = approvalsOf(R.team).at(-1)!;
+      vote(alice, R.team, open.approvalId, '가');
+      await ctx.agents.drain();
+    }
+    expect(turns(R.team).filter((x) => x.reason === 'approval_resolved')).toHaveLength(4);
+    expect(all(R.team).filter((e) => e.type === 'agent_paused')).toHaveLength(0);
+  });
+
+  it('병렬 답 턴: 첫 수신자가 더 늦게 끝나도 기록 순서는 수신자 순서다', async () => {
+    start();
+    const base = askScript([A.bob, A.dana]);
+    ctx.agents.setProvider({
+      name: 'slow-bob',
+      async *stream(input, signal) {
+        if (input.trigger.reason === 'a2a_ask' && input.agent.id === A.bob) await new Promise((r) => setTimeout(r, 40));
+        yield* base.stream(input, signal);
+      },
+    });
+    say(alice, R.team, '금요일 회고 14시 반으로 당길까?');
+    await ctx.agents.drain();
+    const answers = msgs(R.team).filter((m) => m.replyTo !== undefined && m.actorId !== RA.team);
+    expect(answers.map((m) => m.actorId)).toEqual([A.bob, A.dana]);
+    expect(turns(R.team).filter((x) => x.reason === 'a2a_ask').map((x) => x.agentId)).toEqual([A.bob, A.dana]);
+    expect(turns(R.team).filter((x) => x.reason === 'a2a_collect')).toHaveLength(1);
+  });
+
+  it('병렬 답 중 하나가 error여도 정리 턴은 정확히 1회 돈다', async () => {
+    start();
+    const base = askScript([A.bob, A.dana]);
+    ctx.agents.setProvider({
+      name: 'bob-fails',
+      async *stream(input, signal) {
+        if (input.trigger.reason === 'a2a_ask' && input.agent.id === A.bob) throw new Error('boom');
+        yield* base.stream(input, signal);
+      },
+    });
+    const orig = console.error;
+    console.error = () => {};
+    try {
+      say(alice, R.team, '금요일 회고 14시 반으로 당길까?');
+      await ctx.agents.drain();
+    } finally {
+      console.error = orig;
+    }
+    expect(turns(R.team).filter((x) => x.reason === 'a2a_collect')).toHaveLength(1);
+    expect(ctx.agents.outcomes.find((o) => o.agentId === A.bob)).toMatchObject({ result: 'error' });
+  });
+});
+
+describe('A1: 마무리 턴', () => {
+  const proposeThenVote = async (closingCall: ToolCall) => {
+    start();
+    const p = scripted((i) => {
+      if (i.trigger.reason === 'approval_resolved') return closingCall;
+      if (i.agent.kind === 'room_agent' && i.trigger.reason === 'room_agent_call') return call('propose_edit', { title: '새 카드', body: '본문' });
+      return call('pass', { reason: 'nothing_to_add' });
+    });
+    ctx.agents.setProvider(p);
+    enter(alice, R.team);
+    say(alice, R.team, '정해 보자');
+    await ctx.agents.drain();
+    const req = all(R.team).filter((e): e is Extract<RoomEvent, { type: 'approval_requested' }> => e.type === 'approval_requested').at(-1)!;
+    dispatch(ctx, { kind: 'human', userId: alice }, { type: 'vote_approval', roomId: R.team, approvalId: req.approvalId, decision: 'approve' });
+    await ctx.agents.drain();
+    return p;
+  };
+
+  it('마무리(closing) 턴은 say/pass만 허용되고, 그 say는 아무도 깨우지 않는다', async () => {
+    const p = await proposeThenVote(call('say', { text: '확정됐어요' }));
+    const closing = p.inputs.find((i) => i.trigger.reason === 'approval_resolved')!;
+    expect(closing.tools.map((t) => t.name)).toEqual(['say', 'pass']);
+    expect(closing.prompt).toContain('확정 단계');
+    const after = turns(R.team).filter((x) => x.reason !== 'auto_reply').map((x) => x.reason);
+    expect(after).toEqual(['room_agent_call', 'approval_resolved']); // 마무리 say는 새 턴을 만들지 않는다
+    expect(turns(R.team).at(-1)!.reason).toBe('approval_resolved');
+    expect(msgs(R.team).at(-1)).toMatchObject({ actorId: RA.team, text: '확정됐어요' });
+  });
+
+  it('마무리 턴에서 request_approval을 강제로 호출하면 tool_not_allowed', async () => {
+    await proposeThenVote(call('request_approval', { question: '또?', options: ['가', '나'] }));
+    expect(ctx.agents.outcomes.at(-1)).toMatchObject({ result: 'error', errorCode: 'tool_not_allowed' });
   });
 });

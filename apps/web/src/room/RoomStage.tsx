@@ -91,7 +91,7 @@ export function RoomStage({ model }: { model: RoomModel }) {
               style={{ opacity: a.state.mode === 'traveling' ? 0.4 : 1 }}
               title={`${a.name} · ${a.state.activity}`}
             >
-              <AgentAvatar variant={a.variant} color={a.color} size={34} name={a.name} room={a.kind === 'room_agent'} />
+              <AgentAvatar variant={a.variant} color={a.color} size={34} name={a.name} room={a.kind === 'room_agent'} ownerName={a.ownerId ? users[a.ownerId]?.name : null} />
             </span>
           ))}
         </div>

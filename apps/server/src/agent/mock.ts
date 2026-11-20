@@ -1,5 +1,6 @@
 import type { RoomEvent, ToolName } from '@ensemble/shared';
 import { decideA2A } from './mockA2A';
+import { mockOwnerAnswer } from './mockAnswers';
 import { decideBoardTool } from './mockBoardTools';
 import { isTrivialReaction } from './rules';
 import type { AgentProvider, ProviderEvent, ToolCall, TurnInput } from './types';
@@ -28,6 +29,7 @@ export interface MockOptions {
 const sleep = (ms: number) => (ms > 0 ? new Promise<void>((r) => setTimeout(r, ms)) : Promise.resolve());
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
+const OWNER_ASK_RE = /[?？]|알려|뭐 있|비어|정리해|추천|어때/;
 const isQuestion = (t: string) => /[?？]/.test(t);
 
 type Ev = Extract<RoomEvent, { type: 'message' }>;
@@ -168,10 +170,17 @@ export function decide(input: TurnInput): ToolCall {
     return pass('nothing_to_add');
   }
 
-  const addressed = input.trigger.reason === 'addressed' || input.trigger.reason === 'pointed' || msg?.to === me;
+  // My Room에서 소유자가 한 질문·요청은 자기 Agent에게 한 말이다 ("오늘은 조용히 작업할게" 같은 혼잣말은 침묵)
+  const ownerAsk = input.trigger.reason === 'owner_message' && !!msg && OWNER_ASK_RE.test(text);
+  const addressed = input.trigger.reason === 'addressed' || input.trigger.reason === 'pointed' || msg?.to === me || ownerAsk;
   const pointedCard = ev?.type === 'card_pointed' ? ev.cardId : undefined;
 
   if (addressed) {
+    // My Room 소유자 단독 턴: 일정·취향·현황 같은 질문에는 답변 카드(blocks)를 붙인다 (해당이 없으면 기존 흐름)
+    if (input.allowBlocks && msg && has('say') && (input.trigger.reason === 'owner_message' || input.trigger.reason === 'addressed')) {
+      const ans = mockOwnerAnswer(input, text);
+      if (ans) return ans;
+    }
     // 연쇄 시연: 사람이 "ping <agentId>"로 시키면 그 Agent에게 ping을 보내고, Agent가 ping으로 불렀으면 ping으로 되받는다.
     const fromAgent = msg?.actorKind === 'agent' || msg?.actorKind === 'room_agent';
     const pingTarget = /ping\s+([\w-]+)/i.exec(text)?.[1];
@@ -277,6 +286,10 @@ export class MockProvider implements AgentProvider {
           await sleep(Math.round(delay / 8));
         }
       } else {
+        await sleep(delay);
+      }
+      if (Array.isArray(call.input.blocks) && call.input.blocks.length > 0) {
+        yield { type: 'phase', phase: 'composing' };
         await sleep(delay);
       }
     }

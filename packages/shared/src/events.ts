@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CapabilitySchema } from './permissions';
 import { BoardToolInitSchema, BoardToolOpSchema } from './boardTools';
+import { AnswerBlockSchema } from './answerBlocks';
 
 /* ------------------------------------------------------------------ */
 /* 기본 열거형                                                          */
@@ -132,6 +133,8 @@ const message = ev('message', {
   recipients: z.array(id).min(1).max(3).optional(),
   /** 이 메시지가 답하는 A2A 질문의 seq. 서버만 채운다. */
   replyTo: z.number().int().min(1).optional(),
+  /** 구조화된 답변 블록(최대 2개). 서버가 Agent 출력에서 검증해 채운다. */
+  blocks: z.array(AnswerBlockSchema).max(2).optional(),
 });
 const cardCreated = ev('card_created', {
   cardId: id,
@@ -375,7 +378,7 @@ export function canSeeEvent(event: Pick<EventEnvelope, 'seq' | 'visibility'>, ct
 /* ------------------------------------------------------------------ */
 
 /** 턴 진행 중 휘발성 활동 단계 (S8 추가). 영속 `agent_step`과 달리 개수 제한이 없다. */
-export const ACTIVITY_PHASES = ['thinking', 'recalling', 'writing', 'acting'] as const;
+export const ACTIVITY_PHASES = ['thinking', 'recalling', 'writing', 'acting', 'composing'] as const;
 export type ActivityPhase = (typeof ACTIVITY_PHASES)[number];
 
 /**

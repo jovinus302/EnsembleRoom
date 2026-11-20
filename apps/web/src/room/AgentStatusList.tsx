@@ -117,7 +117,7 @@ export function AgentStatusList({ model }: { model: RoomModel }) {
                 className="flex items-center gap-2.5 rounded-lg border p-2 text-sm"
                 style={{ borderColor: `${a.color}66`, borderStyle: a.visiting ? 'dashed' : 'solid' }}
               >
-                <AgentAvatar variant={a.variant} color={a.color} size={36} name={a.name} room={a.kind === 'room_agent'} />
+                <AgentAvatar variant={a.variant} color={a.color} size={36} name={a.name} room={a.kind === 'room_agent'} ownerName={ownerName} />
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-1.5">
                     <span className="truncate font-medium" style={{ color: ink(a.color) }}>

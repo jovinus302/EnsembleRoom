@@ -6,7 +6,7 @@
 export type HairStyle = 'short' | 'side' | 'long' | 'bob' | 'bun' | 'curly' | 'buzz';
 export type Neckline = 'crew' | 'v' | 'collar';
 export type Mouth = 'smile' | 'grin' | 'soft';
-export type Accessory = 'none' | 'round' | 'square' | 'freckles' | 'earrings';
+export type Accessory = 'none' | 'round' | 'square' | 'freckles' | 'earrings' | 'mustache';
 
 export interface PortraitSpec {
   skin: string;
@@ -37,10 +37,10 @@ const PRESETS: Record<string, PortraitSpec> = {
   alice: { skin: '#f6d5b8', hair: '#5b3a29', hairStyle: 'long', cloth: '#2f4b7c', neckline: 'crew', mouth: 'smile', accessory: 'earrings', eye: 1.15, brow: 1, blush: true },
   bob: { skin: '#e0a982', hair: '#1f1a1a', hairStyle: 'short', cloth: '#2f6f5e', neckline: 'collar', mouth: 'smile', accessory: 'round', eye: 1, brow: 1.4, blush: false },
   dana: { skin: '#8d5a3b', hair: '#2a1b16', hairStyle: 'curly', cloth: '#e0b04a', neckline: 'crew', mouth: 'grin', accessory: 'none', eye: 1.2, brow: 1, blush: false },
-  mom: { skin: '#f3d3b8', hair: '#6a5650', hairStyle: 'bob', cloth: '#a65d7a', neckline: 'v', mouth: 'soft', accessory: 'square', eye: 1, brow: 0.9, mature: true, blush: true },
+  mom: { skin: '#f3d3b8', hair: '#7a3e2c', hairStyle: 'bun', cloth: '#a65d7a', neckline: 'v', mouth: 'soft', accessory: 'square', eye: 1, brow: 0.9, mature: true, blush: true },
 };
 PRESETS['엄마'] = PRESETS.mom!;
-PRESETS.dad = { skin: '#e3b48c', hair: '#4a4a50', hairStyle: 'side', cloth: '#3b7ea1', neckline: 'collar', mouth: 'soft', accessory: 'none', eye: 0.95, brow: 1.3, mature: true, blush: false };
+PRESETS.dad = { skin: '#e3b48c', hair: '#8a8d96', hairStyle: 'buzz', cloth: '#3b7ea1', neckline: 'collar', mouth: 'soft', accessory: 'mustache', eye: 0.95, brow: 1.3, mature: true, blush: false };
 PRESETS['아빠'] = PRESETS.dad;
 
 function presetKey(name: string): string {
@@ -158,7 +158,7 @@ export function portraitSvg(spec: PortraitSpec, bgColor: string, px = 128): stri
     parts.push(`<path d="M43 74.5 L50 88 L57 74.5Z" fill="${shade}"/>`);
     parts.push(`<path d="M40 73 L50 90 L34 83Z" fill="#f4f6fb"/><path d="M60 73 L50 90 L66 83Z" fill="#f4f6fb"/>`);
   }
-  if (s.mature) {
+  if (s.mature && s.accessory !== 'mustache') {
     // 진주 목걸이
     for (let i = 0; i < 7; i++) {
       const a = Math.PI * (0.18 + (i / 6) * 0.64);
@@ -186,6 +186,7 @@ export function portraitSvg(spec: PortraitSpec, bgColor: string, px = 128): stri
     const f: [number, number][] = [[39, 54], [42, 55.5], [37, 56], [61, 54], [58, 55.5], [63, 56]];
     parts.push(f.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="0.7" fill="${shade}"/>`).join(''));
   }
+  if (s.accessory === 'mustache') parts.push(`<path d="M40.5 58.4 Q45 55.6 50 58 Q55 55.6 59.5 58.4 Q55 61 50 59 Q45 61 40.5 58.4Z" fill="${mix(s.hair, '#000000', 0.35)}"/>`);
   // 안경
   if (s.accessory === 'round') {
     parts.push(`<g fill="none" stroke="#1d2433" stroke-width="1.6"><circle cx="42.5" cy="48.5" r="6.4"/><circle cx="57.5" cy="48.5" r="6.4"/><path d="M48.9 48 Q50 46.8 51.1 48"/></g>`);

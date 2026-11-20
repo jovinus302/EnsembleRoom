@@ -69,12 +69,14 @@ describe('시나리오 1: 우리 가족 (Room Agent가 엄마·아빠 Agent 둘�
       `message ${alice} say`,
       `turn ${RA.family} room_agent_call`,
       `message ${RA.family} ask→${A.mom},${A.dad}`,
+      // 같은 질문의 답 턴은 병렬로 호출되고, 시작은 수신자 순서, 기록(답 메시지)도 수신자 순서다
       `turn ${A.mom} a2a_ask`,
-      expect.stringMatching(new RegExp(`^message ${A.mom} reply#\\d+→${RA.family}$`)),
       `turn ${A.dad} a2a_ask`,
+      expect.stringMatching(new RegExp(`^message ${A.mom} reply#\\d+→${RA.family}$`)),
       expect.stringMatching(new RegExp(`^message ${A.dad} reply#\\d+→${RA.family}$`)),
       `turn ${RA.family} a2a_collect`,
       `approval ${RA.family} edit →${alice}`,
+      expect.stringMatching(new RegExp(`^message ${RA.family} reply#\\d+$`)), // 정리 요약(room_message)
     ]);
     expect(llmCalls).toHaveLength(4);
 
@@ -92,12 +94,19 @@ describe('시나리오 1: 우리 가족 (Room Agent가 엄마·아빠 Agent 둘�
     expect(req.proposal).toMatchObject({ cardId: 'c_seed_family_lunch', body: '토요일 12시 반, 집에서 점심. 메뉴는 백숙(엄마가 준비)과 구이(아빠가 담당).' });
     expect(req.publicRationale).toContain('엄마의 Agent');
 
+    const afterAsk = lastSeq(R.family);
     vote(alice, R.family, req.approvalId);
     expect(card(R.family, 'c_seed_family_lunch').body).toBe('토요일 12시 반, 집에서 점심. 메뉴는 백숙(엄마가 준비)과 구이(아빠가 담당).');
+    // 확정 단계: 수정 승인이 해소되면 요청한 Room Agent가 마무리 턴(say/pass만)으로 알리고, 합의가 방 기억에 남는다
+    await ctx.agents.drain();
+    expect(flow(R.family, afterAsk)).toEqual(['resolved approved', 'card_updated c_seed_family_lunch', `turn ${RA.family} approval_resolved`, `message ${RA.family} say`]);
+    expect(llmCalls).toHaveLength(5);
+    expect(llmCalls.at(-1)!.tools.map((t) => t.name)).toEqual(['say', 'pass']);
+    expect(ctx.repo.listMemoryItems(`room:${R.family}`).some((m) => m.kind === 'agreement' && m.text.includes('백숙'))).toBe(true);
 
     // 분류가 서버의 이벤트와 맞는다 (shared indexInteractions)
     const ix = indexInteractions(all(R.family), { isAgentId: (id) => id === RA.family || (Object.values(A) as string[]).includes(id) });
-    expect(ix.list.map((i) => i.kind)).toEqual(['a2a_ask', 'a2a_answer', 'a2a_answer', 'a2h_approval']);
+    expect(ix.list.map((i) => i.kind).slice(0, 4)).toEqual(['a2a_ask', 'a2a_answer', 'a2a_answer', 'a2h_approval']);
     expect(ix.threads.get(ask.seq)).toMatchObject({ open: false });
     expect(ix.list[3]).toMatchObject({ threadSeq: ask.seq, toIds: [alice] });
   });
@@ -146,10 +155,10 @@ describe('시드 소유자(엄마·Dana) Agent의 답 턴', () => {
   });
 });
 
-describe('시나리오 2: 팀 (Room Agent가 Bob·Dana Agent에게 묻고 Alice·Bob이 승인)', () => {
+describe('시나리오 2: 팀 (Room Agent가 Bob·Dana Agent에게 묻고, 자리에 있는 Alice가 승인)', () => {
   const TRIGGER = '금요일 회고 30분 당겨서 14시 반에 할 수 있을까?';
 
-  it('질문 ×2 → 답 ×2 → 회고 카드 propose_edit(승인자 Alice·Bob) → 투표 → 카드 반영, LLM 4회', async () => {
+  it('질문 ×2 → 답 ×2 → 회고 카드 propose_edit(자리에 있는 Alice만 승인자) → 투표 → 카드 반영, LLM 4회', async () => {
     start();
     enter(alice, R.team);
     const base = lastSeq(R.team);
@@ -161,13 +170,16 @@ describe('시나리오 2: 팀 (Room Agent가 Bob·Dana Agent에게 묻고 Alice�
       `turn ${RA.team} room_agent_call`,
       `message ${RA.team} ask→${A.bob},${A.dana}`,
       `turn ${A.bob} a2a_ask`,
-      expect.stringMatching(new RegExp(`^message ${A.bob} reply#\\d+→${RA.team}$`)),
       `turn ${A.dana} a2a_ask`,
+      expect.stringMatching(new RegExp(`^message ${A.bob} reply#\\d+→${RA.team}$`)),
       expect.stringMatching(new RegExp(`^message ${A.dana} reply#\\d+→${RA.team}$`)),
       `turn ${RA.team} a2a_collect`,
-      `approval ${RA.team} edit →${alice},${bob}`,
+      `approval ${RA.team} edit →${alice}`,
+      expect.stringMatching(new RegExp(`^message ${RA.team} reply#\\d+$`)),
     ]);
     expect(llmCalls).toHaveLength(4);
+    // Room Agent가 물은 답 턴은 의견만: request_approval이 없다
+    expect(llmCalls.find((i) => i.agent.id === A.bob && i.trigger.reason === 'a2a_ask')!.tools.map((t) => t.name)).not.toContain('request_approval');
 
     const msgs = all(R.team).filter((e): e is Msg => e.type === 'message' && e.seq > base);
     const ask = msgs.find((m) => m.recipients)!;
@@ -183,10 +195,17 @@ describe('시나리오 2: 팀 (Room Agent가 Bob·Dana Agent에게 묻고 Alice�
     expect(req.publicRationale).toContain('Bob의 Agent');
     expect(req.publicRationale).toContain('Dana의 Agent');
 
-    vote(alice, R.team, req.approvalId);
-    expect(card(R.team, 'c_seed_team_retro').body).toBe('금요일 15시, 30분. 잘한 점 / 아쉬운 점 / 다음 액션.'); // 한 명 승인만으로는 반영되지 않는다
-    vote(bob, R.team, req.approvalId);
+    vote(alice, R.team, req.approvalId); // 자리에 있는 Alice 한 표로 반영된다(자리에 없는 Bob의 입장은 Bob Agent의 답으로 반영됨)
     expect(card(R.team, 'c_seed_team_retro').body).toBe('금요일 14시 반, 30분. 잘한 점 / 아쉬운 점 / 다음 액션.');
+  });
+
+  it('Bob도 자리에 있으면 Room Agent 승인자는 [Alice, Bob]이다', async () => {
+    start();
+    enter(alice, R.team);
+    enter(bob, R.team);
+    say(alice, R.team, TRIGGER);
+    await ctx.agents.drain();
+    expect(approvals(R.team).at(-1)).toMatchObject({ actorId: RA.team, approvers: [alice, bob] });
   });
 
   it('Bob이 방 안에 있으면 Bob의 Agent는 빠지고 Dana에게만 묻는다 (LLM 3회)', async () => {
@@ -201,6 +220,36 @@ describe('시나리오 2: 팀 (Room Agent가 Bob·Dana Agent에게 묻고 Alice�
     expect(all(R.team).filter((e) => e.type === 'agent_turn_started' && e.seq > base && e.agentId === A.bob)).toHaveLength(0);
     expect(llmCalls).toHaveLength(3);
     expect(approvals(R.team).at(-1)!.proposal!.body).toBe('금요일 14시 반, 30분. 잘한 점 / 아쉬운 점 / 다음 액션.');
+  });
+});
+
+describe('재조율(mock): 역제안이 나오면 정리 턴이 그 시각으로 한 번 더 묻는다', () => {
+  it('Dana가 15시 반을 역제안하면 질문 2회·정리 2회·LLM 7회, 마지막 수정안은 15시 반', async () => {
+    start();
+    const mock = new MockProvider();
+    const counting: AgentProvider = {
+      name: 'counter-offer',
+      stream: (input, signal) => {
+        llmCalls.push(input);
+        if (input.trigger.reason === 'a2a_ask' && input.agent.id === A.dana) {
+          return (async function* () {
+            yield { type: 'tool_call' as const, call: { name: 'say' as const, input: { text: '그 시간은 어렵고 15시 반이면 좋아요.' } } };
+          })();
+        }
+        return mock.stream(input, signal);
+      },
+    };
+    ctx.agents.setProvider(counting);
+    enter(alice, R.team);
+    const base = lastSeq(R.team);
+    say(alice, R.team, '금요일 회고 30분 당겨서 14시 반에 할 수 있을까?');
+    await ctx.agents.drain();
+    const asks = all(R.team).filter((e): e is Msg => e.type === 'message' && e.seq > base && !!e.recipients);
+    expect(asks).toHaveLength(2);
+    expect(asks[1]!.text).toContain('15시 반으로 다시 맞춰 보려는데 괜찮을까요?');
+    expect(llmCalls).toHaveLength(7);
+    expect(llmCalls.filter((i) => i.trigger.reason === 'a2a_collect').at(-1)!.tools.map((t) => t.name)).not.toContain('ask_agents');
+    expect(approvals(R.team).at(-1)!.proposal!.body).toContain('15시 반');
   });
 });
 
@@ -252,6 +301,26 @@ describe('시나리오 3: 친구들 (Alice Agent ↔ Bob Agent, Bob·Alice가 �
     const kinds = ix.list.filter((i) => i.seq > base).map((i) => i.kind);
     expect(kinds).toEqual(['h2a_direct', 'a2a_ask', 'a2h_approval', 'a2a_answer', 'a2h_report', 'a2h_approval']);
     expect(ix.list.find((i) => i.kind === 'a2h_approval')).toMatchObject({ threadSeq: ask.seq, toIds: [bob] });
+  });
+
+  it('`to` 없이 "Bob Agent랑 …맞춰 줘"라고 해도 Alice의 Agent가 맡는다(Room Agent·Bob auto_reply 없음)', async () => {
+    start();
+    enter(alice, R.friends);
+    const base = lastSeq(R.friends);
+    say(alice, R.friends, TRIGGER);
+    await ctx.agents.drain();
+    expect(flow(R.friends, base)).toEqual([
+      `message ${alice} say`,
+      `turn ${A.alice} addressed`,
+      `message ${A.alice} ask→${A.bob}`,
+      `turn ${A.bob} a2a_ask`,
+      `approval ${A.bob} decision →${bob}`,
+      expect.stringMatching(new RegExp(`^message ${A.bob} reply#\\d+→${A.alice}$`)),
+      `turn ${A.alice} a2a_collect`,
+      expect.stringMatching(new RegExp(`^message ${A.alice} reply#\\d+→${alice}$`)),
+    ]);
+    expect(llmCalls).toHaveLength(3);
+    expect(all(R.friends).some((e) => e.type === 'agent_turn_started' && e.seq > base && (e.agentId === RA.friends || e.trigger.reason === 'auto_reply'))).toBe(false);
   });
 
   it('Bob이 방 안에 있으면 Alice의 Agent는 질문하지 않고 Bob에게 직접 말한다(규칙 대체)', async () => {
@@ -309,7 +378,7 @@ describe('mock 정규식: 보드 도구와의 겹침·분기 순서', () => {
 });
 
 describe('사람 메시지 1건당 LLM 호출 수', () => {
-  it('세 시나리오 모두 5회 이하', async () => {
+  it('세 시나리오 모두 5회 이하(재조율이 없을 때), 어느 경우든 메시지당 10회 이하', async () => {
     const cases: [string, string, string?][] = [
       [R.family, '토요일 점심 12시 반 어때? 메뉴도 정하자'],
       [R.team, '금요일 회고 30분 당겨서 14시 반에 할 수 있을까?'],
@@ -321,6 +390,7 @@ describe('사람 메시지 1건당 LLM 호출 수', () => {
       say(alice, room, text, to);
       await ctx.agents.drain();
       expect(llmCalls.length).toBeLessThanOrEqual(5);
+      expect(llmCalls.length).toBeLessThanOrEqual(10);
       ctx.agents.stop();
     }
   });

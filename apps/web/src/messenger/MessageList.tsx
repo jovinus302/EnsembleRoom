@@ -7,6 +7,7 @@ import {
   reduceAgentState,
   type AgentDto,
   type AgentMode,
+  type AnswerBlock,
   type AgentVisualState,
   type Interaction,
   type ApprovalState,
@@ -29,12 +30,16 @@ import { AUTO_REPLY_LABEL, titleOf } from './labels';
 import { isVisitEvent, VisitCard } from './VisitCards';
 import { foldVisits } from './visits';
 import { ink, tint } from '../theme';
+import { AnswerBlocks } from './answerBlocks/AnswerBlocks';
+import { BlockSkeleton } from './answerBlocks/BlockSkeleton';
+import { isNearBottom, onContentGrow, sentByMe } from './scrollFollow';
 
 type Author = {
   name: string;
   color: string;
   kind: 'human' | 'agent' | 'room_agent' | 'system';
   variant?: string | null;
+  ownerName?: string | null;
 };
 
 function resolveAuthor(e: RoomEvent, users: Record<string, UserDto>, resolve: AgentResolver): Author {
@@ -42,14 +47,14 @@ function resolveAuthor(e: RoomEvent, users: Record<string, UserDto>, resolve: Ag
     const u = users[e.actorId ?? ''];
     return { name: u?.name ?? '알 수 없음', color: u?.color ?? FALLBACK_COLOR, kind: 'human' };
   }
-  if (e.actorKind === 'agent' || e.actorKind === 'room_agent') return resolveAgent(e.actorId, e.actorKind, resolve);
+  if (e.actorKind === 'agent' || e.actorKind === 'room_agent') return resolveAgent(e.actorId, e.actorKind, resolve, users);
   return { name: '시스템', color: SYSTEM_COLOR, kind: 'system' };
 }
 
 /** Personal Agent는 소유자 색, Room Agent는 라임, 시스템은 민트 */
-function resolveAgent(agentId: string | null, kind: 'agent' | 'room_agent', resolve: AgentResolver): Author {
+function resolveAgent(agentId: string | null, kind: 'agent' | 'room_agent', resolve: AgentResolver, users: Record<string, UserDto>): Author {
   const a = resolve(agentId, kind);
-  return { name: a.name, color: a.color, kind: a.kind, variant: a.variant };
+  return { name: a.name, color: a.color, kind: a.kind, variant: a.variant, ownerName: a.ownerId ? users[a.ownerId]?.name ?? null : null };
 }
 
 const PAUSE_LABEL: Record<PauseReason, string> = {
@@ -110,6 +115,7 @@ type EventItem = {
   interaction?: Interaction;
   mode?: AgentMode;
   auto?: boolean;
+  blocks?: AnswerBlock[];
 };
 type LiveItem = { key: string; kind: 'live'; entry: ActivityEntry; author: Author; mode?: AgentMode; auto?: boolean };
 /** A2A 스레드: a2a_ask 메시지가 머리, 답(과 스트리밍 중인 답 턴)은 rows */
@@ -233,6 +239,7 @@ function AgentRow({
   badge,
   reply = false,
   resultLink,
+  blocks,
 }: {
   author: Author;
   text: string;
@@ -251,6 +258,8 @@ function AgentRow({
   reply?: boolean;
   /** 스레드 밖 결과·보고: "↳ A2A 결과" 칩. null이면 링크 없는 칩 */
   resultLink?: number | null;
+  /** 답변 카드(구조화 블록) */
+  blocks?: readonly AnswerBlock[];
 }) {
   // 마운트 때 스트리밍 중이었던 말풍선만 타이핑 연출을 한다(스냅샷 메시지는 즉시 전체 표시).
   const wasLive = useRef(streaming).current;
@@ -270,7 +279,7 @@ function AgentRow({
     >
       <span className="relative shrink-0">
         {author.kind === 'agent' ? (
-          <AgentAvatar variant={author.variant} color={author.color} size={reply ? 24 : 32} name={author.name} />
+          <AgentAvatar variant={author.variant} color={author.color} size={reply ? 28 : 36} name={author.name} ownerName={author.ownerName} />
         ) : author.kind === 'room_agent' ? (
           <AgentAvatar variant={author.variant} color={author.color} size={reply ? 24 : 32} name={author.name} room />
         ) : (
@@ -347,6 +356,7 @@ function AgentRow({
             </span>
           )}
         </div>
+        {streaming && phase === 'composing' ? <BlockSkeleton /> : <AnswerBlocks blocks={blocks} />}
         <StepTrace steps={steps} nameOf={nameOf} open={streaming} color={author.color} />
       </div>
     </li>
@@ -538,6 +548,7 @@ export function MessageList({
             interaction,
             mode: isAgent ? modeBySeq.get(e.seq) : undefined,
             auto: isAgent && !!e.turnId && autoTurns.has(e.turnId),
+            blocks: e.blocks,
           };
           const th = ix.threads.get(e.seq);
           if (th) {
@@ -575,7 +586,7 @@ export function MessageList({
         key: `t${a.turnId}`,
         kind: 'live',
         entry: a,
-        author: resolveAgent(a.agentId, isRoom ? 'room_agent' : 'agent', resolve),
+        author: resolveAgent(a.agentId, isRoom ? 'room_agent' : 'agent', resolve, users),
         mode: modeNow(a.agentId),
         auto: autoTurns.has(a.turnId),
       };
@@ -591,20 +602,57 @@ export function MessageList({
   const me = users[meId];
   const endRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLUListElement>(null);
   const stick = useRef(true);
+  const [showJump, setShowJump] = useState(false);
 
-  useEffect(() => {
-    if (stick.current) endRef.current?.scrollIntoView({ block: 'end' });
-  }, [items.length, pending, liveSig]);
-
-  useEffect(() => {
+  const toBottom = () => {
+    const el = scrollerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
     stick.current = true;
-    endRef.current?.scrollIntoView({ block: 'end' });
+    setShowJump(false);
+  };
+
+  // 목록 높이가 변할 때(새 항목·스트리밍·타이핑·카드/이미지 높이) 따라가거나 안내 버튼을 띄운다.
+  useEffect(() => {
+    const content = contentRef.current;
+    const el = scrollerRef.current;
+    if (!content || !el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      const d = onContentGrow(stick.current);
+      if (d.scrollToBottom) el.scrollTop = el.scrollHeight;
+      else if (d.showJump && content.childElementCount > 0) setShowJump(true);
+    });
+    ro.observe(content);
+    return () => ro.disconnect();
+  }, []);
+
+  // 항목·스트리밍 텍스트 변화 직후에도 한 번 맞춘다(ResizeObserver 보조)
+  useEffect(() => {
+    if (stick.current) {
+      const el = scrollerRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    } else if (items.length > 0) setShowJump(true);
+  }, [items.length, liveSig]);
+
+  // 내가 보냄 → 위치와 무관하게 맨 아래
+  const prevPending = useRef(pending.length);
+  useEffect(() => {
+    if (sentByMe(prevPending.current, pending.length)) toBottom();
+    prevPending.current = pending.length;
+  }, [pending.length]);
+
+  // 방 입장·전환 → 즉시 맨 아래
+  useEffect(() => {
+    toBottom();
   }, [roomId, slice?.snapshotLoaded]);
 
   function onScroll() {
     const el = scrollerRef.current;
-    if (el) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (!el) return;
+    const near = isNearBottom(el);
+    stick.current = near;
+    if (near) setShowJump(false);
   }
 
   const party = (id: string): Party => ({ name: nameOf(id), color: users[id]?.color ?? resolve(id).color });
@@ -648,16 +696,18 @@ export function MessageList({
         resultLink={outside ? it.interaction!.threadSeq : undefined}
         steps={it.turnId ? (stepsByTurn.get(it.turnId) ?? []) : []}
         nameOf={nameOf}
+        blocks={it.blocks}
       />
     );
   }
 
   return (
-    <div ref={scrollerRef} onScroll={onScroll} className="chat-surface flex-1 overflow-y-auto px-6 py-4">
+    <div className="relative flex min-h-0 flex-1 flex-col">
+    <div ref={scrollerRef} onScroll={onScroll} data-testid="message-scroller" className="chat-surface min-h-0 flex-1 overflow-y-auto px-6 py-4">
       {slice?.snapshotLoaded && items.length === 0 && (
         <p className="mt-10 text-center text-sm text-muted">아직 대화가 없습니다. 첫 메시지를 보내 보세요.</p>
       )}
-      <ul role="log" aria-live="polite" aria-label="메시지" className="flex flex-col gap-3">
+      <ul ref={contentRef} role="log" aria-live="polite" aria-label="메시지" className="flex flex-col gap-3">
         {items.map((it, i) => {
           if (it.kind === 'pending') return <PendingRow key={it.key} p={it.pending} color={me?.color ?? FALLBACK_COLOR} />;
           if (it.kind === 'visit')
@@ -742,6 +792,17 @@ export function MessageList({
         })}
       </ul>
       <div ref={endRef} />
+    </div>
+    {showJump && (
+      <button
+        type="button"
+        data-testid="jump-to-latest"
+        onClick={toBottom}
+        className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-1 text-xs text-fg shadow hover:bg-raised"
+      >
+        새 메시지 ↓
+      </button>
+    )}
     </div>
   );
 }

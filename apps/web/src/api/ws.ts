@@ -1,4 +1,4 @@
-import { ServerWsMessageSchema, type ClientWsMessage } from '@ensemble/shared';
+import { ServerWsMessageSchema, type ClientWsMessage, type RoomEvent } from '@ensemble/shared';
 import { api, ApiError, getToken } from './client';
 import { useRooms } from '../store/roomStore';
 import { useWorld } from '../store/worldStore';
@@ -90,6 +90,7 @@ class WsClient {
         case 'event': {
           useRooms.getState().applyEvent(m.event);
           const e = m.event;
+          refetchIfUnknownAgent(e);
           fxFromRoomEvent(e);
           // 영속 이벤트로도 활동 표시를 시작/해제한다(첫 activity 전의 "생각 중", 늦게 온 final 보완).
           if (e.type === 'agent_turn_started') useActivity.getState().begin(e.roomId, e.agentId, e.turnId);
@@ -173,6 +174,21 @@ async function loadSnapshot(roomId: string): Promise<SnapshotResult> {
     if (!(e instanceof ApiError)) throw e;
     return e.status === 403 ? 'forbidden' : 'error';
   }
+}
+
+/**
+ * 스냅샷 이후에 처음 말하는 Agent(시드 인물의 Agent 등)는 agents에 없어 이름이 "Agent"로 보인다.
+ * 모르는 Agent id의 이벤트가 오면 스냅샷을 한 번만 다시 가져온다(Room·Agent별 중복 요청 방지).
+ */
+const refetchedAgents = new Set<string>();
+function refetchIfUnknownAgent(e: RoomEvent): void {
+  if ((e.actorKind !== 'agent' && e.actorKind !== 'room_agent') || !e.actorId) return;
+  const slice = useRooms.getState().rooms[e.roomId];
+  if (!slice?.snapshotLoaded || slice.agents.some((a) => a.id === e.actorId)) return;
+  const key = `${e.roomId}:${e.actorId}`;
+  if (refetchedAgents.has(key)) return;
+  refetchedAgents.add(key);
+  void loadSnapshot(e.roomId);
 }
 
 /** Room 열기: subscribe 먼저, 그다음 snapshot. 이벤트 중복은 seq로 제거된다. */

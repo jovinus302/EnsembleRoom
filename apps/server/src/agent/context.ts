@@ -1,7 +1,9 @@
-import { buildRoomState, visibleBoardTools, visibleCards, type Mandate, type PermissionSubject, type RoomEvent, type ToolName } from '@ensemble/shared';
+import { buildRoomState, privateNamespaceOpen, visibleBoardTools, visibleCards, type Mandate, type PermissionSubject, type RoomEvent, type ToolName } from '@ensemble/shared';
 import type { AppContext } from '../context';
 import { requireRoom } from '../domain/rooms';
 import type { RecallResult } from '../memory/gateway';
+import { namespaceContextFor } from '../memory/nsContext';
+import { buildOwnerDigest } from './ownerDigest';
 import { MAX_EVENTS, buildSystemPrompt, buildUserPrompt } from './prompts';
 import { askableAgents } from './a2a';
 import { toolSpecs } from './tools';
@@ -51,6 +53,8 @@ export interface BuildInput {
   ask?: A2AJob;
   /** 이 턴에 ask_agents를 줬는가 → [물어볼 수 있는 Agent]를 프롬프트에 싣는다 */
   allowAsk?: boolean;
+  /** 마무리(확정) 턴 */
+  closing?: boolean;
 }
 
 /**
@@ -107,7 +111,16 @@ export function buildTurnInput(ctx: AppContext, b: BuildInput): TurnInput {
   }
   const nameOf = (id: string | null) => (id ? (names[id] ?? id) : '시스템');
 
-  const specs = toolSpecs(b.tools);
+  // 답변 카드: My Room에서 소유자가 혼자 자기 Agent에게 말한 턴에서만(개인 ns가 열려 있을 때). 이때만 소유자 전용 현황을 싣는다.
+  const allowBlocks =
+    !!personal &&
+    b.tools.includes('say') &&
+    !b.forcedTool &&
+    !b.closing &&
+    (b.trigger.reason === 'owner_message' || b.trigger.reason === 'addressed') &&
+    privateNamespaceOpen(namespaceContextFor(ctx, b.agentId, b.roomId));
+  const digest = allowBlocks && ownerId ? buildOwnerDigest(ctx, ownerId) : null;
+  const specs = toolSpecs(b.tools, { allowBlocks });
   const askable = b.allowAsk ? askableAgents(ctx, b.roomId, b.agentId, full) : [];
   const a2a = b.ask ? buildA2A(ctx, b.ask, all, b.trigger) : null;
   const memories = b.recall.items.map((m) => ({ id: m.id, kind: m.kind, text: m.text }));
@@ -125,6 +138,7 @@ export function buildTurnInput(ctx: AppContext, b: BuildInput): TurnInput {
     forcedTool: b.forcedTool,
     autoReply,
     seedOwner,
+    allowBlocks,
   });
   // `to`에 쓸 수 있는 대화 상대: Room의 사람·Agent. 모델이 id를 지어내지 않도록 프롬프트에 명시한다.
   const people = new Set<string>(repo.memberIds(room.id));
@@ -150,7 +164,7 @@ export function buildTurnInput(ctx: AppContext, b: BuildInput): TurnInput {
   }
   const ra = repo.getRoomAgentByRoom(room.id);
   if (ra) addP(ra.id, ra.name);
-  const prompt = buildUserPrompt({ roomTitle: room.title, trigger: b.trigger, memories, summary, board, boardTools, events, name: nameOf, participants, seedOwner, askable, a2a });
+  const prompt = buildUserPrompt({ roomTitle: room.title, trigger: b.trigger, memories, summary, board, boardTools, events, name: nameOf, participants, seedOwner, askable, a2a, closing: b.closing, digest: digest?.lines, boardToolEnabled: b.tools.includes('create_board_tool') });
 
   return {
     turnId: b.turnId,
@@ -171,6 +185,8 @@ export function buildTurnInput(ctx: AppContext, b: BuildInput): TurnInput {
     roomTitle: room.title,
     askable,
     a2a,
+    allowBlocks,
+    digest,
     system,
     prompt,
   };

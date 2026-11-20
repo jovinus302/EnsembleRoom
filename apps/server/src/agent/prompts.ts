@@ -113,7 +113,7 @@ export function clipSummary(text: string): string {
 
 const MODE_RULES: Record<TurnMode, string> = {
   accompanied:
-    '지금 소유자가 이 Room에 함께 있다(동행). 거의 침묵한다. 불렸을 때, 또는 소유자의 기준과 충돌할 때만 말한다. 보드는 소유자의 요청이 있을 때만 직접 고친다.',
+    '지금 소유자가 이 Room에 함께 있다(동행). 거의 침묵한다. 불렸을 때, 또는 소유자의 기준과 충돌할 때만 말한다. 보드는 소유자의 요청이 있을 때만 직접 고친다. My Room에서 소유자와 단둘이면 소유자의 질문은 당신에게 한 말이다.',
   representing:
     '소유자가 자리를 비웠고 당신이 위임 범위(mandate) 안에서 대리 참여한다. 코멘트, 제안, 응답을 스스로 한다. 보드를 직접 고칠 수 없다(propose_edit로 제안). 확정, 위임 밖의 일, 소유자 선호와 상충하는 타협, 돈이나 시간이 드는 약속, 소유자가 정하지 않은 세부 사항(예: 구체적인 시간)은 반드시 request_approval 도구로 넘긴다. say로 "승인 요청해 볼게요", "확인해 볼게요"라고 약속만 하지 않는다(말만 하면 소유자에게 아무것도 전달되지 않는다). request_approval의 room_message에 상대에게 보일 안내 한 문장("OO님께 확인을 요청해 두었어요")을 함께 적는다. 위임 범위 안의 단순 질문은 say로 바로 답한다.',
   visiting:
@@ -136,6 +136,8 @@ export function buildSystemPrompt(p: {
   autoReply?: boolean;
   /** 소유자가 로그인하지 않는 가상 인물(시드). 승인 요청 없이 인물 설정 범위 안에서 스스로 답한다 */
   seedOwner?: boolean;
+  /** 답변 카드(say.blocks) 규칙을 덧붙인다 (My Room 소유자 단독 턴) */
+  allowBlocks?: boolean;
 }): string {
   const lines = [
     `당신은 "${p.agentName}"이다.${p.ownerName ? ` 소유자는 ${p.ownerName}이다.` : ''}`,
@@ -146,6 +148,8 @@ export function buildSystemPrompt(p: {
     '- 아래에 제공된 정보(기억, 요약, 이벤트, 보드)만 근거로 쓴다. 제공되지 않은 정보를 추측하지 않는다.',
     '- 기억을 근거로 썼다면 used_memory_ids에 제공된 id만 적는다.',
     '- 할 말이 없으면 pass를 쓴다.',
+    '- 사람·Agent 이름은 주어진 표기 그대로 쓴다(번역·음역 금지).',
+    '- 보드 도구의 투표·사다리 실행·체크는 사람만 한다. 대신 해 주겠다고 말하지 않는다.',
     '',
     '[말투·형식] (say·comment의 text, 승인 질문·선택지)',
     '- 한국어 메신저 말투로, 1~3문장(120자 안팎)으로 짧게 쓴다. 기본은 존댓말이지만 성격에 말투(반말, "~요"체 등)가 적혀 있으면 그 말투를 따른다. 인사말·맺음말·이모지·마크다운(**, #, 목록)은 쓰지 않는다.',
@@ -182,6 +186,13 @@ export function buildSystemPrompt(p: {
       `${p.ownerName ?? '소유자'}님은 지금 이 Room에 접속해 있지 않다(위임을 남기지도 않았다). 당신은 짧게 자동으로 응대한다. say로 대화만 하고, 소유자가 정해야 할 일(일정·장소·금액 확정, 약속, 선호가 필요한 선택)은 말로 얼버무리지 말고 request_approval로 소유자에게 넘긴다. 소유자 이름으로 확정하거나 약속하지 않는다. 제공된 기억 밖의 사적인 사정은 말하지 않는다. 소유자를 3인칭 이름으로 부르고("OO님은 지금 자리에 안 계세요" 정도로만 밝힌다) 1~2문장으로 답한다.`,
     );
   }
+  if (p.allowBlocks) {
+    lines.push(
+      '',
+      '[답변 카드]',
+      "say에 blocks를 붙일 수 있다(보통 1개, 최대 2개). 쓸 때: 일정·시간이 2개 이상, 비교할 선택지 2개 이상, 할 일 3개 이상, 금액 2줄 이상, 여러 방의 진행 상황, 취향 여러 항목. 쓰지 않을 때: 사실 하나(예: '토요일 저녁 비어 있어요'), 인사·공감·잡담, 되묻기, 근거가 없을 때. 이때는 text만 쓴다. text는 결론 한두 문장이고 블록 내용을 되풀이하지 않는다. 블록의 시간·항목·금액은 [제공된 기억]·[내 Room 현황]·[최근 이벤트]에 있는 것만 쓰고, 각 항목 src에 근거 id(mem_…, d…, #번호)를 적는다. 근거 없는 항목은 지워진다. 유형: schedule(일정·빈 시간·겹침), profile(취향), compare(선택지·사람별 가능 여부·추천), checklist(할 일), money(금액·정산), status(여러 방의 결정·승인 대기).",
+    );
+  }
   if (p.mandate) lines.push('', '[위임 범위(mandate)]', p.mandate.text, `허용된 행동: ${p.mandate.allowedActions.join(', ') || '(없음)'}`);
   lines.push('', '[사용할 수 있는 도구]', p.tools.map((t) => t.name).join(', '));
   if (p.forcedTool) lines.push('', `[이번 턴] 반드시 ${p.forcedTool}만 호출한다. 방문 턴 한도에 도달했다.`);
@@ -189,7 +200,13 @@ export function buildSystemPrompt(p: {
 }
 
 /** 트리거별 마지막 지시. 일반 규칙("할 말이 없으면 pass")보다 우선한다 */
-function closingHint(reason: Trigger['reason'], seedOwner = false, a2a: TurnA2A | null = null, seq = 0): string | null {
+function closingHint(
+  reason: Trigger['reason'],
+  seedOwner = false,
+  a2a: TurnA2A | null = null,
+  seq = 0,
+  extra: { hasAsk?: boolean; event?: RoomEvent | null; closing?: boolean; hasDigest?: boolean; hasBoardTool?: boolean } = {},
+): string | null {
   if (reason === 'a2a_ask') {
     const asker = a2a?.role === 'answer' ? a2a.askerName : '다른 Agent';
     const roomAsker = a2a?.role === 'answer' && a2a.askerKind === 'room_agent';
@@ -199,12 +216,36 @@ function closingHint(reason: Trigger['reason'], seedOwner = false, a2a: TurnA2A 
     return `${asker}가 당신에게 물었다(#${a2a?.role === 'answer' ? a2a.askSeq : seq}). 소유자의 기억·성격·보드만 근거로 1~2문장 답한다(say). 답은 자동으로 질문자에게 간다. ${roomAsker ? '질문자가 Room Agent이므로 의견·가능 여부만 답한다(확정은 사람들의 승인으로 정해진다). ' : ''}${handoff} 지금 할 행동을 도구 하나로 고르라.`;
   }
   if (reason === 'a2a_collect') {
-    return `당신의 질문 #${a2a?.role === 'collect' ? a2a.askSeq : seq}에 답이 모였다(↩#${a2a?.role === 'collect' ? a2a.askSeq : seq}). Room Agent: 관련 카드에 propose_edit(public_rationale에 누가 뭐라 했는지 한 줄), 의견이 갈리면 request_approval. Personal Agent: 소유자에게 say(to=소유자 id)로 결과를 전하고 소유자가 정할 일이면 request_approval. 지금 할 행동을 도구 하나로 고르라.`;
+    const n = a2a?.role === 'collect' ? a2a.askSeq : seq;
+    const reask = extra.hasAsk
+      ? '답이 서로 맞지 않거나 누군가 다른 시간·메뉴를 제안했고 아직 한 번 더 물을 수 있으면, 정리하기 전에 ask_agents로 한 번만 다시 묻는다. 질문에는 나온 역제안을 하나로 묶어 "이 안으로 괜찮은지"를 묻는다. 답이 서로 맞으면 다시 묻지 말고 바로 정리한다. '
+      : '';
+    return `${reask}당신의 질문 #${n}에 답이 모였다(↩#${n}). 이번 턴에 합의안을 정리해 사람의 결정을 받는다. Room Agent: 관련 카드가 있으면 propose_edit(합의안 body), 없으면 request_approval(options 2~3). 어느 쪽이든 room_message에 "누가 무엇이라 답했는지와 합의안"을 한두 문장으로 적는다. 답이 서로 맞으면 선택지를 늘리지 말고 수정안 하나로 올린다. 소유자 확인 중인 답이 있으면 그 사실을 밝힌다. Personal Agent: 소유자에게 say(to=소유자 id)로 상대 답, 확인 대기 중인 것, 다음에 일어날 일을 한두 문장 보고한다. 소유자가 정할 일이 남았으면 request_approval(room_message에 보고). 지금 할 행동을 도구 하나로 고르라.`;
+  }
+  if (reason === 'approval_resolved') {
+    const ev = extra.event?.type === 'approval_resolved' ? extra.event : null;
+    if (extra.closing) {
+      return '당신이 올린 수정 제안이 승인되어 카드에 반영됐다. 확정 단계다. say로 무엇이 언제로 정해졌는지와 방 기억에 남겼다는 것을 한 문장으로 알리고 끝낸다. 새 질문·승인을 만들지 않는다. 지금 할 행동을 도구 하나로 고르라.';
+    }
+    if (ev?.outcome === 'approved') {
+      return `승인 결과: ${ev.option ?? '승인됨'}. 관련 카드가 있고 아직 반영되지 않았으면 propose_edit(room_message에 확정 안내), 아니면 say로 한 문장 마무리한다. 지금 할 행동을 도구 하나로 고르라.`;
+    }
+    if (ev) return '보류됐다. say 한 문장으로 다음 선택지를 알린다. 지금 할 행동을 도구 하나로 고르라.';
+    return null;
+  }
+  if (reason === 'owner_message') {
+    return `소유자가 자기 Room에서 당신에게 말했다. 질문·요청이면 ${extra.hasDigest ? '[제공된 기억]과 [내 Room 현황]만' : '[제공된 기억]만'} 근거로 바로 답한다(say). 비어 있는지 물으면 확정 일정뿐 아니라 미정·승인 대기 중인 일정도 함께 알려 준다(예: '확정된 건 없지만 영화 모임이 미정으로 잡혀 있어요'). 답이 필요 없는 혼잣말·작업 메모면 pass. 지금 할 행동을 도구 하나로 고르라.`;
   }
   if (reason === 'auto_reply' && seedOwner) {
     return '방금 사람이 말했고 당신이 소유자 대신 응대하도록 깨워졌다. 성격에 적힌 입장·말투로 say로 1~2문장 자연스럽게 답한다(공감, 의견, 되묻기 중 하나). 승인 요청은 없다. 단순한 맞장구에는 pass해도 된다. 지금 할 행동을 도구 하나로 고르라.';
   }
   if (reason === 'room_agent_call') {
+    if (extra.hasAsk) {
+      return '사람이 방금 말했고 당신이 깨워졌다. 이 지시가 일반 규칙의 pass보다 우선한다. 순서대로 도구 하나를 고른다: (1) 사다리·정산·여행·투표·할 일 나누기면 되묻지 말고 보드 도구(대화에 없는 항목은 비워 둔다). 여행 제안은 일정이 엇갈릴 것 같아도 먼저 여행판을 만든 뒤 조율한다. (2) 시간·약속·메뉴처럼 [물어볼 수 있는 Agent]의 소유자 일정·선호가 있어야 정할 수 있는 조율이면 say 대신 ask_agents로 한 번에 묻는다(제안 내용과 답해 줄 것을 질문에 적는다). (3) 그 밖에는 say로 1~2문장. 같은 말을 방금 했으면 pass. 지금 할 행동을 도구 하나로 고르라.';
+    }
+    if (extra.hasBoardTool) {
+      return '사람이 방금 말했고 당신이 깨워졌다. 이 지시가 일반 규칙의 pass보다 우선한다. 사다리·정산·여행·투표·할 일 나누기 요청이면 되묻지 말고 먼저 보드 도구로 만든다(대화에 없는 항목은 비워 두고 지어내지 않는다). 여행 제안은 일정이 엇갈릴 것 같아도 먼저 여행판을 만든 뒤 조율한다. 그 밖에는 pass하지 말고 say로 1~2문장 짧게 반응한다(공감, 지금까지 정리, 다음 제안, 되묻기 중 하나). 이미 같은 내용을 방금 말했거나 정말 덧붙일 말이 없을 때만 pass. 지금 할 행동을 도구 하나로 고르라.';
+    }
     return '사람이 방금 말했고 당신이 깨워졌다. 이 지시가 일반 규칙의 pass보다 우선한다: pass하지 말고 say로 1~2문장 짧게 반응한다(공감, 지금까지 정리, 다음 제안, 되묻기 중 하나). 이미 같은 내용을 방금 말했거나 정말 덧붙일 말이 없을 때만 pass. 지금 할 행동을 도구 하나로 고르라.';
   }
   if (reason === 'auto_reply') {
@@ -229,6 +270,12 @@ export function buildUserPrompt(p: {
   /** ask_agents로 물을 수 있는 Agent. 있을 때만 섹션을 만든다 */
   askable?: readonly AskableAgent[];
   a2a?: TurnA2A | null;
+  /** 마무리(확정) 턴: 승인된 수정안을 알리고 끝낸다 */
+  closing?: boolean;
+  /** 이 턴에 create_board_tool이 있다 (room_agent_call 지시에 보드 도구 우선 순위를 넣는다) */
+  boardToolEnabled?: boolean;
+  /** [내 Room 현황] 줄 (소유자 단독 My Room 턴). 있을 때만 섹션을 만든다 */
+  digest?: readonly string[];
 }): string {
   const mem = renderMemories(p.memories);
   const board = renderBoard(p.board);
@@ -247,6 +294,9 @@ export function buildUserPrompt(p: {
     '[제공된 기억]',
     mem.length ? mem.join('\n') : '(없음)',
     '',
+    ...(p.digest
+      ? ['[내 Room 현황] (소유자 본인에게만. 근거 id는 d…)', p.digest.length ? p.digest.join('\n') : '(없음)', '']
+      : []),
     '[Room 요약]',
     p.summary ? clipSummary(p.summary) : '(없음)',
     '',
@@ -257,6 +307,12 @@ export function buildUserPrompt(p: {
     '[최근 이벤트]',
     events.length ? events.join('\n') : '(없음)',
     '',
-    closingHint(p.trigger.reason, p.seedOwner, p.a2a ?? null, p.trigger.seq) ?? '지금 할 행동을 도구 하나로 고르라.',
+    closingHint(p.trigger.reason, p.seedOwner, p.a2a ?? null, p.trigger.seq, {
+      hasAsk: !!p.askable?.length,
+      event: p.trigger.event,
+      closing: p.closing,
+      hasDigest: !!p.digest,
+      hasBoardTool: !!p.boardToolEnabled,
+    }) ?? '지금 할 행동을 도구 하나로 고르라.',
   ].join('\n');
 }

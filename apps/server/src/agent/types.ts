@@ -1,4 +1,4 @@
-import type { BoardCard, BoardTool, Mandate, MemoryKind, PassReason, RoomEvent, ToolName } from '@ensemble/shared';
+import type { BoardCard, BoardTool, Mandate, MemoryKind, PassReason, RoomEvent, SourceChip, ToolName } from '@ensemble/shared';
 
 /**
  * Agent 런타임 공용 타입 (계획 6절). provider(mock/claude)와 runTurn·scheduler가 공유한다.
@@ -64,6 +64,22 @@ export interface Trigger {
   event: RoomEvent | null;
 }
 
+/** 소유자 전용 현황 항목 (ownerDigest.ts) */
+export interface DigestItem {
+  id: string;
+  roomTitle: string;
+  kind: 'card' | 'approval' | 'tool' | 'agreement' | 'mine';
+  /** 카드: 합의됨 여부 */
+  agreed?: boolean;
+  text: string;
+}
+
+export interface OwnerDigest {
+  lines: string[];
+  items: DigestItem[];
+  refs: Map<string, SourceChip>;
+}
+
 /** 모델에 주는 도구 정의. inputSchema는 JSON Schema (Anthropic tool use의 input_schema와 같은 모양) */
 export interface ToolSpec {
   name: ToolName;
@@ -120,6 +136,10 @@ export interface TurnInput {
   askable: AskableAgent[];
   /** A2A 질문(answer)·정리(collect) 턴일 때만 */
   a2a: TurnA2A | null;
+  /** My Room에서 소유자와 단둘이 있을 때만 true: say에 답변 카드(blocks)를 붙일 수 있고 [내 Room 현황]이 실린다 */
+  allowBlocks: boolean;
+  /** [내 Room 현황] 원본(allowBlocks일 때만). refs는 blocks의 d… 근거 id → 출처 칩 */
+  digest: OwnerDigest | null;
   /** LLM provider용으로 렌더링한 프롬프트 (prompts.ts) */
   system: string;
   prompt: string;
@@ -131,7 +151,7 @@ export interface TurnInput {
  *   say.text/comment.text의 partial → text_delta, content_block_stop/message_stop → tool_call.
  */
 export type ProviderEvent =
-  | { type: 'phase'; phase: 'thinking' | 'recalling' | 'writing' }
+  | { type: 'phase'; phase: 'thinking' | 'recalling' | 'writing' | 'composing' }
   | { type: 'tool_start'; tool: ToolName }
   | { type: 'target'; to: string }
   | { type: 'text_delta'; tool: ToolName; delta: string }

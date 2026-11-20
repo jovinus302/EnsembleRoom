@@ -147,7 +147,7 @@ export class ClaudeProvider implements AgentProvider {
     const raw = await client.messages.create(
       {
         model,
-        max_tokens: this.opts.maxTokens ?? 1024,
+        max_tokens: this.opts.maxTokens ?? (input.allowBlocks ? 2048 : 1024),
         stream: true,
         system: [{ type: 'text', text: input.system, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: input.prompt }],
@@ -163,6 +163,7 @@ export class ClaudeProvider implements AgentProvider {
       let json = '';
       let sentText = '';
       let targetSent = false;
+      let composingSent = false;
 
       for await (const ev of raw) {
         if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
@@ -175,6 +176,11 @@ export class ClaudeProvider implements AgentProvider {
         } else if (ev.type === 'content_block_delta' && blockIndex !== null && ev.index === blockIndex && tool) {
           if (ev.delta?.type !== 'input_json_delta') continue;
           json += ev.delta.partial_json ?? '';
+          // say JSON에 blocks 키가 처음 보이면 카드 정리 단계를 1회 알린다(텍스트는 이미 앞서 흘렀다)
+          if (!composingSent && tool === 'say' && /"blocks"\s*:/.test(json)) {
+            composingSent = true;
+            yield { type: 'phase', phase: 'composing' };
+          }
           const fields = scanTopLevelStrings(json);
           const to = fields.to;
           if (to?.complete && !targetSent && to.value) {

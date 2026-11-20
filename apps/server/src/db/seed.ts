@@ -155,6 +155,70 @@ export function seedDatabase(ctx: AppContext): void {
     // 소유자가 우리 가족에만 공유하기로 고른 개인 기억 / 공유하지 않은 개인 기억
     mem('mem_seed_alice_for_family', `agent:${SEED.agents.alice}:for:${R.family}`, 'fact', '일요일 오전은 가족 행사가 있다.', R.family, U.alice);
     mem('mem_seed_alice_private', `agent:${SEED.agents.alice}:private`, 'preference', '매운 음식은 잘 못 먹는다.', null, U.alice);
+    // 기본 일정·취향 기억 (가상의 내용). 소유자가 그 Room에만 공유하기로 한 개인 기억(for:Room)과, My Room에서만 쓰는 비공개 기억(private).
+    // 서로 맞물리도록 짰다: 가족 12시 반 점심, 팀 금 14시 반 회고(15시 원안), 친구들 토 저녁 영화·메뉴(라멘 vs 국밥, 1인 2만 원).
+    // 주의: mockA2A가 /장/(엄마), /등산/(아빠), /16시/(Bob) 정규식으로 기억을 고르므로 다른 기억 문장에는 그 낱말을 쓰지 않는다.
+    const personal = (who: keyof typeof SEED.agents, owner: string, scope: string | null, rows: [string, 'fact' | 'preference', string][]) => {
+      for (const [topic, kind, text] of rows) {
+        const ns = scope ? `agent:${SEED.agents[who]}:for:${scope}` : `agent:${SEED.agents[who]}:private`;
+        mem(`mem_seed_${who}_${topic}`, ns, kind, text, scope, owner);
+      }
+    };
+    personal('alice', U.alice, null, [
+      ['sat', 'fact', '토요일 오전엔 운동을 하고, 저녁은 비어 있다.'],
+      ['todo_retro', 'fact', '금요일 팀 회고 아젠다를 카드에 정리해야 한다.'],
+      ['todo_movie', 'fact', '이번 주 안에 토요일 저녁 영화 모임에서 볼 영화를 골라야 한다.'],
+      ['todo_settle', 'fact', '지난주 영화표 값은 내가 냈고, 이번 주 안에 정산을 받아야 한다.'],
+      ['food', 'preference', '국밥을 좋아하고 고수는 못 먹는다.'],
+    ]);
+    personal('alice', U.alice, R.friends, [
+      ['sat_friends', 'fact', '토요일 오전엔 운동을 하고, 저녁은 비어 있다.'],
+      ['food_friends', 'preference', '국밥을 좋아하고 고수는 못 먹는다.'],
+      ['movie_friends', 'preference', '영화는 잔잔한 드라마를 좋아한다.'],
+      ['budget_friends', 'preference', '친구 모임 식사는 1인 2만 원 선이 좋다.'],
+      ['paid_friends', 'fact', '지난주 영화표 값은 내가 냈다.'],
+    ]);
+    personal('alice', U.alice, R.family, [
+      ['sat_family', 'fact', '토요일 오전엔 운동을 하고, 점심은 12시 이후면 된다.'],
+      ['food_family', 'preference', '국밥을 좋아하고 고수는 못 먹는다.'],
+    ]);
+    personal('alice', U.alice, R.team, [['fri_team', 'fact', '금요일 14시 반이든 15시든 회고에 참석할 수 있다.']]);
+    personal('bob', U.bob, R.team, [
+      ['retro_team', 'fact', '금요일 14시 반부터 15시까지는 비어 있다.'],
+      ['meeting_team', 'preference', '회의는 30분 이내를 선호한다.'],
+    ]);
+    personal('bob', U.bob, R.friends, [
+      ['sat_friends', 'fact', '토요일 저녁엔 시간이 된다.'],
+      ['food_friends', 'preference', '매운 음식을 좋아하고 라멘파다.'],
+      ['movie_friends', 'preference', 'SF 영화를 좋아하고 공포 영화는 싫어한다.'],
+      ['budget_friends', 'preference', '친구 모임 식사는 1인 2만 원 선이 좋다.'],
+      ['move_friends', 'fact', '주말 모임엔 지하철로 이동한다.'],
+      ['sun_friends', 'fact', '일요일은 쉬는 날이라 비어 있다.'],
+    ]);
+    personal('dana', U.dana, R.team, [
+      ['wfh_team', 'fact', '금요일 오전엔 재택근무를 한다.'],
+      ['slot_team', 'fact', '금요일 14시부터 15시 사이에 회의가 가능하다.'],
+      ['docs_team', 'preference', '회의 전에 문서를 먼저 공유받고 싶다.'],
+      ['len_team', 'preference', '회의는 30분 이내를 선호한다.'],
+      ['veg_team', 'preference', '채식 위주로 먹는다.'],
+      ['retro_team', 'preference', '회고는 잘한 점, 아쉬운 점, 다음 액션 순서로 하길 원한다.'],
+    ]);
+    personal('mom', U.mom, R.family, [
+      ['sun_family', 'fact', '일요일 오전엔 가족 행사가 있다.'],
+      ['lunch_family', 'preference', '토요일 점심은 12시 반 이후가 좋다.'],
+      ['food_family', 'preference', '백숙에 자신 있고, 점심은 집에서 차리는 걸 좋아한다.'],
+      ['kimchi_family', 'fact', '김치찌개는 돼지고기와 신김치를 먼저 볶아서 끓인다.'],
+      ['dessert_family', 'preference', '디저트는 과일을 챙긴다.'],
+      ['spicy_family', 'preference', '매운 음식은 약하게 한다.'],
+    ]);
+    personal('dad', U.dad, R.family, [
+      ['grill_family', 'fact', '고기 굽기를 담당한다.'],
+      ['raw_family', 'preference', '회는 안 좋아한다.'],
+      ['drive_family', 'fact', '가족 이동은 아빠가 운전한다.'],
+      ['sun_family', 'fact', '일요일 오전 가족 행사에 참석한다.'],
+      ['lunch_family', 'preference', '토요일 점심은 12시 반이면 좋다.'],
+      ['food_family', 'preference', '김치찌개와 고기를 좋아한다.'],
+    ]);
     // A2A 시연: 부재 구성원의 Agent가 질문을 받으면 이 기억을 근거로 답한다 (해당 Room에만 공유하기로 한 개인 기억)
     mem('mem_seed_bob_for_team', `agent:${SEED.agents.bob}:for:${R.team}`, 'fact', '금요일 16시에 고객 미팅이 있다.', R.team, U.bob);
     mem('mem_seed_mom_for_family', `agent:${SEED.agents.mom}:for:${R.family}`, 'fact', '토요일 오전엔 장을 본다.', R.family, U.mom);

@@ -247,7 +247,7 @@ export function ToolCreator({ tool, m, compact = false, made = false }: { tool: 
     const a = m.resolveAgent(id, kind);
     return (
       <span data-testid="tool-creator" data-creator-kind={kind} className="inline-flex items-center gap-1.5 text-[11px] text-muted">
-        <AgentAvatar variant={a.variant} color={a.color} size={compact ? 18 : 22} name={a.name} room={kind === 'room_agent'} />
+        <AgentAvatar variant={a.variant} color={a.color} size={compact ? 18 : 22} name={a.name} room={kind === 'room_agent'} ownerName={a.ownerId ? m.users[a.ownerId]?.name : null} />
         {made ? (
           <span>
             <span style={{ color: `color-mix(in srgb, ${a.color} 55%, var(--fg))` }}>{a.name}</span>가 만듦
