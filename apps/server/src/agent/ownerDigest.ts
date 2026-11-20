@@ -33,7 +33,7 @@ export function buildOwnerDigest(ctx: AppContext, ownerId: string): OwnerDigest 
     const state = roomStateOf(ctx, room.id);
     const title = room.title;
     for (const c of visibleCards(state)) {
-      add(room.id, title, 'card', `카드 "${clip(c.title, 40)}"${c.agreed ? '(합의됨)' : ''}: ${clip(c.body, 100)}`, `${title} · 카드`, 'room', c.agreed);
+      add(room.id, title, 'card', `카드 "${clip(c.title, 40)}" ${c.agreed ? '[합의됨]' : '[잡혀 있음·세부 미정]'}: ${clip(c.body, 100)}`, `${title} · 카드`, 'room', c.agreed);
     }
     for (const a of Object.values(state.approvals)) {
       if (a.status !== 'pending' || !a.approvers.includes(ownerId)) continue;
