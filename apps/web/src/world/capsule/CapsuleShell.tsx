@@ -12,6 +12,7 @@ import { memberDots, paintGradient, pillGeometry, seamRing, stadiumBand, stadium
 import { glowTexture } from './glow';
 import { interiorLampPoints } from '../interiors/build';
 import { interiorSpec } from '../interiors/layouts';
+import { SHADOW } from '../scenePalette';
 
 const ORANGE = new THREE.Color(PALETTE.approvalOrange);
 const WHITE_C = new THREE.Color('#ffffff');
@@ -121,7 +122,7 @@ export function CapsuleShell({
   const backMat = useMemo(() => createShellMaterial(THREE.BackSide), []);
   const innerMat = useMemo(() => createShellMaterial(THREE.BackSide), []);
   const contactMat = useMemo(
-    () => new THREE.MeshBasicMaterial({ alphaMap: contactShadowTexture(), color: '#1a0d06', transparent: true, opacity: 0.62, depthWrite: false }),
+    () => new THREE.MeshBasicMaterial({ alphaMap: contactShadowTexture(), color: SHADOW, transparent: true, opacity: 0.4, depthWrite: false }),
     [],
   );
   const haloMat = useMemo(

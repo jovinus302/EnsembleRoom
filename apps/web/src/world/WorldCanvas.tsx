@@ -72,7 +72,7 @@ function FpsProbe() {
 function ToneModeSwitch({ postfx }: { postfx: boolean }) {
   const gl = useThree((s) => s.gl);
   useEffect(() => {
-    gl.toneMapping = postfx ? THREE.NoToneMapping : THREE.AgXToneMapping;
+    gl.toneMapping = postfx ? THREE.NoToneMapping : THREE.NeutralToneMapping;
     gl.toneMappingExposure = 1;
   }, [gl, postfx]);
   return null;

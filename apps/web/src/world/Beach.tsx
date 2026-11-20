@@ -226,7 +226,7 @@ function Ground({ bounds }: { bounds: WorldBounds }) {
           vec4 sandTex = mix(sA, sB, mixN);
           // 사진 모래의 주황 기운을 빼고 밝은 크림색으로: 채도를 줄이고 전체를 올린다
           float sLum = dot(sandTex.rgb, vec3(0.299, 0.587, 0.114));
-          sandTex.rgb = mix(vec3(sLum), sandTex.rgb, 0.6) * 1.6;
+          sandTex.rgb = mix(vec3(sLum), sandTex.rgb, 0.6) * 1.35;
           // 넓은 얼룩: 밝은/어두운 모래 지대
           float macro = mix(0.86, 1.1, vn(vWXZ * 0.012 + 3.0));
           sandTex.rgb *= macro * mix(vec3(1.0), vec3(1.05, 0.98, 0.9), vn(vWXZ * 0.03));
