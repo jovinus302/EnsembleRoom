@@ -71,17 +71,17 @@ function EditForm({ tool, roomId }: { tool: LadderTool; roomId: string }) {
   return (
     <form
       data-testid="ladder-edit"
-      className="mt-3 flex flex-col gap-1.5 rounded-xl border border-dashed border-line tw-inset p-3"
+      className="tg-card mt-3 flex flex-col gap-1.5 p-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (valid) void run({ op: 'ladder_set', participants: p, outcomes: o });
       }}
     >
-      <label className="text-[11px] text-muted">
+      <label className="text-label text-muted">
         참가자 (쉼표로 구분, 2~{L.participants}명)
         <input aria-label="참가자" value={people} onChange={(e) => setPeople(e.target.value)} className={`${toolInput} mt-0.5 w-full`} />
       </label>
-      <label className="text-[11px] text-muted">
+      <label className="text-label text-muted">
         결과 (쉼표로 구분, 모자라면 &lsquo;꽝&rsquo;으로 채워요)
         <input aria-label="결과" value={outs} onChange={(e) => setOuts(e.target.value)} className={`${toolInput} mt-0.5 w-full`} />
       </label>
@@ -142,7 +142,7 @@ export function LadderPanel({ tool, roomId, canEdit, reducedMotion }: { tool: La
   const rail = (key: string, x1: number, x2: number, y1: number, y2: number, w: number) => (
     <g key={key}>
       <line x1={x1} x2={x2} y1={y1} y2={y2} strokeWidth={w + 2} strokeLinecap="round" style={{ stroke: 'var(--bt-wood-edge)' }} />
-      <line x1={x1} x2={x2} y1={y1} y2={y2} stroke="url(#ladder-wood)" strokeWidth={w} strokeLinecap="round" />
+      <line x1={x1} x2={x2} y1={y1} y2={y2} strokeWidth={w} strokeLinecap="round" style={{ stroke: 'var(--bt-wood-1)' }} />
     </g>
   );
 
@@ -160,18 +160,11 @@ export function LadderPanel({ tool, roomId, canEdit, reducedMotion }: { tool: La
           height={lay.height}
           className="mx-auto block max-w-full"
         >
-          <defs>
-            <linearGradient id="ladder-wood" x1="0" x2="1" y1="0" y2="0">
-              <stop offset="0" style={{ stopColor: 'var(--bt-wood-1)' }} />
-              <stop offset="0.55" style={{ stopColor: 'var(--bt-wood-2)' }} />
-              <stop offset="1" style={{ stopColor: 'var(--bt-wood-3)' }} />
-            </linearGradient>
-          </defs>
           {tool.participants.map((_, i) => rail(`v${i}`, lay.x(i), lay.x(i), lay.y(0), lay.y(rows), 5))}
           {run?.rungs.map((r) => (
             <g key={`r${r.row}-${r.col}`} data-testid="ladder-rung">
               <line x1={lay.x(r.col)} x2={lay.x(r.col + 1)} y1={lay.y(r.row + 0.5)} y2={lay.y(r.row + 0.5)} strokeWidth={6} strokeLinecap="round" style={{ stroke: 'var(--bt-wood-edge)' }} />
-              <line x1={lay.x(r.col)} x2={lay.x(r.col + 1)} y1={lay.y(r.row + 0.5)} y2={lay.y(r.row + 0.5)} stroke="url(#ladder-wood)" strokeWidth={4} strokeLinecap="round" />
+              <line x1={lay.x(r.col)} x2={lay.x(r.col + 1)} y1={lay.y(r.row + 0.5)} y2={lay.y(r.row + 0.5)} strokeWidth={4} strokeLinecap="round" style={{ stroke: 'var(--bt-wood-1)' }} />
             </g>
           ))}
           {!run && (
@@ -223,10 +216,10 @@ export function LadderPanel({ tool, roomId, canEdit, reducedMotion }: { tool: La
               );
             })}
           {tool.participants.map((name, i) => {
-            const c = run ? TOOL_COLORS[i % TOOL_COLORS.length]! : '#8a7457';
+            const c = run ? TOOL_COLORS[i % TOOL_COLORS.length]! : 'var(--muted)';
             return (
               <g key={`n${i}`} style={{ cursor: run ? 'pointer' : 'default' }} onClick={() => run && setSelected((s) => (s === i ? null : i))}>
-                <rect x={lay.x(i) - 28} y={lay.y(0) - 31} width={56} height={22} rx={11} stroke={c} strokeWidth={selected === i ? 3 : 2} style={{ fill: 'var(--bt-pill)' }} />
+                <rect x={lay.x(i) - 28} y={lay.y(0) - 31} width={56} height={22} rx={11} strokeWidth={selected === i ? 3 : 2} style={{ fill: 'var(--bt-pill)', stroke: c }} />
                 <text x={lay.x(i)} y={lay.y(0) - 16} textAnchor="middle" fontSize={12} fontWeight={700} style={{ fill: 'var(--bt-pill-ink)' }}>
                   {clip(name)}
                 </text>
@@ -261,16 +254,16 @@ export function LadderPanel({ tool, roomId, canEdit, reducedMotion }: { tool: La
       </div>
 
       {run && !animating && (
-        <ul data-testid="ladder-results" className="mt-2.5 grid grid-cols-1 gap-1.5 text-sm sm:grid-cols-2">
+        <ul data-testid="ladder-results" className="mt-2.5 grid grid-cols-1 gap-1.5 text-body sm:grid-cols-2">
           {results.map((r, i) => {
             const nothing = r.outcome === '꽝';
             return (
               <li
                 key={i}
-                className="flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-1.5"
+                className="flex min-w-0 items-center gap-2 rounded-card border px-2.5 py-1.5"
                 style={{
                   borderColor: nothing ? 'var(--line)' : 'color-mix(in srgb, var(--tool) 65%, transparent)',
-                  background: nothing ? 'rgb(255 255 255 / 0.02)' : 'color-mix(in srgb, var(--tool) 14%, transparent)',
+                  background: nothing ? 'transparent' : 'color-mix(in srgb, var(--tool) 14%, transparent)',
                 }}
               >
                 <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: r.color }} />
@@ -283,7 +276,7 @@ export function LadderPanel({ tool, roomId, canEdit, reducedMotion }: { tool: La
           })}
         </ul>
       )}
-      {animating && <p className="mt-2 text-center text-xs text-muted">사다리를 타는 중…</p>}
+      {animating && <p className="mt-2 text-center text-aux text-muted">사다리를 타는 중…</p>}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {!run && (
