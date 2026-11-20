@@ -14,6 +14,7 @@ import { WorldHost } from './stage/WorldHost';
 import { HoverTip, QualityToggle } from './stage/StageChrome';
 import { FxOverlay, WorldLegend } from './stage/FxOverlay';
 import { useWorldActive } from './stage/stageStore';
+import { usePerf } from './world/quality';
 
 function Placeholder({ title, step }: { title: string; step: string }) {
   return (
@@ -31,6 +32,7 @@ export function App() {
   const path = usePath();
   const status = useSession((s) => s.status);
   const worldActive = useWorldActive();
+  const tier = usePerf((s) => s.tier);
 
   useEffect(() => {
     void useSession.getState().init();
@@ -49,6 +51,16 @@ export function App() {
       };
     }
   }, [status]);
+
+  // 품질 단계를 <html data-quality>로 내보낸다(tide.css가 패널 blur를 단계별로 조절).
+  // Sheet 등은 body로 portal되므로 App의 div가 아니라 html에 건다.
+  useEffect(() => {
+    const el = document.documentElement;
+    el.dataset.quality = worldActive ? tier : 'off';
+    return () => {
+      delete el.dataset.quality;
+    };
+  }, [worldActive, tier]);
 
   // 인증 가드
   useEffect(() => {

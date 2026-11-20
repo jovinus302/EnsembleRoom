@@ -1093,3 +1093,31 @@
     animation: none !important;
   }
 }
+
+/* ---------- 품질 단계별 패널 blur (html[data-quality], App.tsx 가 설정) ----------
+ * themes.css 의 [data-world] 블록이 --panel-alpha/-top/-bottom 을 다시 계산하므로,
+ * 단계 규칙도 html 과 [data-world] 요소 양쪽에 선언해야 시트(portal)와 화면 모두 적용된다.
+ * high(기본)는 themes.css 의 blur(24px)를 그대로 쓴다. */
+html[data-quality="mid"] {
+  --panel-filter: blur(12px) saturate(1.1) brightness(0.85);
+}
+html[data-quality="low"],
+html[data-quality="low"] [data-world],
+html[data-quality="off"],
+html[data-quality="off"] [data-world] {
+  --panel-filter: none;
+  --panel-alpha: 0.95;
+  --panel-top: rgb(10 34 46 / var(--panel-alpha));
+  --panel-bottom: rgb(6 19 28 / var(--panel-alpha));
+  --panel: rgb(10 34 46 / var(--panel-alpha));
+}
+@media (prefers-reduced-transparency: reduce) {
+  html,
+  html [data-world] {
+    --panel-filter: none;
+    --panel-alpha: 0.96;
+    --panel-top: rgb(10 34 46 / var(--panel-alpha));
+    --panel-bottom: rgb(6 19 28 / var(--panel-alpha));
+    --panel: rgb(10 34 46 / var(--panel-alpha));
+  }
+}
