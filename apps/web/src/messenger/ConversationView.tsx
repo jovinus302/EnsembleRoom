@@ -38,17 +38,18 @@ export function ConversationView({ roomId }: { roomId: string }) {
   const others = presence.filter((id) => id !== meId).map((id) => users[id]?.name ?? id);
 
   return (
-    <section aria-label={`${title} 대화`} className="flex h-full min-w-0 flex-1 flex-col bg-panel/0">
-      <header className="flex items-center gap-3 border-b border-line bg-panel px-6 py-3">
-        <h1 className="truncate text-base font-semibold">{title}</h1>
-        <span className="rounded border border-line px-1.5 py-0.5 text-[11px] text-muted">{KIND_LABEL[room.kind]}</span>
+    <section aria-label={`${title} 대화`} className="flex h-full min-w-0 flex-1 flex-col">
+      <header className="flex items-center gap-3 border-b border-line px-5 py-2.5">
+        <h1 className="tg-title truncate">{title}</h1>
+        <span className="tg-mono">{KIND_LABEL[room.kind]}</span>
         {others.length > 0 && (
-          <span className="text-xs text-muted" data-testid="presence">
+          <span className="tg-aux flex items-center gap-1.5" data-testid="presence">
+            <i aria-hidden="true" className="inline-block size-2 rounded-full bg-ok" />
             접속 중 · {others.join(', ')}
           </span>
         )}
         {wsStatus !== 'open' && wsStatus !== 'idle' && (
-          <span role="status" className="ml-auto text-xs text-warn">
+          <span role="status" className="tg-aux ml-auto text-warn">
             {wsStatus === 'connecting' ? '연결 중…' : '연결이 끊겼습니다. 다시 연결하는 중…'}
           </span>
         )}

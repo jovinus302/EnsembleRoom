@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { INTERACTION_COLORS, INTERACTION_LABEL, type InteractionChannel, type RoomEvent } from '@ensemble/shared';
 import { ink } from '../theme';
+import { cvar } from '../ui/tg';
 
 /** 배지·범례·툴팁 문구. 약어(A2A/A2H)에 한국어 설명을 붙인다. */
 export const CHANNEL_HINT: Record<InteractionChannel, string> = {
@@ -36,8 +37,8 @@ export function ChannelBadge({ channel }: { channel: InteractionChannel }) {
       data-testid="channel-badge"
       data-channel={channel}
       title={CHANNEL_HINT[channel]}
-      className="rounded px-1 text-[10px] font-semibold leading-4"
-      style={solid ? { background: color, color: 'var(--on-accent)' } : { border: `1px solid ${color}`, color }}
+      className={`tg-chip ${solid ? 'tonal' : ''} !h-[18px] !px-1.5`}
+      style={solid ? cvar(color) : { ...cvar(color), boxShadow: `inset 0 0 0 1px ${color}`, color }}
     >
       {INTERACTION_LABEL[channel]}
     </span>
@@ -54,7 +55,7 @@ export function DirectionChip({ from, to }: { from?: Party; to: readonly Party[]
   if (to.length === 0) return null;
   const tint = from?.color ?? to[0]!.color;
   return (
-    <span data-testid="to-chip" className="rounded px-1 text-[10px] leading-4" style={{ background: `${tint}22`, color: ink(tint) }}>
+    <span data-testid="to-chip" className="tg-chip tonal !h-[18px] !px-1.5 !normal-case !tracking-normal" style={{ ...cvar(tint), color: ink(tint) }}>
       {from && <span style={{ color: ink(from.color) }}>{from.name} </span>}→{' '}
       {to.map((p, i) => (
         <span key={`${p.name}${i}`} data-testid="to-chip-target" style={{ color: ink(p.color) }}>
@@ -72,7 +73,7 @@ export function ThreadLinkChip({ label, threadSeq }: { label: string; threadSeq:
   const inner = `↳ ${label}`;
   if (threadSeq === null) {
     return (
-      <span data-testid="thread-link" className="text-[10px] leading-4" style={{ color }}>
+      <span data-testid="thread-link" className="text-label" style={{ color }}>
         {inner}
       </span>
     );
@@ -82,7 +83,7 @@ export function ThreadLinkChip({ label, threadSeq }: { label: string; threadSeq:
       type="button"
       data-testid="thread-link"
       onClick={() => scrollToSeq(threadSeq)}
-      className="text-[10px] leading-4 underline-offset-2 hover:underline"
+      className="text-label underline-offset-2 hover:underline"
       style={{ color }}
     >
       {inner}
@@ -125,7 +126,7 @@ export function A2AThread({
       data-seq={threadSeq}
       data-open={open ? 'true' : 'false'}
       data-expanded={expanded ? 'true' : 'false'}
-      className="anim-in flex flex-col gap-2 border-l-2 pl-3"
+      className="tg-a2a anim-in !ml-0 flex-col !gap-2"
       style={{ borderLeftColor: color }}
     >
       <button
@@ -133,7 +134,7 @@ export function A2AThread({
         data-testid="a2a-thread-header"
         aria-expanded={expanded}
         onClick={onToggle}
-        className="flex flex-wrap items-center gap-1.5 text-left text-xs hover:opacity-90"
+        className="flex flex-wrap items-center gap-1.5 text-left text-aux hover:opacity-90"
       >
         <ChannelBadge channel="a2a" />
         <span style={{ color: ink(from.color) }} className="font-medium">
@@ -160,7 +161,7 @@ export function A2AThread({
         </ul>
       ) : (
         preview && (
-          <p data-testid="a2a-thread-preview" className="truncate text-xs text-muted">
+          <p data-testid="a2a-thread-preview" className="truncate text-aux text-muted">
             {preview}
           </p>
         )
@@ -173,7 +174,7 @@ export function A2AThread({
 export function InteractionLegend() {
   const channels: InteractionChannel[] = ['a2a', 'a2h', 'h2a'];
   return (
-    <span data-testid="interaction-legend" className="flex shrink-0 items-center gap-2 text-[11px] text-muted">
+    <span data-testid="interaction-legend" className="flex shrink-0 items-center gap-2 text-label text-muted">
       {channels.map((c, i) => (
         <span key={c} title={CHANNEL_HINT[c]} className="flex items-center gap-1">
           {i > 0 && <span aria-hidden="true">·</span>}
