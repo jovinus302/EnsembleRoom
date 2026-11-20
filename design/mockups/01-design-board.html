@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="ko" data-direction="a">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ensemble Room · 디자인 보드 01</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS  (이 블록이 나중에 apps themes.css 로 이동된다)
+   방향 전환 = html[data-direction="a|b"] 만 바꾼다. 컴포넌트 CSS 는 공유.
+   ============================================================ */
+@property --page-bg{syntax:'<color>';inherits:true;initial-value:#000}
+@property --fg{syntax:'<color>';inherits:true;initial-value:#000}
+@property --muted{syntax:'<color>';inherits:true;initial-value:#000}
+@property --panel{syntax:'<color>';inherits:true;initial-value:#000}
+@property --panel-border{syntax:'<color>';inherits:true;initial-value:#000}
+@property --card{syntax:'<color>';inherits:true;initial-value:#000}
+@property --popover{syntax:'<color>';inherits:true;initial-value:#000}
+@property --border{syntax:'<color>';inherits:true;initial-value:#000}
+@property --concave{syntax:'<color>';inherits:true;initial-value:#000}
+@property --primary{syntax:'<color>';inherits:true;initial-value:#000}
+@property --primary-fg{syntax:'<color>';inherits:true;initial-value:#000}
+@property --cta-bg{syntax:'<color>';inherits:true;initial-value:#000}
+@property --cta-fg{syntax:'<color>';inherits:true;initial-value:#000}
+@property --amber{syntax:'<color>';inherits:true;initial-value:#000}
+@property --amber-ink{syntax:'<color>';inherits:true;initial-value:#000}
+@property --amber-tonal{syntax:'<color>';inherits:true;initial-value:#000}
+@property --destructive{syntax:'<color>';inherits:true;initial-value:#000}
+@property --destructive-ink{syntax:'<color>';inherits:true;initial-value:#000}
+@property --ok{syntax:'<color>';inherits:true;initial-value:#000}
+@property --agent{syntax:'<color>';inherits:true;initial-value:#000}
+@property --bubble-base{syntax:'<color>';inherits:true;initial-value:#000}
+@property --chip-1{syntax:'<color>';inherits:true;initial-value:#000}
+@property --chip-2{syntax:'<color>';inherits:true;initial-value:#000}
+@property --chip-3{syntax:'<color>';inherits:true;initial-value:#000}
+@property --chip-4{syntax:'<color>';inherits:true;initial-value:#000}
+@property --chip-ink{syntax:'<color>';inherits:true;initial-value:#000}
+
+:root,[data-direction="a"]{
+  /* A · Tide Glass */
+  --page-bg:#04111a; --fg:#d9f3f7; --muted:#6fa2b8;
+  --panel:rgba(6,19,28,.68); --panel-border:rgba(217,243,247,.12);
+  --panel-shadow:0 6px 12px hsl(205 73% 3% / .45), inset 0 1px 0 rgba(255,255,255,.08);
+  --sat:1.2;
+  --card:rgba(11,32,46,.7); --popover:#0e2838; --border:#194259; --concave:rgba(3,14,22,.55);
+  --primary:#00e5c3; --primary-fg:#041714; --primary-glow:0 4px 20px rgba(0,229,195,.38);
+  --cta-bg:#00e5c3; --cta-fg:#041714;
+  --amber:#ffb45a; --amber-ink:#ffb45a; --amber-tonal:rgba(255,180,90,.13);
+  --destructive:#ff5964; --destructive-ink:#ff8189; --ok:#72efdd;
+  --agent:#64e4bd; --bubble-base:#0e2838;
+  --chip-1:rgba(253,224,71,.18); --chip-2:rgba(255,251,235,.12); --chip-3:rgba(236,254,255,.14); --chip-4:rgba(243,232,255,.16); --chip-ink:#d9f3f7;
+}
+[data-direction="b"]{
+  /* B · Sea Glass & Sand */
+  --page-bg:#e8f2f1; --fg:#0a222e; --muted:#466c7d;
+  --panel:rgba(247,247,242,.78); --panel-border:rgba(10,34,46,.10);
+  --panel-shadow:0 8px 30px rgba(10,34,46,.12), inset 0 1px 0 rgba(255,255,255,.7);
+  --sat:1;
+  --card:#ffffff; --popover:#ffffff; --border:#bfe0e8; --concave:#e1f1f5;
+  --primary:#007791; --primary-fg:#ffffff; --primary-glow:0 4px 14px rgba(0,119,145,.28);
+  --cta-bg:#0a222e; --cta-fg:#ffffff;
+  --amber:#f59e0b; --amber-ink:#8a5a00; --amber-tonal:#fff4dc;
+  --destructive:#e63946; --destructive-ink:#c1222f; --ok:#2ec4b6;
+  --agent:#3baf96; --bubble-base:#ffffff;
+  --chip-1:#FDE047; --chip-2:#FFFBEB; --chip-3:#ECFEFF; --chip-4:#F3E8FF; --chip-ink:#0a222e;
+}
+:root{
+  /* 방향 공통 토큰 */
+  --alice:#ff7f6e; --bob:#5db8f0; --room:#b8e86a;
+  --r-panel:24px; --r-card:16px; --r-input:16px; --r-pill:999px; --r-tail:4px;
+  --fs-label:11px; --fs-aux:13px; --fs-body:15px; --fs-title:20px; --fs-display:28px; --fs-hero:44px;
+  --font:"DM Sans","Pretendard Variable",Pretendard,"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+  --mono:"Google Sans Code","JetBrains Mono","Pretendard Variable",Pretendard,"Noto Sans KR","Malgun Gothic",ui-monospace,monospace;
+  --ease:cubic-bezier(.4,0,.2,1); --dur:150ms;
+  transition:--page-bg .4s,--fg .4s,--muted .4s,--panel .4s,--panel-border .4s,--card .4s,--popover .4s,--border .4s,--concave .4s,--primary .4s,--primary-fg .4s,--cta-bg .4s,--cta-fg .4s,--amber .4s,--amber-ink .4s,--amber-tonal .4s,--destructive .4s,--destructive-ink .4s,--ok .4s,--agent .4s,--bubble-base .4s,--chip-1 .4s,--chip-2 .4s,--chip-3 .4s,--chip-4 .4s,--chip-ink .4s;
+}
+
+/* ---------- base ---------- */
+*{box-sizing:border-box;margin:0}
+html{background:var(--page-bg)}
+body{background:var(--page-bg);color:var(--fg);font:400 var(--fs-body)/1.5 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.wrap{width:100%;max-width:1440px;margin:0 auto;padding:0 16px 80px}
+.mono{font:600 var(--fs-label)/1.2 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.aux{font-size:var(--fs-aux);color:var(--muted)}
+.ttl{font-size:var(--fs-title);font-weight:700;line-height:1.25}
+.semi{font-weight:600}
+.only-b{display:none}
+:root[data-direction="b"] .only-a{display:none}
+:root[data-direction="b"] .only-b{display:block}
+
+/* ---------- panel / card / buttons ---------- */
+.panel{background:var(--panel);backdrop-filter:blur(24px) saturate(var(--sat));-webkit-backdrop-filter:blur(24px) saturate(var(--sat));border:1px solid var(--panel-border);border-radius:var(--r-panel);box-shadow:var(--panel-shadow);color:var(--fg);transition:box-shadow .4s}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-card)}
+.btn{height:32px;padding:0 14px;border-radius:var(--r-pill);border:1px solid transparent;font:600 var(--fs-aux)/1 var(--font);display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;white-space:nowrap;color:var(--fg);background:transparent;transition:transform var(--dur) var(--ease),background-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease),filter var(--dur) var(--ease)}
+.btn:hover,.btn.is-hover{transform:scale(1.03)}
+.btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.btn-cta{height:40px;padding:0 22px;font-size:var(--fs-body);background:var(--cta-bg);color:var(--cta-fg);box-shadow:0 4px 16px color-mix(in srgb,var(--cta-bg) 35%,transparent)}
+.btn-primary{background:var(--primary);color:var(--primary-fg)}
+.btn-primary:hover,.btn-primary.is-hover{box-shadow:var(--primary-glow);filter:brightness(1.07)}
+.btn-soft{background:color-mix(in srgb,var(--primary) 16%,transparent);color:var(--fg)}
+.btn-soft:hover,.btn-soft.is-hover{background:color-mix(in srgb,var(--primary) 26%,transparent)}
+.btn-ghost{border-color:var(--border);color:var(--fg)}
+.btn-ghost:hover,.btn-ghost.is-hover{background:color-mix(in srgb,var(--fg) 8%,transparent)}
+.btn-danger{background:color-mix(in srgb,var(--destructive) 16%,transparent);color:var(--destructive-ink)}
+.btn-danger:hover,.btn-danger.is-hover{background:color-mix(in srgb,var(--destructive) 28%,transparent)}
+.btn-dghost{border-color:color-mix(in srgb,var(--destructive) 45%,transparent);color:var(--destructive-ink)}
+.btn-dghost:hover,.btn-dghost.is-hover{background:color-mix(in srgb,var(--destructive) 12%,transparent)}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;filter:none}
+.btn-round{width:32px;padding:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--r-pill);font:600 var(--fs-label)/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;background:color-mix(in srgb,var(--fg) 8%,transparent);color:var(--fg);white-space:nowrap}
+.chip .d{width:8px;height:8px;border-radius:50%;background:var(--c,var(--muted))}
+.chip.c1{background:var(--chip-1);color:var(--chip-ink)}
+.chip.c2{background:var(--chip-2);color:var(--chip-ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--fg) 12%,transparent)}
+.chip.c3{background:var(--chip-3);color:var(--chip-ink)}
+.chip.c4{background:var(--chip-4);color:var(--chip-ink)}
+.badge-ok{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--fg)}
+.badge-ok::before{content:"✓";color:var(--ok);filter:brightness(.8)}
+.pill-amber{height:32px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:var(--r-pill);background:var(--amber-tonal);border:1px solid color-mix(in srgb,var(--amber) 30%,transparent);color:var(--amber-ink);font:600 var(--fs-aux)/1 var(--font);white-space:nowrap}
+.pill-amber i{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 0 color-mix(in srgb,var(--amber) 60%,transparent);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+/* ---------- portrait / frames ---------- */
+.av{--s:36px;width:var(--s);height:var(--s);border-radius:50%;border:2px solid #fff;position:relative;overflow:hidden;flex:none;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 55%,#fff),var(--c));box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.av::before{content:"";position:absolute;left:50%;top:20%;width:36%;height:36%;transform:translateX(-50%);border-radius:50%;background:#f6d9c4}
+.av::after{content:"";position:absolute;left:50%;top:60%;width:76%;height:70%;transform:translateX(-50%);border-radius:50%;background:color-mix(in srgb,var(--c) 70%,#2a1810)}
+.av.alice{--c:var(--alice)} .av.bob{--c:var(--bob)}
+.stack{display:flex}.stack .av+.av{margin-left:-10px}
+.pdot{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border-radius:50%;background:var(--ok);border:2px solid var(--popover)}
+.avwrap{position:relative;flex:none}
+.frame{--s:52px;width:var(--s);height:var(--s);background:var(--c);display:grid;place-items:center;flex:none;clip-path:var(--shape)}
+.frame i{width:calc(var(--s) - 6px);height:calc(var(--s) - 6px);clip-path:var(--shape);background:color-mix(in srgb,var(--c) 22%,var(--popover));display:grid;place-items:center;font-style:normal;font-size:var(--fs-body);color:var(--fg)}
+.octa{--shape:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)}
+.hexa{--shape:polygon(25% 4%,75% 4%,100% 50%,75% 96%,25% 96%,0 50%)}
+.frame.sm{--s:30px}.frame.sm i{font-size:var(--fs-aux)}
+
+/* ---------- bubble (2D 채팅 = 3D 장면 위 말풍선, 같은 규칙) ---------- */
+.bubble{--c:var(--muted);position:relative;max-width:100%;padding:10px 14px;font-size:var(--fs-body);line-height:1.5;color:var(--fg);border-radius:var(--r-card);border:1px solid color-mix(in srgb,var(--c) 38%,transparent);background:linear-gradient(color-mix(in srgb,var(--c) 20%,transparent),color-mix(in srgb,var(--c) 20%,transparent)),var(--bubble-base)}
+.bubble.other{border-bottom-left-radius:var(--r-tail)}
+.bubble.me{border-bottom-right-radius:var(--r-tail)}
+.bubble.alice{--c:var(--alice)} .bubble.bob{--c:var(--bob)}
+.bubble.agent{--c:var(--agent);border-left:3px solid var(--c)}
+.bubble.room{--c:var(--room);border-left:3px solid var(--c)}
+.bubble.warn{--c:var(--amber)}
+.bubble.fail{border-style:dashed;border-color:var(--destructive)}
+.btag{display:block;margin-bottom:2px;font:600 var(--fs-label)/1.4 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:color-mix(in srgb,var(--c) 80%,var(--fg))}
+.cursor{display:inline-block;width:7px;height:15px;margin-left:2px;vertical-align:-2px;border-radius:2px;background:var(--agent);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.dots{display:inline-flex;gap:4px;padding:5px 0}.dots b{width:6px;height:6px;border-radius:50%;background:var(--agent);animation:bounce 1.2s infinite}
+.dots b:nth-child(2){animation-delay:.15s}.dots b:nth-child(3){animation-delay:.3s}
+@keyframes bounce{40%{transform:translateY(-4px);opacity:.5}}
+.bubble.in3d{box-shadow:0 8px 24px rgba(40,20,0,.28)}
+.msg{display:flex;flex-direction:column;gap:4px;max-width:88%}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.msg .meta{padding:0 4px}
+.notice{align-self:center;display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--fg) 8%,transparent);font-size:var(--fs-aux);color:var(--muted)}
+.notice.amber{background:var(--amber-tonal);color:var(--amber-ink);border:1px solid color-mix(in srgb,var(--amber) 30%,transparent)}
+.a2a{display:flex;gap:8px;align-items:flex-start;margin-left:18px;padding-left:12px;border-left:2px solid color-mix(in srgb,var(--bob) 55%,transparent);font-size:var(--fs-aux);color:var(--fg)}
+.a2a b{color:color-mix(in srgb,var(--bob) 80%,var(--fg));font-weight:600}
+
+/* ---------- approval card ---------- */
+.appr{--c:var(--amber);position:relative;overflow:hidden;padding:14px 14px 14px 18px;display:flex;flex-direction:column;gap:10px}
+.appr::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.appr.pending{background:linear-gradient(var(--amber-tonal),var(--amber-tonal)),var(--card);border-color:color-mix(in srgb,var(--amber) 30%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--amber) 14%,transparent),0 4px 24px color-mix(in srgb,var(--amber) 24%,transparent)}
+.appr.approved{--c:var(--ok)}
+.appr.rejected{--c:var(--destructive)}
+.appr .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.appr.pending .hd .mono{color:var(--amber-ink)}
+.route{display:flex;align-items:center;gap:6px;font-size:var(--fs-aux);font-weight:600;flex-wrap:wrap}
+.route em{font-style:normal;color:var(--muted);font-weight:400}
+.sum{font-size:var(--fs-body);font-weight:600;line-height:1.4}
+.prop{background:var(--concave);border-radius:var(--r-card);padding:10px 12px;font-size:var(--fs-aux);color:var(--fg);display:flex;flex-direction:column;gap:2px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.appr.compact{flex-direction:row;align-items:center;padding:8px 8px 8px 16px;gap:10px}
+.appr.compact .sum{flex:1;font-size:var(--fs-aux);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appr.approved,.appr.rejected{background:var(--card)}
+
+/* ---------- scene (CSS 로 그린 해질녘 해변) ---------- */
+.scene{position:absolute;inset:0;overflow:hidden;background:linear-gradient(180deg,#f6b98a 0%,#f8c79b 28%,#ffd9a8 44%,#e9a67c 50%)}
+.scene .sun{position:absolute;left:-6%;top:12%;width:760px;height:760px;border-radius:50%;background:radial-gradient(circle,#fff0c8 0 4%,#ffc680 11%,#ffa95a 24%,rgba(255,169,90,.35) 42%,transparent 66%)}
+.scene .haze{position:absolute;left:0;right:0;top:36%;height:16%;background:linear-gradient(transparent,rgba(233,166,124,.75),transparent)}
+.scene .sea{position:absolute;left:0;right:0;top:45%;height:9%;background:linear-gradient(#052133,#105766)}
+.scene .sea::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(ellipse 70px 2px at 14% 30%,#ffcf8a,transparent),radial-gradient(ellipse 120px 2px at 20% 55%,#ffb866,transparent),
+  radial-gradient(ellipse 50px 2px at 9% 78%,#ffcf8a,transparent),radial-gradient(ellipse 90px 2px at 28% 40%,#ffb866,transparent),
+  radial-gradient(ellipse 40px 2px at 36% 70%,#ffcf8a,transparent),radial-gradient(ellipse 60px 2px at 62% 36%,rgba(255,200,130,.5),transparent),
+  radial-gradient(ellipse 50px 2px at 80% 60%,rgba(255,200,130,.4),transparent),radial-gradient(ellipse 80px 2px at 48% 82%,rgba(255,200,130,.5),transparent)}
+.scene .sand{position:absolute;left:0;right:0;top:53%;bottom:0;background:linear-gradient(#f6e6d2,#f6e6d2 40%,#e9d2b3)}
+.scene .sand::before{content:"";position:absolute;left:0;right:0;top:0;height:14px;background:linear-gradient(rgba(255,244,225,.9),transparent)}
+.cap{position:absolute;border-radius:999px;overflow:hidden;background:linear-gradient(160deg,rgba(255,255,255,.42),rgba(255,235,205,.14) 55%,rgba(255,255,255,.2));border:1.5px solid rgba(255,255,255,.75);box-shadow:inset 0 -10px 24px rgba(255,176,102,.28),inset 0 8px 18px rgba(255,255,255,.45)}
+.cap::after{content:"";position:absolute;left:8%;top:10%;width:46%;height:16%;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,.7),transparent);transform:rotate(-2deg)}
+.capwrap{position:absolute;transform:translate(-50%,0)}
+.capwrap .shadow{position:absolute;left:-6%;right:-6%;bottom:-14%;height:20%;border-radius:50%;background:radial-gradient(ellipse,rgba(110,70,40,.38),transparent 70%)}
+.capwrap .cap{position:relative;width:100%;height:100%}
+.room .floor{position:absolute;left:0;right:0;bottom:0;height:26%;background:linear-gradient(#e0c7a2,#c9a77c)}
+.room .glow{position:absolute;left:46%;top:6%;width:44%;height:70%;border-radius:50%;background:radial-gradient(circle,rgba(255,176,102,.85),rgba(255,176,102,.25) 45%,transparent 70%)}
+.room .bulb{position:absolute;left:62%;top:14%;width:7%;aspect-ratio:1;border-radius:50%;background:#ffb066;box-shadow:0 0 14px 6px rgba(255,176,102,.8)}
+.room .cord{position:absolute;left:65%;top:0;width:1.5px;height:16%;background:#6b4a33}
+.room .table{position:absolute;left:36%;bottom:26%;width:26%;height:6%;border-radius:4px;background:#8a5a3c}
+.room .table::after{content:"";position:absolute;left:44%;top:100%;width:12%;height:200%;background:#6e4630}
+.room .chair{position:absolute;bottom:26%;width:8%;height:16%;border-radius:3px 3px 0 0;background:#a9744f}
+.room .shelf{position:absolute;left:8%;bottom:26%;width:14%;height:44%;border-radius:3px;background:#7b4f36;box-shadow:inset 0 0 0 3px #8e6146,inset 0 -2px 0 #5d3a28}
+.room .book{position:absolute;left:11%;bottom:44%;width:8%;height:12%;background:#d9b98e;border-radius:2px}
+.room .sofa{position:absolute;right:6%;bottom:26%;width:20%;height:20%;border-radius:10px 10px 3px 3px;background:#c89f78}
+.scene-bit{position:relative;border-radius:var(--r-panel);overflow:hidden;padding:24px;isolation:isolate;background:linear-gradient(180deg,#f6b98a 0%,#ffd9a8 46%,#105766 47%,#052133 56%,#f6e6d2 57%,#e9d2b3 100%)}
+.scene-bit::before{content:"";position:absolute;left:-10%;top:-30%;width:70%;height:120%;z-index:-1;background:radial-gradient(circle,rgba(255,169,90,.7),transparent 62%)}
+.scene-bit.sand{background:linear-gradient(180deg,#ffd9a8 0%,#f6e6d2 36%,#e9d2b3 100%)}
+
+/* ---------- hero composition ---------- */
+.hero{position:relative;height:860px;border-radius:var(--r-panel);overflow:hidden;isolation:isolate}
+.hero>*:not(.scene){position:absolute}
+.hdr{left:16px;right:16px;top:16px;height:64px;border-radius:var(--r-pill);display:flex;align-items:center;gap:12px;padding:0 12px}
+.hdr .sp{flex:1}
+.hdr .vr{width:1px;height:28px;background:var(--border)}
+.hdr .tt{display:flex;flex-direction:column;gap:3px}
+.lp{left:16px;top:96px;bottom:16px;width:320px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.rp{right:16px;top:96px;bottom:16px;width:400px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.ph{display:flex;justify-content:space-between;align-items:center}
+.prow{display:flex;align-items:center;gap:12px;height:44px}
+.prow .nm{font-weight:600}
+.prow .mono{margin-left:auto}
+.agcard{display:flex;align-items:center;gap:12px;padding:10px 12px}
+.agcard .nm{font-weight:600;line-height:1.3}
+.agcard .st{margin-left:auto}
+.chat{flex:1;display:flex;flex-direction:column;gap:12px;overflow:hidden;min-height:0}
+.input{display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--r-input);background:var(--concave);border:1px solid var(--border)}
+.input .ph-text{flex:1;color:var(--muted);font-size:var(--fs-body);padding:0 4px;white-space:nowrap;overflow:hidden}
+.input:focus-within{border-color:var(--primary)}
+.center{left:352px;right:432px;top:96px;bottom:268px}
+.center>*{position:absolute}
+.nametag{left:50%;top:176px;transform:translateX(-50%);height:36px;display:inline-flex;align-items:center;gap:8px;padding:0 14px 0 12px;border-radius:var(--r-pill);font-size:var(--fs-aux);font-weight:600;white-space:nowrap}
+.nametag .d{width:10px;height:10px;border-radius:50%;background:var(--alice)}
+.legend{left:352px;bottom:268px;height:32px;display:flex;align-items:center;gap:14px;padding:0 14px;border-radius:var(--r-pill)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:block;width:10px;height:10px;background:var(--c)}
+.strip{left:352px;right:432px;bottom:72px;height:184px;padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.strip .top{display:flex;align-items:center;justify-content:space-between;gap:8px;height:32px}
+.strip .tools{display:flex;gap:8px}
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:1;min-height:0}
+.bcard{padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer;transition:transform var(--dur) var(--ease)}
+.bcard:hover{transform:scale(1.03)}
+.bcard .r{display:flex;justify-content:space-between;align-items:center}
+.bcard .t{font-size:var(--fs-body);font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bcard .b{font-size:var(--fs-aux);color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tl{left:352px;right:432px;bottom:16px;height:44px;border-radius:var(--r-pill);display:flex;align-items:center;gap:12px;padding:0 6px 0 6px}
+.track{flex:1;height:6px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--fg) 14%,transparent);position:relative}
+.track .fill{position:absolute;left:0;top:0;bottom:0;width:72%;border-radius:var(--r-pill);background:var(--primary)}
+.track .th{position:absolute;left:72%;top:50%;width:16px;height:16px;border-radius:50%;background:var(--cta-bg);border:3px solid var(--panel);transform:translate(-50%,-50%);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.track .ev{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;transform:translate(-50%,-50%);background:var(--c);box-shadow:0 0 0 2px var(--panel)}
+
+/* ---------- board chrome ---------- */
+.bar{position:sticky;top:12px;z-index:50;margin:12px 0 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 12px 10px 24px;border-radius:var(--r-pill);background:var(--panel);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--panel-border);box-shadow:var(--panel-shadow)}
+.seg{position:relative;display:inline-flex;padding:4px;border-radius:var(--r-pill);background:var(--concave);border:1px solid var(--border)}
+.seg::before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:var(--r-pill);background:var(--cta-bg);box-shadow:0 4px 16px color-mix(in srgb,var(--cta-bg) 35%,transparent);transition:transform .35s var(--ease)}
+:root[data-direction="b"] .seg::before{transform:translateX(100%)}
+.seg button{position:relative;z-index:1;width:240px;height:44px;border:0;background:none;border-radius:var(--r-pill);font:600 var(--fs-body)/1 var(--font);color:var(--muted);cursor:pointer;transition:color .3s}
+.seg button[aria-pressed="true"]{color:var(--cta-fg)}
+.seg button small{font:600 var(--fs-label)/1 var(--mono);letter-spacing:.08em;margin-right:8px;opacity:.8}
+.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}
+.intro h1{font-size:var(--fs-hero);line-height:1.1;font-weight:700;letter-spacing:-.02em}
+.sec{margin-top:72px}
+.sec-h{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.sec-h h2{font-size:var(--fs-display);line-height:1.2;font-weight:700;letter-spacing:-.01em}
+.note{display:flex;gap:24px;font-size:var(--fs-aux);color:var(--muted);line-height:1.5;flex-wrap:wrap}
+.note p{flex:1;min-width:320px}
+.note b{color:var(--fg);font-weight:600;margin-right:6px}
+.sheet{display:grid;gap:16px}
+.cell{display:flex;flex-direction:column;gap:10px}
+.cap-l{padding-left:4px}
+.grid2{grid-template-columns:1fr 1fr}.grid3{grid-template-columns:repeat(3,1fr)}.grid4{grid-template-columns:repeat(4,1fr)}
+.tok{display:grid;grid-template-columns:1.1fr 1fr 1fr;border-radius:var(--r-card);overflow:hidden;background:var(--card);border:1px solid var(--border);font-size:var(--fs-aux)}
+.tok>div{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;min-height:40px}
+.tok .h{background:var(--concave)}
+.tok .sw{width:20px;height:20px;border-radius:var(--r-pill);border:1px solid color-mix(in srgb,var(--fg) 25%,transparent);flex:none;background-image:linear-gradient(45deg,#ccc 25%,transparent 25% 75%,#ccc 75%),linear-gradient(45deg,#ccc 25%,#fff 25% 75%,#ccc 75%);background-size:8px 8px;background-position:0 0,4px 4px;position:relative;overflow:hidden}
+.tok .sw b{position:absolute;inset:0}
+.tok code{font:500 var(--fs-label)/1.3 var(--mono);color:var(--fg);word-break:break-all}
+.tok .act{box-shadow:inset 0 0 0 100px color-mix(in srgb,var(--primary) 8%,transparent)}
+.rtab{display:flex;flex-direction:column;gap:8px}
+.rrow{display:flex;align-items:center;gap:16px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);font-size:var(--fs-aux)}
+.rrow .demo{width:64px;height:40px;background:color-mix(in srgb,var(--primary) 22%,transparent);border:1px solid var(--primary);flex:none}
+.rrow code{font:500 var(--fs-label)/1.3 var(--mono);color:var(--muted);margin-left:auto}
+.bits{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.matrix{display:grid;grid-template-columns:96px repeat(3,auto);gap:10px 12px;align-items:center;justify-items:start}
+.stagepad{display:flex;flex-direction:column;gap:12px;padding:16px}
+.col{display:flex;flex-direction:column;gap:12px}
+.foot{margin-top:72px;text-align:center}
+
+@keyframes enter{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.enter{animation:enter .25s var(--ease) both}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="bar">
+  <div style="display:flex;flex-direction:column;gap:2px">
+    <span class="mono">Ensemble Room · Design Board 01</span>
+    <span class="semi">UI 리디자인 · 방향 선택</span>
+  </div>
+  <div class="seg" role="group" aria-label="디자인 방향">
+    <button type="button" data-set="a" aria-pressed="true"><small>A</small>Tide Glass</button>
+    <button type="button" data-set="b" aria-pressed="false"><small>B</small>Sea Glass &amp; Sand</button>
+  </div>
+  <span class="aux only-a" style="width:260px;text-align:right">어두운 청록 유리 · 노을과 보색 대비</span>
+  <span class="aux only-b" style="width:260px;text-align:right">밝은 모래빛 서리 유리 · 3D 와 한 덩어리</span>
+</div>
+
+<div class="intro">
+  <div>
+    <div class="mono" style="margin-bottom:12px">Tabletop 문법 · 단일 radius 24 / 16 / 16 / pill</div>
+    <h1>같은 화면, 두 가지 유리.</h1>
+  </div>
+  <p class="aux" style="max-width:420px">상단 토글로 방향 A/B 를 전환한다. 컴포넌트 CSS 는 공유하고 <code class="mono" style="text-transform:none">data-direction</code> 으로 토큰만 바뀐다.</p>
+</div>
+
+<!-- ======================= 01 HERO ======================= -->
+<section class="sec" style="margin-top:0">
+  <div class="sec-h">
+    <span class="mono">01 · Room 화면 합성 · 1440×860</span>
+    <h2>Room 화면</h2>
+    <div class="note">
+      <p><b>현재 문제</b>버튼 위계가 없고, 패널이 화면 끝에 붙어 3D 를 가리며, 2D 말풍선과 3D 말풍선이 따로 논다.</p>
+      <p class="only-a"><b>이 시안의 해법</b>청록 유리 패널을 16px 띄워 노을 장면과 보색 대비를 만들고, 주 CTA 는 아쿠아 pill 하나로 제한했다.</p>
+      <p class="only-b"><b>이 시안의 해법</b>서리 유리 패널이 모래·크림 3D 말풍선과 같은 흰 바탕 규칙을 쓰고, 주 CTA 는 잉크 pill 하나로 제한했다.</p>
+    </div>
+  </div>
+
+  <div class="hero" id="hero">
+    <div class="scene">
+      <div class="sun"></div><div class="haze"></div><div class="sea"></div><div class="sand"></div>
+      <div class="capwrap" style="left:calc(50% - 40px);top:310px;width:340px;height:180px"><div class="shadow"></div><div class="cap"><div class="room"></div></div></div>
+      <div class="capwrap" style="left:calc(50% - 250px);top:256px;width:190px;height:96px;opacity:.95"><div class="shadow"></div><div class="cap"><div class="room"></div></div></div>
+      <div class="capwrap" style="left:calc(50% + 190px);top:268px;width:230px;height:116px"><div class="shadow"></div><div class="cap"><div class="room"></div></div></div>
+    </div>
+
+    <!-- 헤더 -->
+    <header class="hdr panel">
+      <button class="btn btn-ghost" type="button">← 메신저</button>
+      <span class="vr"></span>
+      <div class="tt"><span class="ttl">주말 계획 방</span><span class="mono">OUR · CAFE</span></div>
+      <div class="stack" style="margin-left:4px"><div class="av alice"></div><div class="av bob"></div></div>
+      <span class="pill-amber"><i></i>승인 대기 1</span>
+      <span class="sp"></span>
+      <button class="btn btn-ghost" type="button">가이드</button>
+      <button class="btn btn-soft" type="button">Agent 보내기</button>
+      <button class="btn btn-cta" type="button">Leave</button>
+    </header>
+
+    <!-- 좌측 패널 -->
+    <aside class="lp panel">
+      <div>
+        <div class="ph"><span class="ttl">참여자</span><span class="mono">2 · ONLINE</span></div>
+        <div class="prow" style="margin-top:6px"><div class="avwrap"><div class="av alice"></div><span class="pdot"></span></div><span class="nm">Alice</span><span class="mono">나</span></div>
+        <div class="prow"><div class="avwrap"><div class="av bob"></div><span class="pdot"></span></div><span class="nm">Bob</span><span class="mono">ONLINE</span></div>
+      </div>
+      <div>
+        <div class="ph" style="margin-bottom:8px"><span class="ttl">Agent</span><span class="mono">2 · ACTIVE</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="card agcard"><div class="frame octa" style="--c:var(--alice)"><i>✦</i></div><div><div class="nm">Personal Agent</div><div class="aux">소유자 · Alice</div></div><span class="mono st" style="color:var(--agent)">WRITING</span></div>
+          <div class="card agcard"><div class="frame hexa" style="--c:var(--room)"><i>◈</i></div><div><div class="nm">Room Agent</div><div class="aux">소유자 · Room</div></div><span class="mono st">IDLE</span></div>
+        </div>
+      </div>
+      <div class="appr card pending">
+        <div class="hd"><span class="mono">A2H · 승인 대기</span><span class="mono">14:02</span></div>
+        <div class="route"><span style="color:color-mix(in srgb,var(--bob) 80%,var(--fg))">Bob의 Agent</span><em>→</em><span>Alice</span></div>
+        <div class="sum">토요일 14시 성수 카페 예약 확정</div>
+        <div class="prop"><span class="mono">제안</span><span>토요일 14:00 · 3명 · 성수 카페</span></div>
+        <div class="acts"><button class="btn btn-primary" type="button">승인</button><button class="btn btn-soft" type="button">수정</button><button class="btn btn-dghost" type="button">거절</button></div>
+      </div>
+    </aside>
+
+    <!-- 가운데 3D 오버레이 -->
+    <div class="center">
+      <div class="bubble agent other in3d enter" style="left:16%;top:56px;width:236px"><span class="btag">✦ Alice의 Agent</span>주말 아이디어 카드 만들어 줄게요</div>
+      <div class="nametag panel"><span class="d"></span>Alice<span class="chip">3명 · 카페</span></div>
+    </div>
+    <div class="legend panel mono" style="color:var(--fg)">
+      <span style="--c:var(--alice)"><i style="border-radius:50%"></i>PERSON</span>
+      <span style="--c:var(--agent)"><i style="clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)"></i>PERSONAL AGENT</span>
+      <span style="--c:var(--room)"><i style="clip-path:polygon(25% 4%,75% 4%,100% 50%,75% 96%,25% 96%,0 50%)"></i>ROOM AGENT</span>
+    </div>
+
+    <!-- 보드 스트립 -->
+    <section class="strip panel">
+      <div class="top">
+        <span class="mono" style="color:var(--fg)">BOARD · 3 CARDS</span>
+        <div class="tools"><button class="btn btn-soft" type="button">🪜 사다리</button><button class="btn btn-soft" type="button">₩ 정산</button><button class="btn btn-soft" type="button">✈ 여행</button></div>
+      </div>
+      <div class="cards3">
+        <div class="card bcard"><div class="r"><span class="chip c1"><span class="d" style="--c:var(--alice)"></span>Alice</span><span class="mono">V2</span></div><div class="t">주말 아이디어 카드</div><div class="b">성수 카페 3곳과 산책 코스를 한 장에 묶어요.</div></div>
+        <div class="card bcard"><div class="r"><span class="chip c3"><span class="d" style="--c:var(--bob)"></span>Bob</span><span class="mono">V3 · 합의</span></div><div class="t">토요일 14시 확정</div><div class="b">두 사람 모두 가능한 시간대로 합의했어요.</div></div>
+        <div class="card bcard"><div class="r"><span class="chip c4"><span class="d" style="--c:var(--room)"></span>Room</span><span class="mono">V2</span></div><div class="t">정산 메모</div><div class="b">카페 비용은 반반, 이동은 각자 부담해요.</div></div>
+      </div>
+    </section>
+
+    <!-- 타임라인 -->
+    <div class="tl panel">
+      <button class="btn btn-primary btn-round" type="button" aria-label="재생">▶</button>
+      <span class="mono" style="color:var(--fg)">18:42</span>
+      <div class="track"><div class="fill"></div>
+        <span class="ev" style="left:12%;--c:var(--alice)"></span><span class="ev" style="left:30%;--c:var(--agent)"></span><span class="ev" style="left:46%;--c:var(--bob)"></span><span class="ev" style="left:60%;--c:var(--amber)"></span>
+        <span class="th"></span></div>
+      <span class="mono">LIVE</span>
+    </div>
+
+    <!-- 우측 활동 -->
+    <aside class="rp panel">
+      <div class="ph"><span class="ttl">활동</span><span class="mono">LIVE · 5</span></div>
+      <div class="chat">
+        <div class="notice">Bob이 입장했어요</div>
+        <div class="msg"><span class="mono meta">BOB · 14:01</span><div class="bubble other bob">토요일 어때요? 성수 쪽 카페 가고 싶어요</div></div>
+        <div class="msg me"><span class="mono meta">ALICE · 14:02</span><div class="bubble me alice">주말 아이디어 카드 만들어 줘</div></div>
+        <div class="msg" style="max-width:94%"><div class="bubble agent other"><span class="btag">✦ Alice의 Agent</span>카페 3곳을 먼저 비교하고 있어요. 이동 시간은 비슷하네요<span class="cursor"></span></div></div>
+        <div class="a2a"><span>↳</span><span><b>Bob의 Agent</b> · 토요일 14시 가능해요. 승인이 필요해요.</span></div>
+        <div class="notice amber">승인 필요해요 · A2H</div>
+      </div>
+      <div class="input">
+        <button class="btn btn-soft" type="button">받는 이 · 모두 ▾</button>
+        <span class="ph-text">메시지를 입력하세요</span>
+        <button class="btn btn-primary btn-round" type="button" aria-label="보내기">↑</button>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ======================= 02 TOKENS ======================= -->
+<section class="sec">
+  <div class="sec-h">
+    <span class="mono">02 · 디자인 토큰</span>
+    <h2>토큰 시트</h2>
+    <div class="note">
+      <p><b>현재 문제</b>색·radius·글자 크기가 컴포넌트마다 제각각이라 화면 간 일관성이 없다.</p>
+      <p><b>이 시안의 해법</b>모든 값을 :root 변수로 일원화했다. 방향 전환은 data-direction 으로 색 토큰만 갈아끼운다.</p>
+    </div>
+  </div>
+  <div class="sheet grid2" style="align-items:start">
+    <div class="tok" id="tokColors"></div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="rtab">
+        <span class="mono cap-l">Radius · 단일 체계</span>
+        <div class="rrow"><div class="demo" style="border-radius:24px"></div><span class="semi">패널</span><code>--r-panel · 24px</code></div>
+        <div class="rrow"><div class="demo" style="border-radius:16px"></div><span class="semi">카드 · 입력</span><code>--r-card / --r-input · 16px</code></div>
+        <div class="rrow"><div class="demo" style="border-radius:999px"></div><span class="semi">버튼 · 칩 · 배지 · 아바타</span><code>--r-pill · 999px</code></div>
+        <div class="rrow"><div class="demo" style="border-radius:16px 16px 16px 4px"></div><span class="semi">말풍선 (발화자 쪽 모서리)</span><code>--r-tail · 4px</code></div>
+      </div>
+      <div class="rtab">
+        <span class="mono cap-l">Type · 5단계 (+ 보드 타이틀)</span>
+        <div class="rrow"><span class="mono" style="color:var(--fg)">ROOM · CAFE</span><span class="aux">라벨 mono · .08em</span><code>--fs-label · 11px</code></div>
+        <div class="rrow"><span style="font-size:var(--fs-aux)">보조 텍스트 · 버튼</span><span class="aux">13px · 600 버튼</span><code>--fs-aux · 13px</code></div>
+        <div class="rrow"><span style="font-size:var(--fs-body)">본문과 채팅 텍스트</span><span class="aux">15px</span><code>--fs-body · 15px</code></div>
+        <div class="rrow"><span class="ttl">패널 제목</span><span class="aux">20px bold</span><code>--fs-title · 20px</code></div>
+        <div class="rrow"><span style="font-size:var(--fs-display);font-weight:700">화면 제목</span><span class="aux">28px+</span><code>--fs-display · 28px</code></div>
+      </div>
+      <div class="rtab">
+        <span class="mono cap-l">Shadow · Motion</span>
+        <div class="rrow" style="flex-direction:column;align-items:stretch;gap:6px"><code style="margin:0;color:var(--fg)" id="shA"></code><code style="margin:0;color:var(--fg)" id="shB"></code></div>
+        <div class="rrow"><span class="semi">모션</span><span class="aux">150ms · cubic-bezier(.4,0,.2,1) · hover scale 1.03 · 등장 opacity+scale .95→1</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 03 PANEL / BTN ======================= -->
+<section class="sec">
+  <div class="sec-h">
+    <span class="mono">03 · 컴포넌트 · 패널 · 헤더 · 버튼</span>
+    <h2>패널 틀 · 헤더 · 버튼</h2>
+    <div class="note">
+      <p><b>현재 문제</b>모든 버튼이 같은 무게라 무엇이 주 행동인지 알 수 없다.</p>
+      <p class="only-a"><b>이 시안의 해법</b>CTA 는 아쿠아 40px 하나, 그 외는 32px primary / soft / ghost / destructive 로 위계를 만든다.</p>
+      <p class="only-b"><b>이 시안의 해법</b>CTA 는 잉크 pill 40px 하나, 나머지는 바다 틸 primary 와 soft/ghost 로 낮춘다.</p>
+    </div>
+  </div>
+  <div class="scene-bit">
+    <div class="sheet grid2" style="align-items:start">
+      <div class="panel stagepad">
+        <div class="ph"><div><div class="mono">패널 틀</div><div class="ttl">참여자</div></div><button class="btn btn-ghost btn-round" type="button" aria-label="닫기">✕</button></div>
+        <div class="matrix">
+          <span class="mono"></span><span class="mono">기본</span><span class="mono">hover</span><span class="mono">disabled</span>
+          <span class="mono">primary</span><button class="btn btn-primary" type="button">승인</button><button class="btn btn-primary is-hover" type="button">승인</button><button class="btn btn-primary" disabled type="button">승인</button>
+          <span class="mono">soft</span><button class="btn btn-soft" type="button">수정</button><button class="btn btn-soft is-hover" type="button">수정</button><button class="btn btn-soft" disabled type="button">수정</button>
+          <span class="mono">ghost</span><button class="btn btn-ghost" type="button">가이드</button><button class="btn btn-ghost is-hover" type="button">가이드</button><button class="btn btn-ghost" disabled type="button">가이드</button>
+          <span class="mono">destructive</span><button class="btn btn-danger" type="button">삭제</button><button class="btn btn-danger is-hover" type="button">삭제</button><button class="btn btn-danger" disabled type="button">삭제</button>
+          <span class="mono">dest. ghost</span><button class="btn btn-dghost" type="button">거절</button><button class="btn btn-dghost is-hover" type="button">거절</button><button class="btn btn-dghost" disabled type="button">거절</button>
+          <span class="mono">주 CTA · 40</span><button class="btn btn-cta" type="button">Leave</button><button class="btn btn-cta is-hover" type="button">Leave</button><button class="btn btn-cta" disabled type="button">Leave</button>
+        </div>
+      </div>
+      <div class="col">
+        <header class="panel" style="height:64px;border-radius:var(--r-pill);display:flex;align-items:center;gap:12px;padding:0 12px">
+          <button class="btn btn-ghost" type="button">← 메신저</button>
+          <div style="display:flex;flex-direction:column;gap:3px"><span class="ttl" style="font-size:var(--fs-body)">주말 계획 방</span><span class="mono">OUR · CAFE</span></div>
+          <span style="flex:1"></span><button class="btn btn-soft" type="button">Agent 보내기</button><button class="btn btn-cta" type="button">Leave</button>
+        </header>
+        <div class="panel stagepad">
+          <span class="mono">칩 · 배지 · 아바타 · Agent 프레임</span>
+          <div class="bits"><span class="chip">ROOM · CAFE</span><span class="chip c1"><span class="d" style="--c:var(--alice)"></span>Alice</span><span class="chip c3"><span class="d" style="--c:var(--bob)"></span>Bob</span><span class="chip c4">V3</span><span class="chip c2">초안</span><span class="chip badge-ok">합의</span><span class="pill-amber"><i></i>승인 대기 1</span></div>
+          <div class="bits" style="gap:16px">
+            <div class="stack"><div class="av alice"></div><div class="av bob"></div></div>
+            <div class="avwrap"><div class="av alice"></div><span class="pdot"></span></div>
+            <div class="frame octa" style="--c:var(--alice)"><i>✦</i></div>
+            <div class="frame hexa" style="--c:var(--room)"><i>◈</i></div>
+            <span class="aux">원형 초상 · 팔각형 Personal · 육각형 Room</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 04 CHAT ======================= -->
+<section class="sec">
+  <div class="sec-h">
+    <span class="mono">04 · 컴포넌트 · 대화 · 3D 말풍선</span>
+    <h2>대화</h2>
+    <div class="note">
+      <p><b>현재 문제</b>2D 채팅 말풍선과 3D 장면의 Agent 말풍선이 완전히 다른 모양과 색이라 같은 화자로 읽히지 않는다.</p>
+      <p><b>이 시안의 해법</b>16px + 발화자 쪽 4px 모서리, 화자 색 tonal 20% 바탕, 같은 태그 규칙을 2D 와 3D 에 똑같이 적용했다.</p>
+    </div>
+  </div>
+  <div class="scene-bit">
+    <div class="sheet grid2" style="align-items:start">
+      <div class="panel stagepad">
+        <span class="mono">2D 채팅</span>
+        <div class="msg me"><span class="mono meta">ALICE · 나</span><div class="bubble me alice">주말 아이디어 카드 만들어 줘</div></div>
+        <div class="msg"><span class="mono meta">BOB · 상대</span><div class="bubble other bob">토요일 14시 괜찮아요?</div></div>
+        <div class="msg"><div class="bubble agent other"><span class="btag">✦ Alice의 Agent</span>카드 초안을 만들었어요. 한번 봐 주세요.</div></div>
+        <div class="msg"><div class="bubble agent other"><span class="btag">✦ Alice의 Agent · 작성 중</span>성수 카페 3곳을 비교하고 있어요<span class="cursor"></span></div></div>
+        <div class="msg me"><div class="bubble me alice fail">저녁은 해변 쪽에서 먹을까요?</div><div style="display:flex;align-items:center;gap:8px"><span class="aux" style="color:var(--destructive-ink)">전송 실패</span><button class="btn btn-dghost" type="button">다시 보내기</button></div></div>
+      </div>
+      <div class="col">
+        <div class="mono" style="color:#0a222e">3D 장면 위 Agent 말풍선 · 같은 규칙</div>
+        <div style="display:flex;flex-direction:column;gap:20px;align-items:flex-start;padding:8px 0">
+          <div class="cell"><span class="mono" style="color:#0a222e">thinking</span><div class="bubble agent other in3d"><span class="btag">✦ Alice의 Agent</span><span class="dots"><b></b><b></b><b></b></span></div></div>
+          <div class="cell"><span class="mono" style="color:#0a222e">said</span><div class="bubble agent other in3d" style="max-width:300px"><span class="btag">✦ Alice의 Agent</span>주말 아이디어 카드 만들어 줄게요</div></div>
+          <div class="cell"><span class="mono" style="color:#0a222e">ask</span><div class="bubble warn other in3d" style="max-width:300px"><span class="btag">✦ 승인 필요</span>토요일 14시로 예약해도 될까요?<div class="acts" style="margin-top:8px"><button class="btn btn-primary" type="button">열기</button></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 05 APPROVAL ======================= -->
+<section class="sec">
+  <div class="sec-h">
+    <span class="mono">05 · 컴포넌트 · 승인 카드 (A2H)</span>
+    <h2>승인 카드</h2>
+    <div class="note">
+      <p><b>현재 문제</b>승인 요청이 일반 카드와 구분되지 않고 승인/거절 색이 화면마다 다르다.</p>
+      <p class="only-a"><b>이 시안의 해법</b>노을빛 앰버 #ffb45a 한 가지 띠와 글로우로 주의를 끌고, 승인은 아쿠아 primary 하나로 집중시킨다.</p>
+      <p class="only-b"><b>이 시안의 해법</b>앰버 #f59e0b tonal 바탕과 띠로 주의를 끌고, 승인은 바다 틸 primary 하나로 집중시킨다.</p>
+    </div>
+  </div>
+  <div class="scene-bit sand">
+    <div class="sheet grid4" style="align-items:start">
+      <div class="cell"><span class="mono" style="color:#0a222e">pending</span>
+        <div class="panel stagepad">
+          <div class="appr card pending enter">
+            <div class="hd"><span class="mono">A2H · 승인 대기</span><span class="mono">14:02</span></div>
+            <div class="route"><span style="color:color-mix(in srgb,var(--bob) 80%,var(--fg))">Bob의 Agent</span><em>→</em><span>Alice</span></div>
+            <div class="sum">토요일 14시 성수 카페 예약 확정</div>
+            <div class="prop"><span class="mono">제안</span><span>토요일 14:00 · 3명 · 성수 카페</span></div>
+            <div class="acts"><button class="btn btn-primary" type="button">승인</button><button class="btn btn-soft" type="button">수정</button><button class="btn btn-dghost" type="button">거절</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="cell"><span class="mono" style="color:#0a222e">approved</span>
+        <div class="panel stagepad">
+          <div class="appr card approved">
+            <div class="hd"><span class="mono" style="color:var(--fg)">A2H · 승인됨</span><span class="chip badge-ok">승인</span></div>
+            <div class="route"><span style="color:color-mix(in srgb,var(--bob) 80%,var(--fg))">Bob의 Agent</span><em>→</em><span>Alice</span></div>
+            <div class="sum">토요일 14시 성수 카페 예약 확정</div>
+            <div class="aux">Alice가 14:08 에 승인했어요.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cell"><span class="mono" style="color:#0a222e">rejected</span>
+        <div class="panel stagepad">
+          <div class="appr card rejected">
+            <div class="hd"><span class="mono" style="color:var(--destructive-ink)">A2H · 거절됨</span><span class="chip" style="background:color-mix(in srgb,var(--destructive) 18%,transparent)">거절</span></div>
+            <div class="route"><span style="color:color-mix(in srgb,var(--bob) 80%,var(--fg))">Bob의 Agent</span><em>→</em><span>Alice</span></div>
+            <div class="sum" style="text-decoration:line-through;text-decoration-color:var(--destructive);opacity:.8">일요일 18시 해변 저녁 예약</div>
+            <div class="aux">Alice가 14:09 에 거절했어요.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cell"><span class="mono" style="color:#0a222e">compact</span>
+        <div class="panel stagepad">
+          <div class="appr card pending compact"><span class="mono" style="color:var(--amber-ink)">A2H</span><span class="sum">토요일 14시 예약</span><button class="btn btn-primary" type="button">승인</button></div>
+          <div class="appr card approved compact"><span class="mono" style="color:var(--fg)">A2H</span><span class="sum">산책 코스 공유</span><span class="chip badge-ok">승인</span></div>
+          <div class="appr card rejected compact"><span class="mono" style="color:var(--destructive-ink)">A2H</span><span class="sum">일요일 저녁</span><span class="chip">거절</span></div>
+          <div class="aux" style="text-align:center;padding-top:4px">결정할 승인이 없어요.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="foot aux">Ensemble Room · 디자인 보드 01 · 배경 장면은 CSS 로 그린 근사 렌더입니다</div>
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  function setDir(d){
+    root.setAttribute('data-direction',d);
+    document.querySelectorAll('[data-set]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.set===d))});
+    try{history.replaceState(null,'','#'+d)}catch(e){}
+    markActive();
+  }
+  document.querySelectorAll('[data-set]').forEach(function(b){b.addEventListener('click',function(){setDir(b.dataset.set)})});
+
+  /* 실내 미니어처 (캡슐 안) */
+  var tpl='<div class="glow"></div><div class="shelf"></div><div class="book"></div><div class="cord"></div><div class="bulb"></div><div class="table"></div><div class="chair" style="left:30%"></div><div class="chair" style="left:63%"></div><div class="sofa"></div><div class="floor"></div>';
+  document.querySelectorAll('.room').forEach(function(r){r.innerHTML=tpl});
+
+  /* 토큰 표: 두 방향의 computed 값을 probe 로 읽는다 */
+  var colors=[['--fg','글자'],['--muted','muted 글자'],['--panel','패널'],['--panel-border','패널 테두리'],['--card','card'],['--popover','popover'],['--border','border'],['--concave','오목면'],['--primary','primary'],['--primary-fg','primary 글자'],['--cta-bg','주 CTA 바탕'],['--cta-fg','주 CTA 글자'],['--amber','승인 앰버'],['--amber-tonal','앰버 tonal'],['--destructive','destructive'],['--ok','ok'],['--agent','Agent 민트'],['--alice','Alice coral'],['--bob','Bob sky'],['--room','Room Agent 라임'],['--chip-1','chip 노랑'],['--chip-2','chip 크림'],['--chip-3','chip 시안'],['--chip-4','chip 보라']];
+  function toHex(c){
+    var m=c.match(/rgba?\(([^)]+)\)/); if(!m) return c;
+    var p=m[1].split(/[ ,\/]+/).filter(Boolean).map(Number);
+    var a=p.length>3?p[3]:1;
+    var h='#'+p.slice(0,3).map(function(n){return Math.round(n).toString(16).padStart(2,'0')}).join('');
+    return a<1?h+' · '+Math.round(a*100)+'%':h;
+  }
+  function probe(dir,name){
+    var el=document.createElement('div');
+    el.setAttribute('data-direction',dir);
+    el.style.cssText='position:absolute;visibility:hidden;transition:none;color:var('+name+')';
+    document.body.appendChild(el);
+    var v=getComputedStyle(el).color; document.body.removeChild(el); return v;
+  }
+  function probeRaw(dir,name){
+    var el=document.createElement('div');el.setAttribute('data-direction',dir);el.style.cssText='position:absolute;visibility:hidden';
+    document.body.appendChild(el);var v=getComputedStyle(el).getPropertyValue(name).trim();document.body.removeChild(el);return v;
+  }
+  var t=document.getElementById('tokColors');
+  var html='<div class="h mono">토큰</div><div class="h mono">A · Tide Glass</div><div class="h mono">B · Sea Glass</div>';
+  colors.forEach(function(c){
+    html+='<div><span class="semi">'+c[1]+'</span></div>';
+    ['a','b'].forEach(function(d){
+      var v=probe(d,c[0]);
+      html+='<div data-col="'+d+'"><span class="sw"><b style="background:'+v+'"></b></span><code>'+toHex(v)+'</code></div>';
+    });
+  });
+  t.innerHTML=html;
+  function markActive(){
+    var d=root.getAttribute('data-direction');
+    t.querySelectorAll('[data-col]').forEach(function(e){e.classList.toggle('act',e.dataset.col===d)});
+  }
+  document.getElementById('shA').textContent='A  '+probeRaw('a','--panel-shadow');
+  document.getElementById('shB').textContent='B  '+probeRaw('b','--panel-shadow');
+
+  var h=(location.hash||'').replace('#','');
+  setDir(h==='b'?'b':'a');
+})();
+</script>
+</body>
+</html>
