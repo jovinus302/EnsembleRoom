@@ -905,6 +905,138 @@
     animation: tg-slide-b var(--dur-slow) var(--ease-out) both;
   }
 
+  /* ---------- 메신저 셸 (목업 .roomrow .fold .thumb .infol) ---------- */
+  .tg-fold {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 40px;
+    padding: 0 8px 0 14px;
+    border-radius: var(--r-pill);
+    background: var(--amber-tonal);
+    border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+    color: var(--amber-ink);
+    font-weight: 600;
+    font-size: var(--fs-aux);
+    cursor: pointer;
+    text-align: left;
+  }
+  .tg-fold:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  .tg-fold .ct {
+    min-width: 22px;
+    height: 22px;
+    border-radius: var(--r-pill);
+    background: var(--amber);
+    color: #2a1700;
+    font: 700 var(--fs-label) / 22px var(--mono);
+    text-align: center;
+    padding: 0 6px;
+  }
+  .tg-fold .ct.zero {
+    background: color-mix(in srgb, var(--fg) 14%, transparent);
+    color: var(--muted);
+  }
+  .tg-roomrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: var(--r-card);
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-align: left;
+    color: var(--fg);
+  }
+  .tg-roomrow:hover {
+    background: color-mix(in srgb, var(--fg) 6%, transparent);
+  }
+  .tg-roomrow:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+  .tg-roomrow.sel {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  .tg-roomrow .tx {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .tg-roomrow .nm {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tg-roomrow .sub {
+    font-size: var(--fs-aux);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tg-mini-cap {
+    width: 44px;
+    height: 24px;
+    border-radius: var(--r-pill);
+    flex: none;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(127, 224, 210, 0.5));
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+  }
+  .tg-thumb {
+    height: 128px;
+    border-radius: var(--r-card);
+    position: relative;
+    overflow: hidden;
+    flex: none;
+    background: linear-gradient(
+      180deg,
+      var(--scene-sky-mid),
+      var(--scene-sky-low) 52%,
+      var(--scene-sea-mid) 53%,
+      var(--scene-sea-shore) 57%,
+      var(--scene-sand) 58%
+    );
+    border: 1px solid var(--border);
+  }
+  .tg-infol {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+  }
+  .tg-infol > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    min-height: 34px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--fs-aux);
+  }
+  .tg-infol > div:last-child {
+    border: 0;
+  }
+  .tg-infol dt {
+    color: var(--muted);
+    flex: none;
+  }
+  .tg-infol dd {
+    margin: 0;
+    text-align: right;
+    min-width: 0;
+  }
+
   /* 임시 호환 클래스 (Step 17에서 삭제) */
   .surface-card {
   }

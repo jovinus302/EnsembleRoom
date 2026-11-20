@@ -22,9 +22,9 @@ export function MessengerHome() {
   });
 
   return (
-    <div className="pointer-events-none flex h-full min-w-[1000px]">
+    <div className="pointer-events-none relative flex h-full min-w-[1000px] gap-4 p-4">
       <Sidebar />
-      <main className="pointer-events-none flex min-w-0 flex-1 flex-col">
+      <main className="pointer-events-none flex min-w-0 flex-1 flex-col gap-4">
         {/* 뒤의 3D 월드(해변 조감)가 그대로 보이고 캡슐을 클릭·호버할 수 있는 투명 창 */}
         <div
           data-world-slot="band"
@@ -35,15 +35,15 @@ export function MessengerHome() {
             return () => useStage.getState().setSlotEl(null);
           }}
         />
-        <div className="pointer-events-auto flex h-[46%] min-h-[320px] shrink-0">
-          {!loaded && <p className="m-auto text-sm text-muted">불러오는 중…</p>}
+        <div className="tg-panel pointer-events-auto flex h-[364px] max-h-[60%] shrink-0 overflow-hidden">
+          {!loaded && <p className="m-auto text-aux text-muted">불러오는 중…</p>}
           {loaded && selected && lockedRoom && (
-            <p className="m-auto px-6 text-center text-sm text-muted" data-testid="locked-room">
+            <p className="m-auto px-6 text-center text-aux text-muted" data-testid="locked-room">
               이 Room은 유리가 서리 낀 상태예요. 방문이 수락되면 안을 볼 수 있어요. 오른쪽에서 방문을 요청하세요.
             </p>
           )}
           {loaded && selected && !lockedRoom && <ConversationView key={selected} roomId={selected} />}
-          {loaded && !selected && <p className="m-auto text-sm text-muted">대화를 선택하세요.</p>}
+          {loaded && !selected && <p className="m-auto text-aux text-muted">대화를 선택하세요.</p>}
         </div>
       </main>
       {loaded && selected && <RoomPreviewPanel roomId={selected} />}
