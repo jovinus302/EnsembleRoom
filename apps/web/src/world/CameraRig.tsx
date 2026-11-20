@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { WorldLayout } from './layout';
@@ -93,8 +93,22 @@ export interface FocusUv {
  * 월드 조망 ↔ 캡슐 포커스 카메라. 목표 포즈로 부드럽게 따라가고(감쇠), 포인터에 맞춰 아주 약하게 시차를 준다.
  * fov가 좁은 망원 구도라 멀리서 접사처럼 보인다(미니어처 느낌).
  */
+/** 가상 전체 화면(viewRect)의 높이. setViewOffset 때문에 화면 픽셀당 월드 길이는 canvas가 아니라 이 높이 기준이다 */
+export function virtualHeight(camera: THREE.Camera, fallback: number): number {
+  const c = camera as THREE.PerspectiveCamera;
+  return c.view?.enabled ? c.view.fullHeight : fallback;
+}
+
+export interface ViewRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 export function CameraRig({
   layout,
+  viewRect,
   focusRoomId,
   focusUv,
   reducedMotion = false,
@@ -104,12 +118,34 @@ export function CameraRig({
   /** 첫 진입 인트로: 석양(태양 쪽 지평선)을 보다가 조망 구도로 내려온다 */
   intro?: boolean;
   layout: WorldLayout;
+  /** 포커스 영역. 캔버스(전체 화면) 안에서 대상이 이 사각형 중앙에 오도록 투영을 옮긴다 */
+  viewRect?: ViewRect | null;
   focusRoomId: string | null;
   focusUv: React.RefObject<FocusUv>;
 }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
-  const aspect = size.width / Math.max(size.height, 1);
+  const vr = viewRect && viewRect.width > 0 && viewRect.height > 0 ? viewRect : null;
+  const aspect = vr ? vr.width / vr.height : size.width / Math.max(size.height, 1);
+  // R3F는 camera.manual이면 리사이즈 때 aspect를 건드리지 않는다. 포커스 영역 기준 aspect + view offset은 여기서만 관리한다
+  const applyView = (cam: THREE.PerspectiveCamera) => {
+    const v = cam.view;
+    if (vr) {
+      const ox = -vr.left;
+      const oy = -vr.top;
+      if (cam.aspect === aspect && v?.enabled && v.fullWidth === vr.width && v.fullHeight === vr.height && v.offsetX === ox && v.offsetY === oy && v.width === size.width && v.height === size.height) return;
+      cam.aspect = aspect;
+      cam.setViewOffset(vr.width, vr.height, ox, oy, size.width, size.height);
+    } else {
+      if (cam.aspect === aspect && !v?.enabled) return;
+      cam.aspect = aspect;
+      cam.clearViewOffset();
+    }
+    cam.updateProjectionMatrix();
+  };
+  const applyViewRef = useRef(applyView);
+  applyViewRef.current = applyView;
+  useLayoutEffect(() => applyView(camera));
   const pose = useMemo(
     () => (focusRoomId ? focusPose(layout, focusRoomId, aspect, camera.fov) : null) ?? overviewPose(layout, aspect, camera.fov),
     [layout, focusRoomId, aspect, camera.fov],
@@ -257,6 +293,7 @@ export function CameraRig({
   }, [gl, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useFrame((state, dt) => {
+    applyViewRef.current(camera);
     const c = cur.current;
     if (!c) return;
     const it = introRef.current;

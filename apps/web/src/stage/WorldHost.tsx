@@ -102,7 +102,7 @@ function useReducedMotion(): boolean {
 
 /**
  * 앱 루트에 한 번만 마운트되는 3D 월드. 라우트가 바뀌어도 언마운트되지 않는다.
- * 메신저: 전체 화면 조감(뒤에 깔림). Room 화면: 포커스 캡슐이 RoomStage 슬롯 사각형에 보인다.
+ * 캔버스는 항상 화면 전체. 메신저: 조감 구도가 band 슬롯 중앙에 온다. Room 화면: 포커스 캡슐이 RoomStage 슬롯 중앙에 온다.
  */
 export function WorldHost() {
   const path = usePath();
@@ -119,12 +119,6 @@ export function WorldHost() {
   const roomId = path.startsWith('/room/') ? decodeURIComponent(path.slice('/room/'.length)) : null;
   const inRoom = roomId !== null && !!rooms[roomId];
   const slotRect = useRect(slotEl);
-  // band: 메신저의 가운데 무대 띠. 월드는 화면 폭 전체에 깔리고 높이만 띠의 아래끝까지(양옆 패널 뒤로 이어진다)
-  const rect =
-    slotRect && slotEl?.dataset.worldSlot === 'band'
-      ? { left: 0, top: 0, width: document.documentElement.clientWidth, height: slotRect.top + slotRect.height }
-      : slotRect;
-
   const hidden = useHidden();
   const intro = useMemo(shouldIntro, []);
   const reducedMotion = useReducedMotion();
@@ -167,9 +161,8 @@ export function WorldHost() {
 
   if (!loaded || !viewerId || webgl !== 'ok' || quality === 'off' || roomList.length === 0) return null;
 
-  const style: React.CSSProperties = rect
-    ? { position: 'fixed', zIndex: 0, left: rect.left, top: rect.top, width: rect.width, height: rect.height, overflow: 'hidden' }
-    : { position: 'fixed', zIndex: 0, inset: 0, overflow: 'hidden' };
+  // 캔버스는 항상 화면 전체. 슬롯 사각형은 카메라가 대상을 맞추는 포커스 영역(viewRect)이다
+  const style: React.CSSProperties = { position: 'fixed', zIndex: 0, inset: 0, overflow: 'hidden' };
 
   const ambience = Object.fromEntries(
     Object.entries(ambienceOverrides).filter(([, s]) => (AMBIENCE_STAGES as readonly string[]).includes(s)),
@@ -185,6 +178,7 @@ export function WorldHost() {
             users={users}
             selectedRoomId={selected}
             focusRoomId={inRoom ? roomId : null}
+            viewRect={slotRect}
             quality={quality}
             characters={characters}
             paused={hidden}

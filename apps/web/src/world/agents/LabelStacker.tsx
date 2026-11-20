@@ -1,5 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { virtualHeight } from '../CameraRig';
 
 /**
  * 포커스 방의 이름표(+말풍선) 겹침 회피. 각 Actor가 등록한 라벨 그룹을 매 프레임 화면에 투영해 서로 겹치면
@@ -59,7 +60,7 @@ export function LabelStacker({ labels, reducedMotion }: { labels: Map<string, La
         e.line.visible = false;
         continue;
       }
-      const wpp = (2 * dist * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2))) / size.height;
+      const wpp = (2 * dist * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2))) / virtualHeight(cam, size.height);
       // 말풍선은 머리(이름표 가운데)에서 오른쪽으로 뻗는다(왼쪽 아래 모서리가 앵커)
       const left = e.w / 2;
       const right = e.bubble ? Math.max(e.w / 2, e.bubble.w) : e.w / 2;
