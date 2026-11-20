@@ -1,4 +1,4 @@
-import type { BoardCard, Mandate, MemoryKind, PassReason, RoomEvent, ToolName } from '@ensemble/shared';
+import type { BoardCard, BoardTool, Mandate, MemoryKind, PassReason, RoomEvent, ToolName } from '@ensemble/shared';
 
 /**
  * Agent 런타임 공용 타입 (계획 6절). provider(mock/claude)와 runTurn·scheduler가 공유한다.
@@ -21,10 +21,40 @@ export type TriggerReason =
   | 'host_message' // 방문 중인 Agent가 호스트 Room의 사람 발언을 봄
   | 'room_agent_call' // Our Room의 질문·정리·부재 구성원 관련 → Room Agent
   | 'representing' // Our Room에서 부재(대리 참여) 구성원이 언급됨 → 그 구성원의 Agent
+  | 'auto_reply' // Our Room에서 접속하지 않은(명시적 Leave 아님) 구성원의 Agent가 자동 대리 응답
   | 'agent_chain' // 다른 Agent의 to 지정
   | 'approval_resolved' // 내가 올린 decision 승인이 해소됨 → 결과를 이어서 처리
   | 'arrival' // 방문 도착 턴
+  | 'a2a_ask' // 다른 Agent(Room Agent 포함)가 ask_agents로 나에게 물음 → 보수적으로 답한다
+  | 'a2a_collect' // 내가 ask_agents로 물은 질문에 수신자 전원이 답했거나 정산됨 → 정리 턴
   | 'visit_turn_limit'; // 방문 턴 상한: end_visit 강제
+
+/** A2A 질문·정리 턴에 붙는 정보 (scheduler가 job에 싣는다) */
+export interface A2AJob {
+  /** 질문 메시지(recipients가 있는 message)의 seq */
+  askSeq: number;
+  askerId: string;
+  askerKind: 'personal' | 'room_agent';
+  role: 'answer' | 'collect';
+}
+
+/** 물어볼 수 있는 Agent (Our Room의 부재 구성원 Agent) */
+export interface AskableAgent {
+  id: string;
+  name: string;
+  ownerId: string;
+  ownerName: string;
+}
+
+/** 모델 입력에 실리는 A2A 맥락 */
+export type TurnA2A =
+  | { role: 'answer'; askSeq: number; askerId: string; askerName: string; askerKind: 'personal' | 'room_agent'; question: string }
+  | {
+      role: 'collect';
+      askSeq: number;
+      question: string;
+      answers: { agentId: string; name: string; ownerName: string | null; text: string; approvalPending: boolean }[];
+    };
 
 export interface Trigger {
   /** 트리거가 된 이벤트의 seq */
@@ -77,11 +107,19 @@ export interface TurnInput {
   /** 보이는 최근 이벤트 (최대 30개). private 가시성과 방문 범위 밖 이벤트는 없다 */
   events: RoomEvent[];
   board: BoardCard[];
+  /** 보드에 올라 있는 도구(사다리·정산표·여행 계획). board와 같은 가시 범위 */
+  boardTools: BoardTool[];
+  /** Room의 사람(구성원·소유자·활성 사람 방문자). 사다리 참가자 등에 쓴다 */
+  members: { id: string; name: string }[];
   roomSummary: string | null;
   /** id → 표시 이름 (사람, Agent, Room Agent) */
   names: Record<string, string>;
   /** 호스트 Room 이름 등 방문 시 쓸 맥락 */
   roomTitle: string;
+  /** ask_agents로 물어볼 수 있는 Agent. 이 턴에 ask_agents가 주어졌을 때만 채운다 */
+  askable: AskableAgent[];
+  /** A2A 질문(answer)·정리(collect) 턴일 때만 */
+  a2a: TurnA2A | null;
   /** LLM provider용으로 렌더링한 프롬프트 (prompts.ts) */
   system: string;
   prompt: string;

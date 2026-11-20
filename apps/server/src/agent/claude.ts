@@ -132,7 +132,8 @@ export function scanTopLevelStrings(buf: string): Record<string, PartialString> 
   }
 }
 
-const STREAMED_TEXT_TOOLS = new Set<string>(['say', 'comment']);
+/** 스트리밍 미리보기로 흘릴 도구와 그 문자열 필드 (ask_agents는 질문 문장) */
+const STREAMED_TEXT_FIELD: Record<string, string> = { say: 'text', comment: 'text', ask_agents: 'question' };
 
 export class ClaudeProvider implements AgentProvider {
   readonly name = 'claude';
@@ -180,8 +181,9 @@ export class ClaudeProvider implements AgentProvider {
             targetSent = true;
             yield { type: 'target', to: to.value };
           }
-          if (STREAMED_TEXT_TOOLS.has(tool)) {
-            const text = fields.text?.value ?? '';
+          const textField = STREAMED_TEXT_FIELD[tool];
+          if (textField) {
+            const text = fields[textField]?.value ?? '';
             if (text.length > sentText.length && text.startsWith(sentText)) {
               yield { type: 'text_delta', tool, delta: text.slice(sentText.length) };
               sentText = text;
@@ -199,8 +201,10 @@ export class ClaudeProvider implements AgentProvider {
           if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error('claude: tool input이 객체가 아닙니다');
           const args = parsed as Record<string, unknown>;
           // 스트리밍으로 못 흘린 텍스트를 마저 보낸다
-          if (STREAMED_TEXT_TOOLS.has(tool) && typeof args.text === 'string' && args.text.startsWith(sentText) && args.text.length > sentText.length) {
-            yield { type: 'text_delta', tool, delta: args.text.slice(sentText.length) };
+          const finalField = STREAMED_TEXT_FIELD[tool];
+          const finalText = finalField ? args[finalField] : undefined;
+          if (typeof finalText === 'string' && finalText.startsWith(sentText) && finalText.length > sentText.length) {
+            yield { type: 'text_delta', tool, delta: finalText.slice(sentText.length) };
           }
           if (!targetSent && typeof args.to === 'string' && args.to) yield { type: 'target', to: args.to };
           yield { type: 'tool_call', call: { name: tool, input: args } };

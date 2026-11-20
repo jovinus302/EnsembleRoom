@@ -30,7 +30,7 @@ export function Sheet({
   // body로 portal해서 모든 시트가 한 곳에서 최상위 계층(z-50)을 갖게 한다.
   return createPortal(
     <div
-      className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
+      className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -42,7 +42,7 @@ export function Sheet({
         aria-label={title}
         tabIndex={-1}
         data-testid={testId}
-        className="anim-card max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-2xl border border-line bg-[#151d30] p-5 shadow-2xl outline-none"
+        className="anim-card max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-2xl border border-line bg-surface surface-sheet p-5 shadow-2xl outline-none"
       >
         <div className="flex items-center gap-2">
           <h2 className="text-base font-semibold">{title}</h2>

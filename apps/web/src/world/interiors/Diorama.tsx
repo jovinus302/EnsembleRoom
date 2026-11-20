@@ -9,6 +9,7 @@ import { ambienceTargets } from '../capsule/InteriorLights';
 import { frostOf } from '../capsule/GlassMaterial';
 import { PlaceholderInterior } from '../capsule/PlaceholderInterior';
 import { themeSeats } from '@ensemble/shared';
+import { BoardToolProps } from './BoardToolProps';
 import { bakeInterior, interiorPalette, usePropParts, type InteriorPalette } from './build';
 import {
   SEAT_CLEARANCE,
@@ -319,6 +320,7 @@ function DioramaInner({ ctx }: { ctx: CapsuleInteriorContext }) {
         <mesh key={`l${i}`} geometry={l.geometry} material={lampMats[i]} />
       ))}
       <BoardObject board={spec.board} pal={pal} color={model.color} level={level} />
+      <BoardToolProps roomId={model.roomId} slots={spec.toolSlots} scale={spec.toolScale} />
       <SeatMarkers spec={spec} />
     </group>
   );

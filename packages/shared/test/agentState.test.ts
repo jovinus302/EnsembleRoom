@@ -346,3 +346,22 @@ describe('agentState (8.5 표 1:1)', () => {
     expect(events).toHaveLength(0);
   });
 });
+
+describe('board_tool_created cue', () => {
+  const created: EventPayload = {
+    type: 'board_tool_created',
+    toolId: 't_1',
+    title: '사다리',
+    ownerTag: 'ours',
+    init: { kind: 'ladder', participants: ['A', 'B'], outcomes: ['x', '꽝'] },
+  };
+  it('이 Agent가 올리면 hold_card + card 타깃, 다른 행위자면 변화 없음', () => {
+    const mine = run(alice, [[created, { actorKind: 'agent', actorId: 'agent-alice' }]]).state;
+    expect(mine.cue).toEqual({ kind: 'hold_card', seq: 1 });
+    expect(mine.target).toEqual({ kind: 'card', id: 't_1' });
+    const other = run(alice, [[created, { actorKind: 'human', actorId: 'bob' }]]).state;
+    expect(other.cue).toBeNull();
+    const ra = run(roomAgent, [[created, { actorKind: 'room_agent', actorId: 'ra-friends' }]]).state;
+    expect(ra.cue).toEqual({ kind: 'hold_card', seq: 1 });
+  });
+});

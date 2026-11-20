@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CapabilitySchema } from './permissions';
+import { BoardToolInitSchema, BoardToolOpSchema } from './boardTools';
 
 /* ------------------------------------------------------------------ */
 /* 기본 열거형                                                          */
@@ -127,6 +128,10 @@ const message = ev('message', {
   to: id.optional(),
   memoryRefs: z.array(id).optional(),
   clientId: id.optional(),
+  /** A2A 질문의 수신 Agent들 (1~3). 서버(ask_agents 도구)만 채운다. 사람 API로는 쓸 수 없다. */
+  recipients: z.array(id).min(1).max(3).optional(),
+  /** 이 메시지가 답하는 A2A 질문의 seq. 서버만 채운다. */
+  replyTo: z.number().int().min(1).optional(),
 });
 const cardCreated = ev('card_created', {
   cardId: id,
@@ -137,6 +142,16 @@ const cardCreated = ev('card_created', {
 const cardUpdated = ev('card_updated', { cardId: id, patch: CardPatchSchema, version: z.number().int().min(1) });
 const commentAdded = ev('comment_added', { cardId: id, text: z.string() });
 const cardPointed = ev('card_pointed', { cardId: id, toAgentId: id });
+
+// 보드 도구 (사다리·정산표·여행 계획). 가시성은 항상 'room'
+const boardToolCreated = ev('board_tool_created', {
+  toolId: id,
+  title: z.string().min(1).max(80),
+  ownerTag: OwnerTagSchema,
+  init: BoardToolInitSchema,
+});
+const boardToolUpdated = ev('board_tool_updated', { toolId: id, op: BoardToolOpSchema });
+const boardToolRemoved = ev('board_tool_removed', { toolId: id });
 
 // Agent
 const agentTurnStarted = ev('agent_turn_started', {
@@ -223,6 +238,9 @@ export const EventPayloadSchema = z.discriminatedUnion('type', [
   cardUpdated,
   commentAdded,
   cardPointed,
+  boardToolCreated,
+  boardToolUpdated,
+  boardToolRemoved,
   agentTurnStarted,
   agentStep,
   agentTurnEnded,

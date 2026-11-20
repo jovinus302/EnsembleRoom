@@ -8,7 +8,7 @@ import type { QualityConfig, QualityTier } from '../quality';
 import { applyFrost, createShellMaterial, frostOf, TransmissiveGlass } from './GlassMaterial';
 import { InteriorLights } from './InteriorLights';
 import { RoomSign } from './RoomSign';
-import { paintGradient, pillGeometry, seamRing, stadiumRing, stadiumSlab } from './geometry';
+import { memberDots, paintGradient, pillGeometry, seamRing, stadiumBand, stadiumRing, stadiumSlab, stripeColorAt } from './geometry';
 import { glowTexture } from './glow';
 import { interiorLampPoints } from '../interiors/build';
 import { interiorSpec } from '../interiors/layouts';
@@ -83,27 +83,36 @@ export function CapsuleShell({
 }: CapsuleShellProps) {
   const d = placement.dims;
   const stops = model.memberColors;
+  const our = d.proportion === 'plump';
   const tint = useMemo(() => new THREE.Color(model.color), [model.color]);
 
   const geos = useMemo(() => {
     const pill = pillGeometry(d);
     const shadowPill = pillGeometry(d, 0.985);
     const inner = pillGeometry(d, 0.968);
-    const contact = new THREE.PlaneGeometry(d.length + d.radius * 2 + 3.4, d.radius * 2 + 2.2);
+    const bl = d.baseHalfLength;
+    const bd = d.baseHalfDepth;
+    const contact = new THREE.PlaneGeometry((2 * (bl + 0.12)) / 0.66, (2 * (bd + 0.12)) / 0.47);
     contact.rotateX(-Math.PI / 2);
-    const slab = stadiumSlab(d.floorHalfLength + 0.12, d.floorHalfDepth + 0.12, -0.26, 0);
-    const band = stadiumSlab(d.floorHalfLength + 0.06, d.floorHalfDepth + 0.06, -0.48, -0.26);
-    paintGradient(band, stops, (x) => (x / (d.floorHalfLength + 0.06) + 1) / 2);
-    const base = stadiumSlab(d.floorHalfLength, d.floorHalfDepth, -d.floorHeight, -0.48);
+    const slab = stadiumSlab(bl + 0.12, bd + 0.12, -0.26, 0);
+    let band: THREE.BufferGeometry;
+    if (our) {
+      band = stadiumBand(bl + 0.06, bd + 0.06, -0.48, -0.26, stripeColorAt(stops, bl + 0.06));
+    } else {
+      band = stadiumSlab(bl + 0.06, bd + 0.06, -0.48, -0.26);
+      paintGradient(band, stops, (x) => (x / (bl + 0.06) + 1) / 2);
+    }
+    const base = stadiumSlab(bl, bd, -d.floorHeight, -0.48);
+    const dots = our ? memberDots(stops, d) : null;
     const ring = seamRing(d.radius + 0.025, stops);
     const attnRing = new THREE.TorusGeometry(d.radius + 0.13, 0.05, 10, 72);
     attnRing.rotateY(Math.PI / 2);
-    const halo = stadiumRing(d.floorHalfLength + 0.4, d.floorHalfDepth + 0.4, 0.55);
-    return { pill, shadowPill, inner, contact, slab, band, base, ring, halo, attnRing };
-  }, [d, stops]);
+    const halo = stadiumRing(bl + 0.4, bd + 0.4, 0.55);
+    return { pill, shadowPill, inner, contact, slab, band, base, ring, halo, attnRing, dots };
+  }, [d, stops, our]);
   useEffect(
     () => () => {
-      Object.values(geos).forEach((g) => g.dispose());
+      Object.values(geos).forEach((g) => g?.dispose());
     },
     [geos],
   );
@@ -218,13 +227,14 @@ export function CapsuleShell({
     haloMat.opacity = THREE.MathUtils.damp(haloMat.opacity, Math.max(selected ? 0.75 + 0.2 * Math.sin(t * 2.4) : h * 0.5, agentHalo), 8, dt);
   });
 
+  // 포커스된 캡슐의 유리 앞면은 안쪽 소품(보드 도구 등)의 클릭·호버를 가로채지 않는다(소품이 stopPropagation으로 직접 처리)
   const over = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
+    if (!focusTarget) e.stopPropagation();
     onHover(model.roomId);
   };
   const out = () => onHover(null);
   const click = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
+    if (!focusTarget) e.stopPropagation();
     onSelect(model.roomId);
   };
 
@@ -280,11 +290,16 @@ export function CapsuleShell({
           <mesh geometry={geos.band} castShadow>
             <meshStandardMaterial vertexColors roughness={0.35} metalness={0.15} />
           </mesh>
+          {geos.dots ? (
+            <mesh geometry={geos.dots}>
+              <meshBasicMaterial vertexColors toneMapped={false} />
+            </mesh>
+          ) : null}
           <mesh geometry={geos.slab} receiveShadow castShadow>
             <meshStandardMaterial color="#e2c597" roughness={0.6} />
           </mesh>
           {/* 간판: 포커스일 때만(조망에서는 DOM 칩 하나만 이름을 보여 준다) */}
-          {focused ? <RoomSign label={model.label} color={model.color} dims={d} hover={0} /> : null}
+          {focused ? <RoomSign label={model.label} color={model.color} colors={our ? stops : undefined} dims={d} hover={0} /> : null}
           <InteriorLights
             stage={model.ambience}
             dims={d}

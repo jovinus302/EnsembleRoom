@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ourColor } from '@ensemble/shared';
+import { INTERACTION_COLORS, INTERACTION_HINT, INTERACTION_LABEL, ourColor } from '@ensemble/shared';
 import { onFx, type FxEvent } from '../fx/fxStore';
 import { useSession } from '../store/session';
 import { useWorld } from '../store/worldStore';
 import { useRect } from './WorldHost';
 import { useStage } from './stageStore';
+import { ink } from '../theme';
 
 /**
  * DOM 피드백 오버레이 (S19a/c). 3D가 덮이지 않는 곳(패널 위, 토스트, Lottie)에서 같은 fxStore 사건에 반응한다.
@@ -145,17 +146,17 @@ export function FxOverlay() {
       {approvalReq ? (
         <>
           <div key={`edge${approvalReq.id}`} className="fx-edge-pulse absolute inset-0" style={{ boxShadow: 'inset 0 0 120px 10px rgba(255,138,61,0.55)' }} />
-          <div key={`ap${approvalReq.id}`} data-testid="fx-approval-toast" className="fx-pop absolute left-1/2 top-16 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#ff8a3d]/70 bg-[#2b1708]/90 py-1 pl-1 pr-4 text-sm text-[#ffd9b3] shadow-[0_0_30px_rgba(255,138,61,0.5)]">
+          <div key={`ap${approvalReq.id}`} data-testid="fx-approval-toast" className="fx-pop absolute left-1/2 top-16 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#ff8a3d] bg-[#fff1e0]/95 py-1 pl-1 pr-4 text-sm text-[#6b3300] shadow-[0_6px_24px_rgba(255,138,61,0.45)]">
             <LottieMoment name="lime-notify" size={64} durationMs={2300} />
             <span>
               승인 요청{approvalReq.ev.involvesMe ? ' · 내 결정이 필요해요' : ''}
-              {approvalReq.ev.text ? <span className="ml-2 text-[#ffb98a]">{approvalReq.ev.text.slice(0, 28)}</span> : null}
+              {approvalReq.ev.text ? <span className="ml-2 text-[#a34a00]">{approvalReq.ev.text.slice(0, 28)}</span> : null}
             </span>
           </div>
         </>
       ) : null}
       {approvalRes ? (
-        <div key={`res${approvalRes.id}`} data-testid="fx-approval-result" className="fx-pop absolute left-1/2 top-16 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#ffd36a]/60 bg-[#241b08]/90 py-1 pl-1 pr-4 text-sm text-[#ffe6a8]">
+        <div key={`res${approvalRes.id}`} data-testid="fx-approval-result" className="fx-pop absolute left-1/2 top-16 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#e0b030] bg-[#fff6d6]/95 py-1 pl-1 pr-4 text-sm text-[#5e4500] shadow-[var(--shadow-card)]">
           {approvalRes.ev.outcome === 'approved' ? <LottieMoment name="lime-jump-yaw" size={64} durationMs={1800} /> : <span className="w-3" />}
           <span>{OUTCOME_LABEL[approvalRes.ev.outcome ?? 'approved'] ?? '처리됐어요'}</span>
         </div>
@@ -166,7 +167,7 @@ export function FxOverlay() {
           <div className="fx-agree-bloom absolute inset-0" style={{ background: `radial-gradient(circle at 50% 46%, ${agreeColor}aa 0%, ${agreeColor}33 28%, transparent 60%)` }} />
           <div className="fx-pop relative flex flex-col items-center">
             <LottieMoment name="duo-highfive" size={240} durationMs={2000} />
-            <div className="-mt-6 rounded-full px-4 py-1 text-base font-semibold text-white" style={{ background: `${agreeColor}dd`, boxShadow: `0 0 36px ${agreeColor}` }}>
+            <div className="-mt-6 rounded-full px-4 py-1 text-base font-semibold text-[var(--on-accent)]" style={{ background: `${agreeColor}dd`, boxShadow: `0 0 36px ${agreeColor}` }}>
               우리가 합의했어요
             </div>
           </div>
@@ -180,7 +181,7 @@ export function FxOverlay() {
             <div
               key={m.id}
               data-testid={`fx-toast-${m.kind}`}
-              className="fx-pop rounded-full border border-white/20 bg-black/65 px-4 py-1.5 text-sm text-white backdrop-blur"
+              className="fx-pop rounded-full border border-line bg-glass px-4 py-1.5 text-sm text-fg shadow-[var(--shadow-card)] backdrop-blur"
               style={m.ev.color ? { boxShadow: `0 0 18px ${m.ev.color}88`, borderColor: `${m.ev.color}aa` } : undefined}
             >
               {text}
@@ -214,14 +215,17 @@ export function WorldLegend() {
   // 내가 속한 Our 중 첫 번째의 혼합색(없으면 나+상대 혼합)
   const ours = Object.values(rooms).find((r) => r.kind === 'our' && r.memberIds.includes(meId));
   const oursColor = ours ? ourColor(ours.memberIds.map((m) => users[m]?.color).filter((c): c is string => !!c)) : ourColor([me, others[0]?.color ?? me]);
-  const pos: React.CSSProperties = slotRect ? { left: slotRect.left + 8, top: slotRect.top + slotRect.height - 8, transform: 'translateY(-100%)' } : { left: 8, bottom: 40 };
+  // 오른쪽 아래 품질 토글(시점 초기화 포함, 약 260px)을 덮지 않도록 폭을 제한하고 넘치면 줄바꿈한다
+  const pos: React.CSSProperties = slotRect
+    ? { left: slotRect.left + 8, top: slotRect.top + slotRect.height - 8, transform: 'translateY(-100%)', maxWidth: Math.max(240, slotRect.width - 16 - 270) }
+    : { left: 8, bottom: 40 };
   const dot = (c: string, extra?: React.CSSProperties) => <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: c, boxShadow: `0 0 8px ${c}`, ...extra }} />;
   return (
     <div
       role="group"
       aria-label="색 범례"
       data-testid="world-legend"
-      className="fixed z-30 flex items-center gap-3 rounded-full border border-line bg-panel px-3 py-1 text-[11px] text-muted backdrop-blur"
+      className="fixed z-30 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-line bg-panel px-3 py-1 text-[11px] text-muted backdrop-blur"
       style={pos}
     >
       <span className="flex items-center gap-1.5">
@@ -236,7 +240,30 @@ export function WorldLegend() {
       <span className="flex items-center gap-1.5">
         {dot(`linear-gradient(135deg, ${me}, ${others[0]?.color ?? me})`, { background: `linear-gradient(135deg, ${me}, ${others[0]?.color ?? me})`, boxShadow: `0 0 8px ${oursColor}` })}
         <span className="text-fg">우리</span>
-        <span className="opacity-70">(섞인 색)</span>
+        <span className="opacity-90">(섞인 색)</span>
+      </span>
+      <span className="flex items-center gap-1.5" data-testid="world-legend-kind">
+        <span aria-hidden="true" data-testid="legend-human-portrait" className="inline-flex h-3.5 w-3.5 overflow-hidden rounded-full border border-fg">
+          <svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#9fb4d8" /><path d="M14 100 C16 72 34 66 50 66 C66 66 84 72 86 100Z" fill="#2f4b7c" /><rect x="43" y="56" width="14" height="14" fill="#efc29b" /><circle cx="50" cy="42" r="19" fill="#efc29b" /><path d="M30 42 C28 20 44 14 54 16 C68 18 72 30 70 42 C66 32 56 28 46 30 C38 32 33 36 30 42Z" fill="#3a2a22" /></svg>
+        </span>
+        <span className="text-fg">사람</span>
+        <span className="text-fg opacity-60">/</span>
+        <span className="inline-flex h-3.5 w-3.5 items-center justify-center bg-fg text-[9px] leading-none text-bg" style={{ clipPath: 'polygon(25% 0, 75% 0, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0 75%, 0 25%)' }}>✦</span>
+        <span className="text-fg">Agent</span>
+        <span className="opacity-90">(둥근 이름표 / 각진 이름표)</span>
+      </span>
+      <span className="flex items-center gap-1.5" data-testid="world-legend-interaction">
+        {(['a2a', 'a2h'] as const).map((k, i) => (
+          <span key={k} className="flex items-center gap-1.5" data-testid={`world-legend-${k}`}>
+            {i > 0 ? <span className="text-fg opacity-60">·</span> : null}
+            <span
+              className="inline-block w-5"
+              style={{ borderTop: `2px ${k === 'a2a' ? 'dashed' : 'solid'} ${INTERACTION_COLORS[k]}`, filter: `drop-shadow(0 0 3px ${INTERACTION_COLORS[k]})` }}
+            />
+            <span className="font-semibold" style={{ color: ink(INTERACTION_COLORS[k]) }}>{INTERACTION_LABEL[k]}</span>
+            <span className="opacity-90">{INTERACTION_HINT[k]}</span>
+          </span>
+        ))}
       </span>
     </div>
   );

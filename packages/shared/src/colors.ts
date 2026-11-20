@@ -23,12 +23,13 @@ export const RESERVED_COLORS: readonly string[] = [
   PALETTE.approvalOrange,
 ];
 
-/** 사용자 고유 색 (시드: Alice 코랄, Bob 스카이, 엄마 핑크, Dana 옐로) */
+/** 사용자 고유 색 (시드: Alice 코랄, Bob 스카이, 엄마 핑크, Dana 옐로, 아빠 그린) */
 export const USER_COLORS = {
   coral: '#ff7f6e',
   sky: '#5db8f0',
   pink: '#e58fb5',
   yellow: '#f2d04e',
+  green: '#5fc46e',
 } as const;
 
 export const USER_COLOR_CHOICES: readonly string[] = Object.values(USER_COLORS);

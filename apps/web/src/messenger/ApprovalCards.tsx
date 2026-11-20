@@ -11,7 +11,9 @@ import type {
 } from '@ensemble/shared';
 import { api, voteErrorText } from '../api/client';
 import { useApprovalInbox } from '../store/approvalStore';
+import { ChannelBadge, ThreadLinkChip } from './InteractionChips';
 import { APPROVAL_ORANGE } from './visits';
+import { tint, APPROVAL_INK } from '../theme';
 
 export const APPROVAL_KIND_LABEL: Record<ApprovalKind, string> = {
   edit: '수정 제안',
@@ -51,6 +53,10 @@ export interface ApprovalView {
   applied?: EditProposal;
   /** 투표자별로 고른 선택지 / 수정안 (approval_voted 이벤트) */
   voteDetail?: Record<string, { option?: string; edited?: EditProposal }>;
+  /** Agent가 연 승인(A2H). threadSeq가 있으면 A2A 대화에서 나온 승인이다. */
+  a2h?: { threadSeq: number | null };
+  /** 이벤트 seq (data-seq 스크롤 앵커) */
+  seq?: number;
 }
 
 type ApprovalRequestedEvent = Extract<RoomEvent, { type: 'approval_requested' }>;
@@ -79,6 +85,7 @@ export function approvalViewFromEvents(
     status: state?.status ?? 'pending',
     requesterName,
     ts: event.ts,
+    seq: event.seq,
     resolvedOption: state?.resolvedOption ?? null,
     applied: state?.appliedProposal,
     voteDetail,
@@ -104,8 +111,8 @@ export function approvalViewFromDto(a: ApprovalItemDto, requesterName: string): 
 }
 
 const primary =
-  'rounded-md px-3 py-1.5 text-sm font-semibold text-[#0b1020] transition hover:brightness-110 disabled:opacity-50';
-const ghost = 'rounded-md border px-3 py-1.5 text-sm transition hover:bg-white/5 disabled:opacity-50';
+  'rounded-md px-3 py-1.5 text-sm font-semibold text-[var(--on-accent)] transition hover:brightness-110 disabled:opacity-50';
+const ghost = 'rounded-md border px-3 py-1.5 text-sm transition hover:bg-hover disabled:opacity-50';
 
 function EditForm({
   proposal,
@@ -241,20 +248,33 @@ export function ApprovalCard({
       data-testid="approval-card"
       data-status={status}
       data-kind={view.kind}
+      data-seq={view.seq}
       data-actionable={actionable ? 'true' : 'false'}
-      className={`anim-card my-1 w-full rounded-xl p-3.5 text-sm ${status === 'pending' ? 'approval-pending border-2' : 'border'} ${compact ? '' : 'max-w-[560px] self-center'}`}
+      className={`surface-card anim-card my-1 w-full rounded-xl p-3.5 text-sm ${status === 'pending' ? 'approval-pending border-2' : 'border'} ${compact ? '' : 'max-w-[560px] self-center'}`}
       style={
         {
           // 색 값(PALETTE.approvalOrange)은 그대로 두고, L1(승인)이 가장 눈에 띄도록 두꺼운 테두리·왼쪽 띠·글로우(approval-pending, index.css)로 보강한다
           '--glow': APPROVAL_ORANGE,
           borderColor: status === 'pending' ? APPROVAL_ORANGE : `${APPROVAL_ORANGE}66`,
-          background: `${APPROVAL_ORANGE}${status === 'pending' ? '1f' : '0a'}`,
+          backgroundColor: tint(APPROVAL_ORANGE, status === 'pending' ? '--tint-approval-pending' : '--tint-approval'),
         } as React.CSSProperties
       }
     >
+      {view.a2h && (
+        <div data-testid="a2h-header" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs">
+          <ChannelBadge channel="a2h" />
+          <span className="font-medium">{view.requesterName}</span>
+          <span className="text-muted">→</span>
+          <span className="font-medium" data-testid="a2h-approvers">
+            {approverNames}
+          </span>
+          <span className="text-muted">· 승인 요청</span>
+          {view.a2h.threadSeq !== null && <ThreadLinkChip label="A2A 대화에서" threadSeq={view.a2h.threadSeq} />}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded-full px-2 py-0.5 font-semibold text-[#0b1020]" style={{ background: APPROVAL_ORANGE }}>
-          {status === 'pending' && <span aria-hidden="true" className="approval-dot mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[#0b1020] align-middle" />}
+        <span className="rounded-full px-2 py-0.5 font-semibold text-[var(--on-accent)]" style={{ background: APPROVAL_ORANGE }}>
+          {status === 'pending' && <span aria-hidden="true" className="approval-dot mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--on-accent)] align-middle" />}
           {APPROVAL_KIND_LABEL[view.kind]}
         </span>
         <span className="text-muted">
@@ -262,7 +282,7 @@ export function ApprovalCard({
           {view.requesterName} 요청{view.ts ? ` · ${fmtTime(view.ts)}` : ''}
         </span>
         {status !== 'pending' && (
-          <span className="ml-auto font-medium" style={{ color: APPROVAL_ORANGE }} data-testid="approval-outcome">
+          <span className="ml-auto font-medium" style={{ color: APPROVAL_INK }} data-testid="approval-outcome">
             {OUTCOME_LABEL[status]}
             {status === 'approved' && view.resolvedOption ? ` · ${view.resolvedOption}` : ''}
           </span>
@@ -327,7 +347,7 @@ export function ApprovalCard({
               type="button"
               disabled={busy}
               className={ghost}
-              style={{ borderColor: APPROVAL_ORANGE, color: APPROVAL_ORANGE }}
+              style={{ borderColor: APPROVAL_ORANGE, color: APPROVAL_INK }}
               data-testid="approval-edit"
               onClick={() => setEditing(true)}
             >
@@ -338,7 +358,7 @@ export function ApprovalCard({
             type="button"
             disabled={busy}
             className={ghost}
-            style={{ borderColor: APPROVAL_ORANGE, color: APPROVAL_ORANGE }}
+            style={{ borderColor: APPROVAL_ORANGE, color: APPROVAL_INK }}
             data-testid="approval-reject"
             onClick={() => void decide('reject')}
           >
@@ -366,7 +386,7 @@ export function ApprovalCard({
       )}
 
       {note && (
-        <p role={note.kind === 'error' ? 'alert' : 'status'} className={`mt-2 text-xs ${note.kind === 'error' ? 'text-red-300' : 'text-muted'}`}>
+        <p role={note.kind === 'error' ? 'alert' : 'status'} className={`mt-2 text-xs ${note.kind === 'error' ? 'text-danger' : 'text-muted'}`}>
           {note.text}
         </p>
       )}

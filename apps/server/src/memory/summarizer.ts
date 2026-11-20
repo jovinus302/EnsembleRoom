@@ -44,7 +44,7 @@ export class MockSummaryProvider implements SummaryProvider {
     const lines = req.lines.slice(-MAX_LINES);
     const count = (re: RegExp) => lines.filter((l) => re.test(l)).length;
     // 대화 줄은 "#seq 이름 → 이름: 내용" 모양이라 ':' 앞에 아래 낱말이 없다
-    const nonChat = lines.filter((l) => /카드|코멘트|승인|합의|방문|도착|메모|보고/.test(l.split(': ')[0] ?? l)).length;
+    const nonChat = lines.filter((l) => /카드|코멘트|승인|합의|방문|도착|메모|보고|보드/.test(l.split(': ')[0] ?? l)).length;
     const msgs = lines.length - nonChat;
     const stats = `대화 ${msgs}건, 카드 변경 ${count(/카드|코멘트/)}건, 승인 ${count(/승인/)}건${count(/합의/) ? `, 합의 ${count(/합의/)}건` : ''}`;
     const recent = lines.slice(-3).map((l) => clip(l.replace(/^#\d+ /, ''), 60));

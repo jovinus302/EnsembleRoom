@@ -6,7 +6,9 @@ import { useActivity } from '../store/activityStore';
 import { useWorld } from '../store/worldStore';
 import { WorkingDots } from './AgentActivity';
 import { ApprovalInbox } from './ApprovalInbox';
+import { GuideButton } from '../onboarding/Tour';
 import { Avatar } from './Avatar';
+import { InteractionChip } from './InteractionChip';
 import { AMBIENCE_LABEL, colorOf, dmPeer, titleOf } from './labels';
 
 function UnreadBadge({ n }: { n: number }) {
@@ -14,7 +16,7 @@ function UnreadBadge({ n }: { n: number }) {
   return (
     <span
       aria-label={`안 읽은 메시지 ${n}개`}
-      className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-fg px-1.5 text-[11px] font-semibold leading-5 text-bg"
+      className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold leading-5 text-[var(--on-accent-strong)]"
     >
       {n > 99 ? '99+' : n}
     </span>
@@ -42,6 +44,7 @@ function RoomRow({ room, sub }: { room: WorldRoom; sub?: string }) {
   const working = useActivity((s) => Object.values(s.byKey).some((a) => a.roomId === room.id));
   const previewWorking = room.preview.detail?.agents.some((a) => a.activity === 'thinking' || a.activity === 'drafting' || a.activity === 'talking');
   const busy = working || !!previewWorking;
+  const myLeave = room.preview.detail?.myLeave ?? null;
   return (
     <li>
       <button
@@ -51,7 +54,7 @@ function RoomRow({ room, sub }: { room: WorldRoom; sub?: string }) {
         className={`flex w-full items-center gap-3 rounded-lg border px-2 py-2 text-left transition ${
           selected ? 'bg-raised' : 'border-transparent hover:bg-raised/60'
         }`}
-        style={selected ? { borderColor: color } : undefined}
+        style={selected ? { borderColor: color, boxShadow: 'var(--shadow)' } : undefined}
       >
         {room.kind === 'dm' ? (
           <Avatar name={peer?.name ?? title} color={color} />
@@ -71,6 +74,12 @@ function RoomRow({ room, sub }: { room: WorldRoom; sub?: string }) {
               </span>
             )}
           </span>
+          <InteractionChip interaction={room.preview.detail?.interaction} />
+          {myLeave && (
+            <span data-testid="room-left-status" data-leave={myLeave} className="mt-0.5 inline-block rounded-full border border-[var(--focus)] px-1.5 text-[10px] leading-4 text-[var(--focus)]">
+              {myLeave === 'delegated' ? 'Leave함 · Agent 대리 중' : 'Leave함'}
+            </span>
+          )}
           {sub && <span className="block truncate text-xs text-muted">{sub}</span>}
         </span>
         <UnreadBadge n={unread} />
@@ -102,14 +111,17 @@ export function Sidebar() {
             로그아웃
           </button>
         </div>
-        <button
-          type="button"
-          data-testid="open-metrics"
-          onClick={() => navigate('/metrics')}
-          className="ml-auto self-start rounded-md border border-line px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg"
-        >
-          지표
-        </button>
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 self-start">
+          <GuideButton id="home" />
+          <button
+            type="button"
+            data-testid="open-metrics"
+            onClick={() => navigate('/metrics')}
+            className="rounded-md border border-line px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg"
+          >
+            지표
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto pb-4">

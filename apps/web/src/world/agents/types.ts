@@ -1,4 +1,16 @@
-import type { AgentActivity, AgentCueKind, AgentMode, AgentTarget } from '@ensemble/shared';
+import type { AgentActivity, AgentCueKind, AgentMode, AgentTarget, InteractionChannel } from '@ensemble/shared';
+
+/** 출발 캐릭터에서 다른 캐릭터로 이어지는 A2A/A2H 연결선 하나(포커스 방에서만 채워진다) */
+export interface CharacterLink {
+  toCharId: string;
+  channel: Exclude<InteractionChannel, 'h2a'>;
+  seq: number;
+  /** 시간 감쇠 기준 시각(ms). pending이면 무시 */
+  at: number;
+  pending: boolean;
+  /** 펄스가 toCharId -> 이 캐릭터 방향으로 흐른다(a2a_answer) */
+  reverse?: boolean;
+}
 
 /** 캡슐 안에 서는 인물 하나(사람, Personal Agent, Room Agent)의 표시 입력. WorldCanvas의 `characters` prop이 받는다 */
 export interface CharacterInput {
@@ -38,6 +50,14 @@ export interface CharacterInput {
   seatUserId: string | null;
   /** 서버가 알려 준 가장 최근 방문 이동(출발→호스트). seq가 바뀌면 튜브 이동 연출을 한 번 재생한다. 모르면 없음 */
   travel?: { fromRoomId: string; toRoomId: string; seq: number } | null;
+  /** 사람 전용: 이 방의 구성원인데 지금 접속해 있지 않음(명시적 Leave 아님). 흐리게 + "자리 비움", 이동 없음. id는 `ha:<userId>:<roomId>` */
+  away?: boolean;
+  /** 이 캐릭터에서 출발하는 A2A/A2H 연결선 */
+  links?: readonly CharacterLink[];
+  /** A2A/A2H 연결선의 한쪽 끝(이름표를 펼친다) */
+  linked?: boolean;
+  /** 사람 전용: 이 사람이 승인자인 미해소 Agent 승인이 있음 */
+  alert?: 'approval' | null;
 }
 
 /** 월드 전체 캐릭터 입력 */

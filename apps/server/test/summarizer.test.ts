@@ -85,7 +85,7 @@ describe('요약기: Room 요약 갱신', () => {
     expect(ctx.repo.getRoomSummary(R.friends)).toBeUndefined();
     dispatch(ctx, human(alice), { type: 'rejoin_room', roomId: R.friends });
     await ctx.agents.drain();
-    expect(ctx.repo.getRoomSummary(R.friends)?.text).toContain('대화 1건');
+    expect(ctx.repo.getRoomSummary(R.friends)?.text).toContain('대화 4건'); // 시드 대화 3건 + Bob 1건
   });
 
   it('mock 요약은 결정적이다', async () => {

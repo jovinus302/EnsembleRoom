@@ -38,6 +38,9 @@ export const AGENT_ACTIVITY_LABEL: Record<string, string> = {
   paused: '멈춤',
 };
 
+/** 자리 비움(접속 안 함) 중 서버가 자동으로 깨운 대리 응답. 명시적 Leave 대리("대리 중")와 구분한다 */
+export const AUTO_REPLY_LABEL = '자리 비움 · 자동 대리';
+
 export const AGENT_MODE_LABEL: Record<string, string> = {
   accompanied: '동행',
   representing: '대리 중',

@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { WorldLayout } from './layout';
-import { totalLength } from './capsule/dims';
+import { footprintHalf, totalLength } from './capsule/dims';
 import { SUN_DIRECTION, patchSky, skyState } from './sky';
 import { cameraNudge } from './fx/cameraNudge';
+import { ORBIT_MAX_ELEV_DEG, ORBIT_MAX_YAW_DEG, ORBIT_MAX_ZOOM, ORBIT_MIN_ELEV_DEG, ORBIT_MIN_ZOOM, useOrbit } from './cameraOrbit';
 
 export const INTRO_MS = 3000;
 /** 하늘이 올라온 뒤 석양 구도를 이만큼 보여 주고 내려오기 시작한다 */
@@ -27,8 +28,11 @@ function fitDistance(width: number, aspect: number, fovDeg: number): number {
   return width / 2 / Math.tan(hHalf);
 }
 
-const OVERVIEW_PITCH = THREE.MathUtils.degToRad(19);
-const FOCUS_PITCH = THREE.MathUtils.degToRad(14);
+const OVERVIEW_PITCH = THREE.MathUtils.degToRad(25);
+/** 포커스 기울기: 너무 낮으면 탁자 둘레에 선 호가 한 줄로 겹쳐 보인다 */
+const FOCUS_PITCH = THREE.MathUtils.degToRad(19);
+const MIN_ELEV = THREE.MathUtils.degToRad(ORBIT_MIN_ELEV_DEG);
+const MAX_ELEV = THREE.MathUtils.degToRad(ORBIT_MAX_ELEV_DEG);
 
 export function overviewPose(layout: WorldLayout, aspect: number, fov: number): CameraPose {
   const { minX, maxX, minZ, maxZ } = layout.bounds;
@@ -41,11 +45,13 @@ export function overviewPose(layout: WorldLayout, aspect: number, fov: number): 
   const cam = new THREE.PerspectiveCamera(fov, aspect, 0.5, 3000);
   const pts: THREE.Vector3[] = [];
   for (const p of Object.values(layout.placements)) {
-    const hl = totalLength(p.dims) / 2;
+    const fp = footprintHalf(p.dims);
+    const hl = Math.max(totalLength(p.dims) / 2, fp.hl);
+    const hd = Math.max(p.dims.radius, fp.hd);
     const top = p.dims.axisHeight + p.dims.radius;
     for (const sx of [-1, 1])
       for (const sz of [-1, 1])
-        for (const y of [0, top]) pts.push(new THREE.Vector3(p.x + sx * hl, y, p.z + sz * p.dims.radius));
+        for (const y of [0, top]) pts.push(new THREE.Vector3(p.x + sx * hl, y, p.z + sz * hd));
   }
   let dist = 36;
   for (; dist < 240; dist += 2) {
@@ -65,9 +71,9 @@ export function overviewPose(layout: WorldLayout, aspect: number, fov: number): 
 export function focusPose(layout: WorldLayout, roomId: string, aspect: number, fov: number): CameraPose | null {
   const p = layout.placements[roomId];
   if (!p) return null;
-  const width = totalLength(p.dims) + 3.5;
+  const width = Math.max(totalLength(p.dims), 2 * footprintHalf(p.dims).hl) + 2.2;
   const dist = Math.max(fitDistance(width, aspect, fov), p.dims.radius * 5);
-  const target = new THREE.Vector3(p.x, p.dims.floorHeight + p.dims.radius * 0.75, p.z);
+  const target = new THREE.Vector3(p.x, p.dims.floorHeight + p.dims.radius * 0.75 - (p.dims.proportion === 'plump' ? p.dims.radius / 3 : 0), p.z);
   // 캡슐의 앞면 방향(rotY)에서 살짝 비껴 서서 입체감을 준다
   const az = p.rotY + 0.34;
   const position = new THREE.Vector3(
@@ -141,6 +147,115 @@ export function CameraRig({
     }
   }, [pose, camera, intro, reducedMotion, focusRoomId]);
 
+  // 사용자 조절: 드래그=회전·기울기, 휠=줌, 더블클릭/칩=초기화. 캔버스 위에서만 받으므로 2D UI 위 입력은 영향이 없다
+  const orbit = useRef({ yaw: 0, pitch: 0, zoom: 1, tYaw: 0, tPitch: 0, tZoom: 1, baseElev: OVERVIEW_PITCH });
+  const orb = useRef(new THREE.Vector3());
+  const gl = useThree((s) => s.gl);
+  const introRunning = () => introRef.current !== null;
+  const resetOrbit = () => {
+    const o = orbit.current;
+    o.tYaw = o.tPitch = 0;
+    o.tZoom = 1;
+    if (reducedMotion) {
+      o.yaw = o.pitch = 0;
+      o.zoom = 1;
+    }
+    useOrbit.setState({ dirty: false });
+  };
+  const markDirty = () => {
+    const o = orbit.current;
+    const d = Math.abs(o.tYaw) > 0.01 || Math.abs(o.tPitch) > 0.01 || Math.abs(o.tZoom - 1) > 0.01;
+    if (useOrbit.getState().dirty !== d) useOrbit.setState({ dirty: d });
+  };
+  // 포커스 대상이 바뀌면 오프셋을 버린다: 대상마다 자연스러운 구도가 달라서 이전 각도를 끌고 가면 어색하다
+  useEffect(() => {
+    resetOrbit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRoomId]);
+  useEffect(() => useOrbit.subscribe((s, p) => { if (s.resetSeq !== p.resetSeq) resetOrbit(); }), [reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const el = gl.domElement;
+    const wrap = el.parentElement;
+    if (!wrap) return;
+    el.style.touchAction = 'none';
+    let drag: { id: number; x: number; y: number; moved: boolean } | null = null;
+    let justDragged = false;
+    const DRAG_PX = 4;
+    const down = (e: PointerEvent) => {
+      if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0) || introRunning()) return;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
+    };
+    const move = (e: PointerEvent) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const o = orbit.current;
+      if (!drag.moved) {
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < DRAG_PX) return;
+        drag.moved = true;
+        el.style.cursor = 'grabbing';
+        drag.x = e.clientX;
+        drag.y = e.clientY;
+        return;
+      }
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+      const yawMax = THREE.MathUtils.degToRad(ORBIT_MAX_YAW_DEG);
+      o.tYaw = THREE.MathUtils.clamp(o.tYaw - dx * 0.0055, -yawMax, yawMax);
+      // 아래로 끌면 카메라가 올라간다(장면을 잡아 돌리는 느낌)
+      o.tPitch = THREE.MathUtils.clamp(o.tPitch + dy * 0.004, MIN_ELEV - o.baseElev, MAX_ELEV - o.baseElev);
+      if (reducedMotion) {
+        o.yaw = o.tYaw;
+        o.pitch = o.tPitch;
+      }
+      markDirty();
+    };
+    const up = (e: PointerEvent) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (drag.moved) {
+        justDragged = true;
+        window.setTimeout(() => (justDragged = false), 0);
+      }
+      drag = null;
+      el.style.cursor = '';
+    };
+    const click = (e: MouseEvent) => {
+      if (justDragged) {
+        justDragged = false;
+        e.stopPropagation();
+      }
+    };
+    const wheel = (e: WheelEvent) => {
+      if (introRunning()) return;
+      e.preventDefault();
+      const o = orbit.current;
+      o.tZoom = THREE.MathUtils.clamp(o.tZoom * Math.exp(e.deltaY * 0.0012), ORBIT_MIN_ZOOM, ORBIT_MAX_ZOOM);
+      if (reducedMotion) o.zoom = o.tZoom;
+      markDirty();
+    };
+    const dbl = () => {
+      if (!introRunning()) resetOrbit();
+    };
+    el.addEventListener('pointerdown', down);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    el.addEventListener('wheel', wheel, { passive: false });
+    el.addEventListener('dblclick', dbl);
+    // R3F는 부모 div에서 click을 받는다: 캡처 단계에서 끊어 드래그 끝의 click이 선택·포커스로 번지지 않게 한다
+    wrap.addEventListener('click', click, true);
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      el.removeEventListener('wheel', wheel);
+      el.removeEventListener('dblclick', dbl);
+      wrap.removeEventListener('click', click, true);
+      el.style.cursor = '';
+    };
+  }, [gl, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useFrame((state, dt) => {
     const c = cur.current;
     if (!c) return;
@@ -174,9 +289,24 @@ export function CameraRig({
     c.target.x = THREE.MathUtils.damp(c.target.x, pose.target.x, lam, dt);
     c.target.y = THREE.MathUtils.damp(c.target.y, pose.target.y, lam, dt);
     c.target.z = THREE.MathUtils.damp(c.target.z, pose.target.z, lam, dt);
+    // 사용자 오프셋(회전·기울기·줌)을 감쇠된 포즈 위에 얹는다
+    const o = orbit.current;
+    const ok = reducedMotion ? 1 : 1 - Math.exp(-10 * dt);
+    o.yaw += (o.tYaw - o.yaw) * ok;
+    o.pitch += (o.tPitch - o.pitch) * ok;
+    o.zoom += (o.tZoom - o.zoom) * ok;
+    const v = orb.current.copy(c.position).sub(c.target);
+    const r0 = Math.max(v.length(), 0.001);
+    const elev0 = Math.asin(THREE.MathUtils.clamp(v.y / r0, -1, 1));
+    o.baseElev = elev0;
+    const az = Math.atan2(v.x, v.z) + o.yaw;
+    const elev = THREE.MathUtils.clamp(elev0 + o.pitch, MIN_ELEV, MAX_ELEV);
+    const r = r0 * o.zoom;
+    const ce = Math.cos(elev);
+    v.set(Math.sin(az) * ce * r, Math.sin(elev) * r, Math.cos(az) * ce * r);
     const px = reducedMotion ? 0 : state.pointer.x * 0.9;
     const py = reducedMotion ? 0 : state.pointer.y * 0.35;
-    camera.position.set(c.position.x + px + cameraNudge.cur.x, c.position.y + py + cameraNudge.cur.y, c.position.z + cameraNudge.cur.z);
+    camera.position.set(c.target.x + v.x + px + cameraNudge.cur.x, c.target.y + v.y + py + cameraNudge.cur.y, c.target.z + v.z + cameraNudge.cur.z);
     camera.lookAt(c.target);
     // 틸트시프트 초점 띠: 대상(포커스 캡슐 또는 조망의 중심 캡슐)의 화면 y
     tmp.current.copy(c.target).project(camera);

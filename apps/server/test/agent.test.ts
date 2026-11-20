@@ -108,10 +108,10 @@ describe('스케줄러: 결정적 순서와 turn_started 선기록', () => {
     expect(ofType(R.myAlice, 'agent_turn_ended')).toMatchObject([{ result: 'pass', passReason: 'nothing_to_add' }]);
   });
 
-  it('시드 사용자의 Agent는 깨우지 않는다', async () => {
+  it('시드 사용자(엄마)의 Agent도 지목되면 auto_reply로 돈다 (승인 요청 도구는 없다)', async () => {
     say(alice, R.family, '엄마에게', A.mom);
     await ctx.agents.drain();
-    expect(turnsOf(R.family, A.mom)).toHaveLength(0);
+    expect(turnsOf(R.family, A.mom)).toMatchObject([{ trigger: { reason: 'auto_reply' } }]);
     expect(mom).toBeDefined();
   });
 
@@ -313,7 +313,7 @@ describe('권한 강제와 검증', () => {
     say(alice, R.friends, '정리해줘', SEED.roomAgents.friends);
     await ctx.agents.drain();
     expect(lastOutcome()).toMatchObject({ agentId: SEED.roomAgents.friends, errorCode: 'tool_not_allowed' });
-    expect(ofType(R.friends, 'card_created')).toHaveLength(0);
+    expect(ofType(R.friends, 'card_created')).toHaveLength(1); // 시드 카드뿐 (Room Agent가 새로 만들지 못했다)
   });
 
   it('제공되지 않은 memory id를 쓰면 403(memory_not_provided)로 거부된다', async () => {
@@ -485,8 +485,8 @@ describe('대리 참여(representing)와 승인 요청', () => {
   });
 });
 
-describe('Our Room', () => {
-  beforeEach(() => start());
+describe('Our Room (AGENT_AUTO_REPLY=off: 이전 규칙)', () => {
+  beforeEach(() => start({ agentAutoReply: false }));
 
   it('질문이나 "정리"가 있으면 Room Agent가 말하고, 평범한 대화에는 조용하다', async () => {
     say(alice, R.friends, '오늘 점심 뭐 먹을까');
@@ -530,6 +530,234 @@ describe('Our Room', () => {
     const input = p.inputs.find((i) => i.agent.id === A.bob)!;
     expect(input.mode).toBe('representing');
     expect(input.mandate?.text).toBe('일정만 조율');
+  });
+});
+
+describe('Our Room 자동 반응·자동 대리 (기본 켬)', () => {
+  beforeEach(() => start());
+  const bobAgentTurns = () => turnsOf(R.friends, A.bob);
+  const roomAgentTurns = () => turnsOf(R.friends, SEED.roomAgents.friends);
+
+  it('모두에게 평범한 말을 해도 Room Agent와 부재 구성원 Bob의 Agent가 각각 한 번씩 반응한다 (질문 여부와 무관)', async () => {
+    say(alice, R.friends, '오늘 점심은 간단히 먹었어');
+    await ctx.agents.drain();
+    expect(roomAgentTurns()).toMatchObject([{ trigger: { reason: 'room_agent_call' } }]);
+    expect(bobAgentTurns()).toMatchObject([{ trigger: { reason: 'auto_reply' } }]);
+    expect(ofType(R.friends, 'message').filter((e) => e.actorKind === 'room_agent')).toHaveLength(1);
+  });
+
+  it('2글자 이하 반응("ㅇㅇ", "ㅋㅋ")에는 부재 구성원 Agent를 깨우지 않는다', async () => {
+    say(alice, R.friends, 'ㅇㅇ');
+    say(alice, R.friends, 'ㅋㅋ!');
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toHaveLength(0);
+    expect(ofType(R.friends, 'message').filter((e) => e.actorKind === 'room_agent' || e.actorKind === 'agent')).toHaveLength(0);
+  });
+
+  it('Bob 이름 언급: 접속하지 않은 Bob의 Agent가 auto_reply(representing, 도구는 say·request_approval·pass)로 응답한다', async () => {
+    const p = spy();
+    ctx.agents.setProvider(p);
+    say(alice, R.friends, 'Bob, 토요일 어때?');
+    await ctx.agents.drain();
+    // 지목된 Bob의 Agent만 (Room Agent는 끼어들지 않는다)
+    expect(ofType(R.friends, 'agent_turn_started')).toHaveLength(1);
+    expect(roomAgentTurns()).toHaveLength(0);
+    expect(bobAgentTurns()).toMatchObject([{ trigger: { reason: 'auto_reply' } }]);
+    const input = p.inputs.find((i) => i.agent.id === A.bob)!;
+    expect(input.mode).toBe('representing');
+    expect(input.mandate?.allowedActions).toEqual(['chat', 'request_approval']);
+    expect(input.tools.map((t) => t.name).sort()).toEqual(['pass', 'request_approval', 'say']);
+    // 소유자 결정이 필요한 일정이라 승인으로 넘어가고, 소유자(Bob)가 승인자다
+    expect(ofType(R.friends, 'approval_requested')).toMatchObject([{ kind: 'decision', approvers: [bob], actorId: A.bob }]);
+  });
+
+  it('팀 방 일반 메시지: Room Agent → Bob → Dana 순(결정적)으로 각 1턴, 부재 Agent는 최대 2명', async () => {
+    say(alice, R.team, '다 같이 점심 먹자, 괜찮아?');
+    await ctx.agents.drain();
+    const started = ofType(R.team, 'agent_turn_started');
+    expect(started.map((e) => (e.type === 'agent_turn_started' ? e.agentId : ''))).toEqual([SEED.roomAgents.team, A.bob, A.dana]);
+    const personal = ofType(R.team, 'message').filter((e) => e.actorKind === 'agent');
+    expect(personal.map((e) => e.actorId)).toEqual([A.bob, A.dana]);
+    expect(ofType(R.team, 'approval_requested').filter((e) => e.actorId === A.dana)).toHaveLength(0);
+  });
+
+  it('가족 방 일반 메시지: Room Agent와 엄마·아빠의 Agent가 이 순서로 auto_reply로 say한다', async () => {
+    say(alice, R.family, '이번 주말에 뭐 할까?');
+    await ctx.agents.drain();
+    const started = ofType(R.family, 'agent_turn_started').map((e) => (e.type === 'agent_turn_started' ? e.agentId : ''));
+    expect(started).toEqual([SEED.roomAgents.family, A.mom, A.dad]);
+    const reply = ofType(R.family, 'message').find((e) => e.actorId === A.mom);
+    expect(reply).toMatchObject({ actorKind: 'agent', type: 'message' });
+    expect(ctx.agents.outcomes.filter((o) => o.agentId === A.mom)).toMatchObject([{ result: 'acted', tool: 'say' }]);
+    expect(ctx.agents.outcomes.filter((o) => o.agentId === A.dad)).toMatchObject([{ result: 'acted', tool: 'say' }]);
+  });
+
+  it('아빠 지목: 아빠의 Agent만 응답하고, 아빠 Agent는 request_approval을 쓸 수 없다', async () => {
+    const p = spy();
+    ctx.agents.setProvider(p);
+    say(alice, R.family, '아빠, 일요일 오전 확정하자');
+    await ctx.agents.drain();
+    expect(ofType(R.family, 'agent_turn_started').map((e) => (e.type === 'agent_turn_started' ? e.agentId : ''))).toEqual([A.dad]);
+    expect(p.inputs.find((i) => i.agent.id === A.dad)!.tools.map((t) => t.name).sort()).toEqual(['pass', 'say']);
+    expect(ofType(R.family, 'approval_requested')).toHaveLength(0);
+  });
+
+  it('엄마 지목: 엄마의 Agent만 응답하고 Room Agent는 끼어들지 않는다', async () => {
+    say(alice, R.family, '엄마, 점심 뭐 먹을까?');
+    await ctx.agents.drain();
+    expect(ofType(R.family, 'agent_turn_started').map((e) => (e.type === 'agent_turn_started' ? e.agentId : ''))).toEqual([A.mom]);
+  });
+
+  it('시드 사용자 Agent의 request_approval은 도구 목록에서도 서버 검증에서도 막힌다', async () => {
+    const p = spy();
+    ctx.agents.setProvider(p);
+    say(alice, R.family, '엄마, 일요일 오전 확정하자');
+    await ctx.agents.drain();
+    expect(p.inputs.find((i) => i.agent.id === A.mom)!.tools.map((t) => t.name).sort()).toEqual(['pass', 'say']);
+    expect(ofType(R.family, 'approval_requested')).toHaveLength(0);
+
+    ctx.agents.setProvider(scripted(() => ({ name: 'request_approval', input: { question: '확정할까요?', options: ['예', '아니오'] } })));
+    say(alice, R.family, '엄마, 다시 확정하자');
+    await ctx.agents.drain();
+    expect(ctx.agents.outcomes.filter((o) => o.agentId === A.mom).at(-1)).toMatchObject({ result: 'error', errorCode: 'tool_not_allowed' });
+    expect(ofType(R.family, 'approval_requested')).toHaveLength(0);
+  });
+
+  it('Bob은 사람이라 자동 대리에서 request_approval을 쓸 수 있다 (시드 사용자와 다름)', async () => {
+    const p = spy();
+    ctx.agents.setProvider(p);
+    say(alice, R.friends, 'Bob, 토요일 어때?');
+    await ctx.agents.drain();
+    expect(p.inputs.find((i) => i.agent.id === A.bob)!.tools.map((t) => t.name)).toContain('request_approval');
+  });
+
+  it('인물 설정(persona)이 시스템 프롬프트에 반영된다', async () => {
+    const p = spy();
+    ctx.agents.setProvider(p);
+    say(alice, R.team, '다 같이 점심 먹자, 괜찮아?');
+    await ctx.agents.drain();
+    const dana = p.inputs.find((i) => i.agent.id === A.dana)!;
+    expect(dana.system).toContain('30분을 넘기는 것을 싫어한다');
+    expect(dana.system).toContain('[인물 대리 응답]');
+    expect(p.inputs.find((i) => i.agent.id === A.bob)!.system).toContain('유머');
+  });
+
+  it('연쇄 제한: 부재 구성원 Agent의 say는 다른 Agent를 다시 깨우지 않는다 (사람 메시지 1건당 각 1턴)', async () => {
+    say(alice, R.team, '다 같이 점심 먹자');
+    await ctx.agents.drain();
+    for (const id of [SEED.roomAgents.team, A.bob, A.dana]) expect(turnsOf(R.team, id)).toHaveLength(1);
+    expect(ofType(R.team, 'agent_paused')).toHaveLength(0);
+  });
+
+  it('작성자 본인의 Agent와 접속 중인 구성원의 Agent는 끼어들지 않는다', async () => {
+    enter(bob, R.friends);
+    say(alice, R.friends, 'Bob, 토요일 어때?');
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toHaveLength(0);
+    expect(turnsOf(R.friends, A.alice)).toHaveLength(0);
+    expect(roomAgentTurns()).toHaveLength(0); // 본인이 답할 일: Room Agent도 끼어들지 않는다
+  });
+
+  it('지목 형태별(Bob야 / @Bob / 문중)로 Bob의 Agent만 응답하고 Room Agent는 조용하다', async () => {
+    for (const t of ['Bob야 토요일 어때', '@Bob 토요일 어때', '토요일에 Bob도 올 수 있나']) {
+      say(alice, R.friends, t);
+      await ctx.agents.drain();
+    }
+    expect(bobAgentTurns()).toHaveLength(3);
+    expect(roomAgentTurns()).toHaveLength(0);
+  });
+
+  it('지목 + Room Agent 명시 호출이면 둘 다 응답할 수 있다', async () => {
+    say(alice, R.friends, 'Bob, 토요일 어때? 룸 에이전트도 정리해줘');
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toMatchObject([{ trigger: { reason: 'auto_reply' } }]);
+    expect(roomAgentTurns()).toMatchObject([{ trigger: { reason: 'room_agent_call' } }]);
+  });
+
+  it('명시적 Leave(위임 없음)한 Bob을 지목해도 Room Agent가 대신 답하지 않는다', async () => {
+    enter(bob, R.friends);
+    dispatch(ctx, { kind: 'human', userId: bob }, { type: 'leave_room', roomId: R.friends });
+    say(alice, R.friends, 'Bob, 토요일 어때?');
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toHaveLength(0);
+    expect(roomAgentTurns()).toHaveLength(0);
+  });
+
+  it('위임(mandate)하고 Leave한 Bob을 지목하면 기존대로 Bob의 Agent가 representing으로 응답한다', async () => {
+    enter(bob, R.friends);
+    dispatch(ctx, { kind: 'human', userId: bob }, { type: 'leave_room', roomId: R.friends, mandate: { text: '일정만 조율', allowedActions: ['chat'] } });
+    say(alice, R.friends, 'Bob, 토요일 어때?');
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toMatchObject([{ trigger: { reason: 'representing' } }]);
+    expect(roomAgentTurns()).toHaveLength(0);
+  });
+
+  it('Bob이 접속(present)하면 자동 대리가 즉시 멈춘다: 대기 중 작업도 버린다', async () => {
+    say(alice, R.friends, 'Bob, 토요일 어때? @room'); // Room Agent 턴이 먼저 돌아 Bob의 job이 대기열에 남는다
+    enter(bob, R.friends); // 대기열에 자동 대리 job이 남아 있는 사이 입장
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toHaveLength(0);
+    say(alice, R.friends, 'Bob, 일요일은?');
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toHaveLength(0);
+  });
+
+  it('명시적 Leave(위임 없음)한 구성원은 자동 대리하지 않고, 위임 있는 Leave는 기존 representing이다', async () => {
+    enter(bob, R.friends);
+    dispatch(ctx, { kind: 'human', userId: bob }, { type: 'leave_room', roomId: R.friends });
+    say(alice, R.friends, 'Bob, 토요일 어때?');
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toHaveLength(0);
+  });
+
+  it('암묵적 퇴장(구독 끊김)한 구성원은 자동 대리 대상이다', async () => {
+    enter(bob, R.friends);
+    dispatch(ctx, { kind: 'system' }, { type: 'implicit_leave', roomId: R.friends, userId: bob });
+    say(alice, R.friends, 'Bob, 토요일 어때?');
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toMatchObject([{ trigger: { reason: 'auto_reply' } }]);
+  });
+
+  it('Bob에게 지정(to)한 말도 접속하지 않았다면 Bob의 Agent가 자동 대리한다 (Room Agent는 깨우지 않음)', async () => {
+    say(alice, R.friends, '이번 주말 괜찮아요?', bob);
+    await ctx.agents.drain();
+    expect(bobAgentTurns()).toMatchObject([{ trigger: { reason: 'auto_reply' } }]);
+    expect(roomAgentTurns()).toHaveLength(0);
+  });
+
+  it('자동 대리가 보낸 도구가 say·request_approval·pass 밖이면 거부한다', async () => {
+    ctx.agents.setProvider(scripted(() => ({ name: 'propose_edit', input: { title: '제안', body: '내용' } })));
+    say(alice, R.friends, 'Bob, 토요일 어때?');
+    await ctx.agents.drain();
+    expect(ctx.agents.outcomes.filter((o) => o.agentId === A.bob)).toMatchObject([{ result: 'error', errorCode: 'tool_not_allowed' }]);
+    expect(ofType(R.friends, 'approval_requested').filter((e) => e.actorId === A.bob)).toHaveLength(0);
+  });
+
+  it('자동 대리 턴에는 소유자의 private 기억이 제공되지 않는다 (Room·for-room 범위만)', async () => {
+    const p = spy();
+    ctx.agents.setProvider(p);
+    say(alice, R.friends, 'Bob, 토요일 어때?');
+    await ctx.agents.drain();
+    const input = p.inputs.find((i) => i.agent.id === A.bob)!;
+    expect(input.memories.every((m) => !m.id.includes('private'))).toBe(true);
+  });
+
+  it('AGENT_AUTO_REPLY=off면 평범한 말에 아무도 깨우지 않는다', async () => {
+    ctx.agents.stop();
+    start({ agentAutoReply: false });
+    say(alice, R.friends, 'Bob, 토요일 어때');
+    await ctx.agents.drain();
+    expect(ofType(R.friends, 'agent_turn_started')).toHaveLength(1); // 이름 언급 부재 구성원 → Room Agent만(이전 규칙)
+    expect(bobAgentTurns()).toHaveLength(0);
+  });
+
+  it('My Room과 DM은 그대로다', async () => {
+    enter(alice, R.myAlice);
+    say(alice, R.myAlice, '오늘은 조용히 작업할게');
+    await ctx.agents.drain();
+    expect(turnsOf(R.myAlice, A.alice)).toHaveLength(1); // 소유자 발언 → 소유자 Agent (pass)
+    expect(lastOutcome()).toMatchObject({ result: 'pass' });
+    expect(ofType(R.myAlice, 'agent_turn_started')).toHaveLength(1);
   });
 });
 

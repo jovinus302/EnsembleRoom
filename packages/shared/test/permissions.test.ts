@@ -12,6 +12,7 @@ describe('effectiveCapabilities (계획 6절 권한 표)', () => {
       'propose_edit',
       'remember',
       'request_approval',
+      'board_tools',
     ]);
   });
 
@@ -57,10 +58,11 @@ describe('effectiveCapabilities (계획 6절 권한 표)', () => {
     });
     expect(effectiveCapabilities(visiting(['chat', 'comment', 'propose_edit'], ['chat', 'comment']))).toEqual(['chat', 'comment']);
     // grant와 mandate가 모두 넓어도 edit_board, remember는 없다
-    const all: Capability[] = ['chat', 'comment', 'edit_board', 'propose_edit', 'remember', 'request_approval'];
+    const all: Capability[] = ['chat', 'comment', 'edit_board', 'propose_edit', 'remember', 'request_approval', 'board_tools'];
     const caps = effectiveCapabilities(visiting(all, all));
     expect(caps).not.toContain('edit_board');
     expect(caps).not.toContain('remember');
+    expect(caps).not.toContain('board_tools');
     expect(caps).toEqual(['chat', 'comment', 'propose_edit', 'request_approval']);
     // mandate 밖의 것은 grant에 있어도 없다
     expect(effectiveCapabilities(visiting(['chat', 'comment'], ['chat']))).toEqual(['chat']);
@@ -76,7 +78,7 @@ describe('effectiveCapabilities (계획 6절 권한 표)', () => {
   });
 
   it('Our Room 구성원(사람): chat, comment, edit_board', () => {
-    expect(effectiveCapabilities({ kind: 'human', relation: 'member', roomKind: 'our' })).toEqual(['chat', 'comment', 'edit_board']);
+    expect(effectiveCapabilities({ kind: 'human', relation: 'member', roomKind: 'our' })).toEqual(['chat', 'comment', 'edit_board', 'board_tools']);
   });
 
   it('Our Room 구성원 Agent: chat, comment, propose_edit, remember (edit_board 없음)', () => {
@@ -86,7 +88,7 @@ describe('effectiveCapabilities (계획 6절 권한 표)', () => {
   });
 
   it('Room Agent: chat, comment, propose_edit, request_approval (remember, edit_board 없음)', () => {
-    expect(effectiveCapabilities({ kind: 'room_agent' })).toEqual(['chat', 'comment', 'propose_edit', 'request_approval']);
+    expect(effectiveCapabilities({ kind: 'room_agent' })).toEqual(['chat', 'comment', 'propose_edit', 'request_approval', 'board_tools']);
   });
 
   it('DM 구성원은 대화만, 남의 my Room 소유자 취급은 없다', () => {
@@ -114,6 +116,7 @@ describe('allowedTools (권한으로 걸러서 쓸 수 없는 도구는 주지 �
       mandateActions: ['chat', 'comment', 'propose_edit', 'edit_board', 'remember'],
     });
     expect(tools).toEqual(['say', 'comment', 'propose_edit', 'end_visit', 'pass']);
+    expect(tools).not.toContain('create_board_tool');
   });
 
   it('동행 Agent는 edit_board가 있고 end_visit은 없다', () => {
@@ -128,8 +131,18 @@ describe('allowedTools (권한으로 걸러서 쓸 수 없는 도구는 주지 �
     expect(allowedTools({ kind: 'agent', mode: 'representing', roomKind: 'my' })).not.toContain('edit_board');
   });
 
-  it('Room Agent는 say, comment, propose_edit, request_approval, pass', () => {
-    expect(allowedTools({ kind: 'room_agent' })).toEqual(['say', 'comment', 'propose_edit', 'request_approval', 'pass']);
+  it('Room Agent는 say, comment, propose_edit, request_approval, 보드 도구 2종, pass', () => {
+    expect(allowedTools({ kind: 'room_agent' })).toEqual(['say', 'comment', 'propose_edit', 'request_approval', 'create_board_tool', 'update_board_tool', 'pass']);
+  });
+
+  it('ask_agents는 어떤 subject에도 allowedTools로 나오지 않는다(서버가 조건부로 붙인다)', () => {
+    const subjects: PermissionSubject[] = [
+      { kind: 'room_agent' },
+      { kind: 'agent', mode: 'member', roomKind: 'our' },
+      { kind: 'agent', mode: 'accompanied', roomKind: 'my' },
+      { kind: 'agent', mode: 'representing', roomKind: 'my' },
+    ];
+    for (const s of subjects) expect(allowedTools(s)).not.toContain('ask_agents');
   });
 
   it('끝난 방문의 Agent는 pass만 남는다', () => {

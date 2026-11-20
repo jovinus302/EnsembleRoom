@@ -42,6 +42,12 @@ export function eventLabel(e: RoomEvent, nameOf: (id: string | null | undefined)
       return `댓글 · ${clip(e.text)}`;
     case 'card_pointed':
       return `카드를 ${nameOf(e.toAgentId)}에게 보여 줌`;
+    case 'board_tool_created':
+      return `보드에 도구를 올렸어요 · ${clip(e.title)}`;
+    case 'board_tool_updated':
+      return '보드 도구 변경';
+    case 'board_tool_removed':
+      return '보드 도구를 내렸어요';
     case 'agent_turn_started':
       return `${nameOf(e.agentId)} 생각 시작`;
     case 'agent_step':

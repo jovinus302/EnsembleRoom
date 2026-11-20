@@ -1,5 +1,6 @@
 import type { Mandate } from '@ensemble/shared';
 import { CAPABILITY_LABEL } from './visits';
+import { tint } from '../theme';
 
 /**
  * 위임 범위 전용 표시. 방문 Agent의 소유자가 Agent에게 맡긴 범위를 일반 메시지·카드 내용과 구분해 보여 준다.
@@ -24,12 +25,12 @@ export function MandateBlock({
     <div
       data-testid="mandate-block"
       data-viewer-owner={viewerIsOwner ? 'true' : 'false'}
-      className={`rounded-lg border border-dashed ${compact ? 'mt-1.5 px-2.5 py-1.5' : 'mt-2 px-3 py-2'}`}
-      style={{ borderColor: color, background: `${color}14` }}
+      className={`surface-card rounded-lg border border-dashed ${compact ? 'mt-1.5 px-2.5 py-1.5' : 'mt-2 px-3 py-2'}`}
+      style={{ borderColor: color, backgroundColor: tint(color, '--tint-mandate') }}
     >
       <div className="flex items-center gap-1.5">
         <span
-          className="inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold leading-4 text-[#0b1020]"
+          className="inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold leading-4 text-[var(--on-accent)]"
           style={{ background: color }}
         >
           <svg aria-hidden="true" width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

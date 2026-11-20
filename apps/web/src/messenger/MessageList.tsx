@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildRoomState,
+  indexInteractions,
+  INTERACTION_COLORS,
   initialAgentState,
   reduceAgentState,
   type AgentDto,
   type AgentMode,
   type AgentVisualState,
+  type Interaction,
   type ApprovalState,
   type MemoryKind,
   type PauseReason,
@@ -20,10 +23,12 @@ import { useWorld } from '../store/worldStore';
 import { PHASE_LABEL, StepTrace, WorkingDots, useTypewriter, type StepInfo } from './AgentActivity';
 import { ApprovalCard, approvalViewFromEvents, type ApprovalView } from './ApprovalCards';
 import { FALLBACK_COLOR, SYSTEM_COLOR, makeAgentResolver, type AgentResolver } from './agentIdentity';
-import { AgentAvatar, Avatar } from './Avatar';
-import { titleOf } from './labels';
+import { AgentAvatar, AgentTag, Avatar } from './Avatar';
+import { A2AThread, agentIdPredicate, ChannelBadge, DirectionChip, ThreadLinkChip, type Party } from './InteractionChips';
+import { AUTO_REPLY_LABEL, titleOf } from './labels';
 import { isVisitEvent, VisitCard } from './VisitCards';
 import { foldVisits } from './visits';
+import { ink, tint } from '../theme';
 
 type Author = {
   name: string;
@@ -54,6 +59,7 @@ const PAUSE_LABEL: Record<PauseReason, string> = {
 };
 const MEMORY_KIND_LABEL: Record<MemoryKind, string> = { fact: '사실', preference: '선호', agreement: '합의', summary: '요약' };
 const MODE_LABEL: Partial<Record<AgentMode, string>> = { representing: '대리 중', visiting: '방문 중' };
+
 
 type NoticeTone = 'plain' | 'pause' | 'error' | 'memory' | 'travel' | 'note' | 'agree' | 'report';
 
@@ -90,24 +96,42 @@ export function foldImplicitAbsences(events: readonly RoomEvent[]): { skip: Set<
 
 type VisitEv = Extract<RoomEvent, { type: 'visit_requested' | 'visit_accepted' | 'visit_declined' | 'visit_ended' }>;
 
+type EventItem = {
+  key: string;
+  kind: 'event';
+  seq: number;
+  author: Author;
+  text: string;
+  mine: boolean;
+  ts: number;
+  turnId: string | null;
+  to?: string;
+  recipients?: string[];
+  interaction?: Interaction;
+  mode?: AgentMode;
+  auto?: boolean;
+};
+type LiveItem = { key: string; kind: 'live'; entry: ActivityEntry; author: Author; mode?: AgentMode; auto?: boolean };
+/** A2A 스레드: a2a_ask 메시지가 머리, 답(과 스트리밍 중인 답 턴)은 rows */
+type ThreadItem = {
+  key: string;
+  kind: 'thread';
+  seq: number;
+  ask: EventItem;
+  rows: (EventItem | LiveItem)[];
+  open: boolean;
+  answered: number;
+  total: number;
+};
+
 type Item =
-  | {
-      key: string;
-      kind: 'event';
-      seq: number;
-      author: Author;
-      text: string;
-      mine: boolean;
-      ts: number;
-      turnId: string | null;
-      to?: string;
-      mode?: AgentMode;
-    }
+  | EventItem
   | { key: string; kind: 'pending'; pending: PendingMessage }
   | { key: string; kind: 'visit'; event: VisitEv }
   | { key: string; kind: 'notice'; text: string; ts: number; tone: NoticeTone }
   | { key: string; kind: 'approval'; view: ApprovalView }
-  | { key: string; kind: 'live'; entry: ActivityEntry; author: Author; mode?: AgentMode };
+  | LiveItem
+  | ThreadItem;
 
 function Bubble({
   text,
@@ -126,12 +150,12 @@ function Bubble({
   const filled = state === 'sent';
   return (
     <div
-      className={`max-w-[560px] whitespace-pre-wrap break-words px-3.5 py-2 text-sm leading-relaxed ${
+      className={`surface-card max-w-[560px] whitespace-pre-wrap break-words px-3.5 py-2 text-sm leading-relaxed ${
         agentLike ? 'rounded-xl border-dashed' : mine ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'
       } border ${state === 'failed' ? 'border-red-400' : ''}`}
       style={{
         borderColor: state === 'failed' ? undefined : color,
-        background: filled ? `${color}${mine ? '33' : '1f'}` : 'transparent',
+        backgroundColor: filled ? tint(color, mine ? '--tint-me' : '--tint-other') : 'var(--card-base-dim)',
         color: filled ? 'var(--fg)' : 'var(--muted)',
       }}
     >
@@ -150,7 +174,7 @@ function PendingRow({ p, color }: { p: PendingMessage; color: string }) {
         {p.status === 'acked' && '확정 중…'}
         {p.status === 'failed' && (
           <>
-            <span className="text-red-300">전송 실패{p.error ? ` · ${p.error}` : ''}</span>
+            <span className="text-danger">전송 실패{p.error ? ` · ${p.error}` : ''}</span>
             <button
               type="button"
               onClick={() => void sendMessage(p.roomId, p.text, p.clientId, p.to)}
@@ -167,23 +191,15 @@ function PendingRow({ p, color }: { p: PendingMessage; color: string }) {
 
 const fmtTime = (ts: number) => new Date(ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 
-function ToChip({ name, color }: { name: string; color: string }) {
-  return (
-    <span data-testid="to-chip" className="rounded px-1 text-[10px] leading-4" style={{ background: `${color}22`, color }}>
-      → {name}
-    </span>
-  );
-}
-
 const NOTICE_STYLE: Record<NoticeTone, { glyph: string; cls: string }> = {
   plain: { glyph: '·', cls: 'text-muted' },
-  pause: { glyph: '‖', cls: 'text-amber-200/90' },
-  error: { glyph: '!', cls: 'text-red-300' },
-  memory: { glyph: '✦', cls: 'text-[#64e4bd]' },
+  pause: { glyph: '‖', cls: 'text-warn' },
+  error: { glyph: '!', cls: 'text-danger' },
+  memory: { glyph: '✦', cls: 'text-ok' },
   travel: { glyph: '→', cls: 'text-muted' },
-  note: { glyph: '✎', cls: 'text-sky-200/90' },
-  agree: { glyph: '★', cls: 'text-yellow-300' },
-  report: { glyph: '▤', cls: 'text-sky-200/90' },
+  note: { glyph: '✎', cls: 'text-info' },
+  agree: { glyph: '★', cls: 'text-star' },
+  report: { glyph: '▤', cls: 'text-info' },
 };
 
 function NoticeRow({ text, ts, tone }: { text: string; ts: number; tone: NoticeTone }) {
@@ -208,20 +224,33 @@ function AgentRow({
   streaming,
   phase,
   ts,
-  toName,
+  toParties,
   mode,
+  auto,
   steps,
   nameOf,
+  seq,
+  badge,
+  reply = false,
+  resultLink,
 }: {
   author: Author;
   text: string;
   streaming: boolean;
   phase?: ActivityEntry['phase'];
   ts: number;
-  toName?: string;
+  toParties?: readonly Party[];
   mode?: AgentMode;
+  auto?: boolean;
   steps: readonly StepInfo[];
   nameOf: (id: string) => string;
+  seq?: number;
+  /** A2A/A2H 채널 배지 (일반 발화에는 달지 않는다) */
+  badge?: Interaction['channel'];
+  /** A2A 스레드 안의 답: 들여 쓰고 ↩ 와 작은 아바타를 쓴다 */
+  reply?: boolean;
+  /** 스레드 밖 결과·보고: "↳ A2A 결과" 칩. null이면 링크 없는 칩 */
+  resultLink?: number | null;
 }) {
   // 마운트 때 스트리밍 중이었던 말풍선만 타이핑 연출을 한다(스냅샷 메시지는 즉시 전체 표시).
   const wasLive = useRef(streaming).current;
@@ -229,51 +258,64 @@ function AgentRow({
   const typing = streaming || shown.length < text.length;
   const label = phase ? PHASE_LABEL[phase] : PHASE_LABEL.thinking;
   const room = author.kind === 'room_agent' || author.kind === 'system';
-  const modeLabel = mode ? MODE_LABEL[mode] : undefined;
+  const modeLabel = auto ? AUTO_REPLY_LABEL : mode ? MODE_LABEL[mode] : undefined;
   return (
     <li
       data-testid={streaming ? 'msg-live' : 'msg'}
       data-agent-kind={author.kind}
       data-phase={streaming ? phase : undefined}
-      className="anim-in flex gap-2.5"
+      data-seq={seq}
+      data-channel={badge}
+      className={`anim-in flex gap-2.5 ${reply ? 'pl-6' : ''}`}
     >
       <span className="relative shrink-0">
         {author.kind === 'agent' ? (
-          <AgentAvatar variant={author.variant} color={author.color} size={32} name={author.name} />
+          <AgentAvatar variant={author.variant} color={author.color} size={reply ? 24 : 32} name={author.name} />
         ) : author.kind === 'room_agent' ? (
-          <AgentAvatar variant={author.variant} color={author.color} size={32} name={author.name} room />
+          <AgentAvatar variant={author.variant} color={author.color} size={reply ? 24 : 32} name={author.name} room />
         ) : (
-          <Avatar name={author.name} color={author.color} shape="agent" />
+          <Avatar name={author.name} color={author.color} shape={author.kind === 'human' ? 'circle' : 'agent'} />
         )}
         {streaming && (
           <span
             aria-hidden="true"
-            className="live-bubble absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#151d30]"
+            className="live-bubble absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface"
             style={{ background: author.color, ['--glow' as string]: `${author.color}99` }}
           />
         )}
       </span>
       <div className="flex min-w-0 flex-col items-start gap-1">
         <span className="flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="font-medium" style={{ color: author.color }}>
+          {reply && (
+            <span aria-hidden="true" data-testid="reply-mark" style={{ color: INTERACTION_COLORS.a2a }}>
+              ↩
+            </span>
+          )}
+          {badge && !reply && <ChannelBadge channel={badge} />}
+          <span className="font-medium" style={{ color: ink(author.color) }}>
             {author.name}
           </span>
-          <span className="rounded border px-1 text-[10px] leading-4" style={{ borderColor: author.color, color: author.color }}>
-            {author.kind === 'room_agent' ? 'Room Agent' : author.kind === 'agent' ? 'Agent' : '시스템'}
-          </span>
+          {author.kind === 'system' ? (
+            <span className="rounded border px-1 text-[10px] leading-4" style={{ borderColor: author.color, color: ink(author.color) }}>
+              시스템
+            </span>
+          ) : (
+            <AgentTag color={author.color} room={author.kind === 'room_agent'} />
+          )}
           {modeLabel && (
             <span
               data-testid="mode-badge"
-              data-mode={mode}
-              className="rounded-full px-1.5 text-[10px] leading-4 text-[#0b1020]"
+              data-mode={auto ? 'auto_reply' : mode}
+              className="rounded-full px-1.5 text-[10px] leading-4 text-[var(--on-accent)]"
               style={{ background: author.color }}
             >
               {modeLabel}
             </span>
           )}
-          {toName && <ToChip name={toName} color={author.color} />}
+          {toParties && toParties.length > 0 && <DirectionChip to={toParties} />}
+          {resultLink !== undefined && <ThreadLinkChip label={badge === 'a2h' ? 'A2A 대화의 보고' : 'A2A 결과'} threadSeq={resultLink} />}
           {streaming ? (
-            <span className="flex items-center gap-1.5" style={{ color: author.color }} data-testid="live-label">
+            <span className="flex items-center gap-1.5" style={{ color: ink(author.color) }} data-testid="live-label">
               {label}
               <WorkingDots label={label} />
             </span>
@@ -283,7 +325,7 @@ function AgentRow({
         </span>
         <div
           data-testid="agent-bubble"
-          className={`max-w-[560px] whitespace-pre-wrap break-words rounded-xl rounded-tl-sm border px-3.5 py-2 text-sm leading-relaxed ${
+          className={`surface-card max-w-[560px] whitespace-pre-wrap break-words rounded-xl rounded-tl-sm border px-3.5 py-2 text-sm leading-relaxed ${
             streaming ? 'live-bubble' : ''
           }`}
           style={{
@@ -291,15 +333,15 @@ function AgentRow({
             borderRightColor: `${author.color}${streaming ? 'cc' : '88'}`,
             borderBottomColor: `${author.color}${streaming ? 'cc' : '88'}`,
             borderLeftWidth: 3,
-            borderLeftColor: author.color,
-            background: `${author.color}${room ? '1a' : '14'}`,
+            borderLeftColor: badge === 'a2h' ? INTERACTION_COLORS.a2h : author.color,
+            backgroundColor: tint(author.color, room ? '--tint-agent-room' : '--tint-agent-dm'),
             ['--glow' as string]: `${author.color}55`,
           }}
         >
           {shown ? (
             <span className={typing ? 'stream-cursor' : undefined}>{shown}</span>
           ) : (
-            <span className="inline-flex items-center gap-2 text-muted" style={{ color: author.color }}>
+            <span className="inline-flex items-center gap-2 text-muted" style={{ color: ink(author.color) }}>
               <WorkingDots label={label} />
               <span className="text-xs">{label}</span>
             </span>
@@ -363,11 +405,20 @@ export function MessageList({
   );
   const liveSig = liveEntries.reduce((n, a) => n + a.text.length + 1, 0);
 
+  const ix = useMemo(
+    () => indexInteractions(events ?? [], { isAgentId: agentIdPredicate(agentList.map((a) => a.id), events ?? []) }),
+    [events, agentList],
+  );
+  /** 사용자가 직접 토글한 스레드(threadSeq 키)가 기본 접기 정책보다 우선한다 */
+  const [toggled, setToggled] = useState<Record<number, boolean>>({});
+  const latestThread = useMemo(() => Math.max(0, ...ix.threads.keys()), [ix]);
+
   const approvals = useMemo(() => (events ? buildRoomState(roomId, events).approvals : NO_APPROVALS), [events, roomId]);
 
   // 메시지 시점의 Agent mode(대리·방문)와 턴별 작업 과정(agent_step)
-  const { modeBySeq, stepsByTurn, modeNow } = useMemo(() => {
+  const { modeBySeq, stepsByTurn, modeNow, autoTurns } = useMemo(() => {
     const modeBySeq = new Map<number, AgentMode>();
+    const autoTurns = new Set<string>();
     const stepsByTurn = new Map<string, StepInfo[]>();
     const states = new Map<string, AgentVisualState>();
     const refOf = (id: string) => {
@@ -382,6 +433,7 @@ export function MessageList({
       if ((e.actorKind === 'agent' || e.actorKind === 'room_agent') && e.actorId) touch(e.actorId);
       if ('agentId' in e && typeof e.agentId === 'string') touch(e.agentId);
       for (const [id, st] of states) states.set(id, reduceAgentState(refOf(id), st, e));
+      if (e.type === 'agent_turn_started' && (e.trigger.reason === 'auto_reply' || e.trigger.reason === 'a2a_ask')) autoTurns.add(e.turnId);
       if (e.type === 'agent_step') {
         const list = stepsByTurn.get(e.turnId) ?? [];
         list.push({ kind: e.kind, target: e.target });
@@ -389,7 +441,7 @@ export function MessageList({
       }
       if (e.type === 'message' && e.actorId && states.has(e.actorId)) modeBySeq.set(e.seq, states.get(e.actorId)!.mode);
     }
-    return { modeBySeq, stepsByTurn, modeNow: (id: string) => states.get(id)?.mode };
+    return { modeBySeq, stepsByTurn, autoTurns, modeNow: (id: string) => states.get(id)?.mode };
   }, [events, agentList]);
 
   const items = useMemo<Item[]>(() => {
@@ -403,6 +455,7 @@ export function MessageList({
     const notice = (e: RoomEvent, text: string, tone: NoticeTone) =>
       out.push({ key: `e${e.seq}`, kind: 'notice', text, ts: e.ts, tone });
     const folded = foldImplicitAbsences(events ?? []);
+    const threadItems = new Map<number, ThreadItem>();
     for (const e of events ?? []) {
       if (folded.skip.has(e.seq)) continue;
       if (isVisitEvent(e)) {
@@ -459,14 +512,18 @@ export function MessageList({
           out.push({
             key: `e${e.seq}`,
             kind: 'approval',
-            view: approvalViewFromEvents(roomId, e, approvals[e.approvalId], nm(e.actorId)),
+            view: {
+              ...approvalViewFromEvents(roomId, e, approvals[e.approvalId], nm(e.actorId)),
+              ...(ix.bySeq.get(e.seq)?.kind === 'a2h_approval' ? { a2h: { threadSeq: ix.bySeq.get(e.seq)!.threadSeq } } : {}),
+            },
           });
           continue;
         case 'message': {
           const author = resolveAuthor(e, users, resolve);
           const isAgent = e.actorKind === 'agent' || e.actorKind === 'room_agent';
           if (e.turnId) seenTurns.add(e.turnId);
-          out.push({
+          const interaction = ix.bySeq.get(e.seq);
+          const item: EventItem = {
             // 같은 턴의 스트리밍 말풍선과 key를 공유해 교체 때 DOM이 유지된다.
             key: isAgent && e.turnId ? `t${e.turnId}` : `e${e.seq}`,
             kind: 'event',
@@ -477,8 +534,33 @@ export function MessageList({
             ts: e.ts,
             turnId: e.turnId,
             to: e.to,
+            recipients: e.recipients,
+            interaction,
             mode: isAgent ? modeBySeq.get(e.seq) : undefined,
-          });
+            auto: isAgent && !!e.turnId && autoTurns.has(e.turnId),
+          };
+          const th = ix.threads.get(e.seq);
+          if (th) {
+            const thread: ThreadItem = {
+              key: `th${e.seq}`,
+              kind: 'thread',
+              seq: e.seq,
+              ask: item,
+              rows: [],
+              open: th.open,
+              total: th.ask.toIds.length,
+              answered: th.ask.toIds.length - (th.ask.waitingFor?.length ?? 0),
+            };
+            threadItems.set(e.seq, thread);
+            out.push(thread);
+            continue;
+          }
+          const parent = interaction?.kind === 'a2a_answer' && interaction.threadSeq !== null ? threadItems.get(interaction.threadSeq) : undefined;
+          if (parent) {
+            parent.rows.push(item);
+            continue;
+          }
+          out.push(item);
           continue;
         }
         default:
@@ -489,16 +571,22 @@ export function MessageList({
     for (const a of liveEntries) {
       if (seenTurns.has(a.turnId)) continue; // 실제 메시지가 이미 왔다
       const isRoom = agentList.find((x) => x.id === a.agentId)?.kind === 'room';
-      out.push({
+      const live: LiveItem = {
         key: `t${a.turnId}`,
         kind: 'live',
         entry: a,
         author: resolveAgent(a.agentId, isRoom ? 'room_agent' : 'agent', resolve),
         mode: modeNow(a.agentId),
-      });
+        auto: autoTurns.has(a.turnId),
+      };
+      // 스레드의 답 턴(a2a_ask)은 스레드 안에서 스트리밍한다
+      const turn = ix.turns.get(a.turnId);
+      const parent = turn?.reason === 'a2a_ask' ? threadItems.get(turn.triggerSeq) : undefined;
+      if (parent) parent.rows.push(live);
+      else out.push(live);
     }
     return out;
-  }, [events, agentList, pending, users, meId, liveEntries, worldRooms, modeBySeq, modeNow, nameOf, resolve, approvals, roomId]);
+  }, [events, agentList, pending, users, meId, liveEntries, worldRooms, modeBySeq, autoTurns, modeNow, nameOf, resolve, approvals, roomId, ix]);
 
   const me = users[meId];
   const endRef = useRef<HTMLDivElement>(null);
@@ -519,8 +607,53 @@ export function MessageList({
     if (el) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   }
 
+  const party = (id: string): Party => ({ name: nameOf(id), color: users[id]?.color ?? resolve(id).color });
+  const partiesOf = (it: EventItem): Party[] => (it.recipients ?? (it.to ? [it.to] : [])).map(party);
+
+  function renderAgent(it: EventItem | LiveItem, o: { reply?: boolean; noChannel?: boolean } = {}) {
+    if (it.kind === 'live') {
+      return (
+        <AgentRow
+          key={it.key}
+          author={it.author}
+          text={it.entry.text}
+          streaming
+          phase={it.entry.phase}
+          ts={it.entry.updatedAt}
+          mode={it.mode}
+          auto={it.auto}
+          reply={o.reply}
+          steps={stepsByTurn.get(it.entry.turnId) ?? []}
+          nameOf={nameOf}
+        />
+      );
+    }
+    const kind = it.interaction?.kind;
+    const channel = it.interaction?.channel;
+    const showBadge = !o.noChannel && !o.reply && !!channel && channel !== 'h2a';
+    const outside = !o.reply && it.interaction?.threadSeq != null && (kind === 'a2a_result' || kind === 'a2h_report');
+    return (
+      <AgentRow
+        key={it.key}
+        author={it.author}
+        text={it.text}
+        streaming={false}
+        ts={it.ts}
+        toParties={o.reply ? undefined : partiesOf(it)}
+        mode={it.mode}
+        auto={it.auto}
+        seq={it.seq}
+        badge={showBadge ? channel : undefined}
+        reply={o.reply}
+        resultLink={outside ? it.interaction!.threadSeq : undefined}
+        steps={it.turnId ? (stepsByTurn.get(it.turnId) ?? []) : []}
+        nameOf={nameOf}
+      />
+    );
+  }
+
   return (
-    <div ref={scrollerRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-6 py-4">
+    <div ref={scrollerRef} onScroll={onScroll} className="chat-surface flex-1 overflow-y-auto px-6 py-4">
       {slice?.snapshotLoaded && items.length === 0 && (
         <p className="mt-10 text-center text-sm text-muted">아직 대화가 없습니다. 첫 메시지를 보내 보세요.</p>
       )}
@@ -543,40 +676,40 @@ export function MessageList({
             return (
               <ApprovalCard key={it.key} view={it.view} meId={meId} users={users} />
             );
-          if (it.kind === 'live')
+          if (it.kind === 'live') return renderAgent(it);
+          if (it.kind === 'thread') {
+            const th = ix.threads.get(it.seq)!;
+            const expanded = toggled[it.seq] ?? (it.open || it.seq === latestThread);
+            const lastRow = [...it.rows].reverse().find((r): r is EventItem => r.kind === 'event');
+            const preview = lastRow ? `↩ ${lastRow.author.name}: ${lastRow.text}` : it.ask.text;
             return (
-              <AgentRow
+              <A2AThread
                 key={it.key}
-                author={it.author}
-                text={it.entry.text}
-                streaming
-                phase={it.entry.phase}
-                ts={it.entry.updatedAt}
-                mode={it.mode}
-                steps={stepsByTurn.get(it.entry.turnId) ?? []}
-                nameOf={nameOf}
-              />
+                threadSeq={it.seq}
+                from={party(th.ask.fromId)}
+                to={th.ask.toIds.map(party)}
+                answered={it.answered}
+                total={it.total}
+                open={it.open}
+                expanded={expanded}
+                onToggle={() => setToggled((m) => ({ ...m, [it.seq]: !expanded }))}
+                preview={preview}
+              >
+                {renderAgent(it.ask, { noChannel: true })}
+                {it.rows.map((r) => renderAgent(r, { reply: true }))}
+              </A2AThread>
             );
-          if (it.author.kind !== 'human')
-            return (
-              <AgentRow
-                key={it.key}
-                author={it.author}
-                text={it.text}
-                streaming={false}
-                ts={it.ts}
-                toName={it.to ? nameOf(it.to) : undefined}
-                mode={it.mode}
-                steps={it.turnId ? (stepsByTurn.get(it.turnId) ?? []) : []}
-                nameOf={nameOf}
-              />
-            );
+          }
+          if (it.author.kind !== 'human') return renderAgent(it);
           const prev = items[i - 1];
           const grouped = prev?.kind === 'event' && prev.author.name === it.author.name && it.ts - prev.ts < 120_000;
+          const humanTo = partiesOf(it);
+          const humanBadge = it.interaction?.kind === 'h2a_direct' ? 'h2a' : undefined;
           return (
             <li
               key={it.key}
               data-testid="msg"
+              data-seq={it.seq}
               className={`flex gap-2.5 ${it.mine ? 'flex-row-reverse' : ''} ${grouped ? '-mt-1.5' : ''}`}
             >
               {!it.mine && (
@@ -587,17 +720,19 @@ export function MessageList({
               <div className={`flex flex-col gap-1 ${it.mine ? 'items-end' : 'items-start'}`}>
                 {!grouped && !it.mine && (
                   <span className="flex items-center gap-1.5 text-xs">
-                    <span className="font-medium" style={{ color: it.author.color }}>
+                    {humanBadge && <ChannelBadge channel={humanBadge} />}
+                    <span className="font-medium" style={{ color: ink(it.author.color) }}>
                       {it.author.name}
                     </span>
-                    {it.to && <ToChip name={nameOf(it.to)} color={it.author.color} />}
+                    <DirectionChip to={humanTo} />
                     <span className="text-muted">{fmtTime(it.ts)}</span>
                   </span>
                 )}
                 <Bubble text={it.text} color={it.author.color} mine={it.mine} state="sent" agentLike={false} />
                 {it.mine && !grouped && (
                   <span className="flex items-center gap-1.5 text-[11px] text-muted">
-                    {it.to && <ToChip name={nameOf(it.to)} color={it.author.color} />}
+                    {humanBadge && <ChannelBadge channel={humanBadge} />}
+                    <DirectionChip to={humanTo} />
                     {fmtTime(it.ts)}
                   </span>
                 )}

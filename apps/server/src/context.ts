@@ -3,6 +3,7 @@ import type { Config } from './config';
 import type { Db } from './db/index';
 import { Repo } from './db/repo';
 import { PresenceManager } from './domain/presence';
+import { CoverService } from './media/covers';
 import { EventStore } from './events/store';
 import { LocalMemoryStore } from './memory/localStore';
 import { MemoryGateway } from './memory/gateway';
@@ -24,6 +25,8 @@ export interface AppContext {
   agents: AgentRuntime;
   /** Room 요약·Rejoin 다이제스트 (agents.start()와 함께 시작) */
   summarizer: Summarizer;
+  /** 보드 도구 커버 이미지 생성(선택 기능, 키 없으면 no-op) */
+  covers: CoverService;
 }
 
 export function createContext(db: Db, config: AppContext['config'] = { agentMode: 'mock' }): AppContext {
@@ -36,5 +39,6 @@ export function createContext(db: Db, config: AppContext['config'] = { agentMode
   ctx.memory = new MemoryGateway(ctx, new LocalMemoryStore(repo));
   ctx.summarizer = new Summarizer(ctx);
   ctx.agents = new AgentRuntime(ctx);
+  ctx.covers = new CoverService(ctx, { enabled: !!config.boardCovers });
   return ctx;
 }

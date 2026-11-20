@@ -10,10 +10,12 @@ import { useSession } from '../store/session';
 import { useActivity } from '../store/activityStore';
 import { useWorld } from '../store/worldStore';
 import { PHASE_LABEL, WorkingDots } from './AgentActivity';
-import { AgentAvatar } from './Avatar';
+import { AgentAvatar, AgentTag } from './Avatar';
+import { InteractionChip } from './InteractionChip';
 import { MemoryPanel } from './MemoryPanel';
 import { AMBIENCE_LABEL, KIND_LABEL, colorOf, dmPeer, titleOf } from './labels';
 import { APPROVAL_ORANGE, foldVisits } from './visits';
+import { APPROVAL_INK, ink } from '../theme';
 
 const NO_EVENTS: RoomEvent[] = [];
 const NO_PRESENCE: string[] = [];
@@ -62,11 +64,9 @@ const btn = 'rounded-md border border-line px-3 py-1.5 text-sm hover:bg-raised d
 function CapsuleThumb({ room, color }: { room: WorldRoom; color: string }) {
   const frosted = room.preview.glass !== 'clear';
   const amb = room.preview.ambience;
-  const glow = amb === 'occupied' ? '#ffd9a0' : amb === 'agentOnly' ? color : amb === 'attention' ? APPROVAL_ORANGE : '#3a4660';
+  const glow = amb === 'occupied' ? '#ffd9a0' : amb === 'agentOnly' ? color : amb === 'attention' ? APPROVAL_ORANGE : 'var(--stage-idle)';
   const lit = amb === 'empty' ? 0.15 : amb === 'agentOnly' ? 0.45 : 0.9;
-  const alpha = Math.round(lit * 255)
-    .toString(16)
-    .padStart(2, '0');
+  const alpha = `${Math.round(lit * 100)}%`;
   return (
     <div
       data-testid="capsule-thumb"
@@ -75,13 +75,13 @@ function CapsuleThumb({ room, color }: { room: WorldRoom; color: string }) {
       className="relative mx-auto mt-3 h-[84px] w-[220px] overflow-hidden rounded-full"
       style={{
         border: `2px solid ${color}`,
-        background: `radial-gradient(ellipse at 50% 60%, ${glow}${alpha}, transparent 70%), #101829`,
+        background: `radial-gradient(ellipse at 50% 60%, color-mix(in srgb, ${glow} ${alpha}, transparent), transparent 70%), var(--thumb-bg)`,
         boxShadow: amb === 'attention' ? `0 0 14px ${APPROVAL_ORANGE}` : undefined,
       }}
     >
-      {frosted && <div className="absolute inset-0 rounded-full bg-white/25 backdrop-blur-md" />}
-      <span className="absolute left-1/3 top-0 h-full w-px bg-white/20" />
-      <span className="absolute left-2/3 top-0 h-full w-px bg-white/20" />
+      {frosted && <div className="absolute inset-0 rounded-full bg-white/55 backdrop-blur-md" />}
+      <span className="absolute left-1/3 top-0 h-full w-px bg-black/10" />
+      <span className="absolute left-2/3 top-0 h-full w-px bg-black/10" />
     </div>
   );
 }
@@ -178,6 +178,11 @@ function PreviewTab({ roomId }: { roomId: string }) {
                 <Row k="놓친 변화">
                   <span data-testid="missed-changes">{detail.missedChanges}건</span>
                 </Row>
+                {detail.interaction && (
+                  <Row k="진행 중">
+                    <InteractionChip interaction={detail.interaction} />
+                  </Row>
+                )}
                 <Row k="Agent">
                   {detail.agents.length ? (
                     <span className="flex flex-wrap gap-1">
@@ -208,7 +213,7 @@ function PreviewTab({ roomId }: { roomId: string }) {
                 {detail.pendingApprovals > 0 && (
                   <Row k="승인">
                     <span
-                      className="rounded-full px-2 py-0.5 text-xs font-semibold text-[#0b1020]"
+                      className="rounded-full px-2 py-0.5 text-xs font-semibold text-[var(--on-accent)]"
                       style={{ background: APPROVAL_ORANGE }}
                     >
                       대기 {detail.pendingApprovals}건
@@ -224,7 +229,10 @@ function PreviewTab({ roomId }: { roomId: string }) {
       <section aria-label="내 Agent" className="mt-5 flex items-center gap-3 rounded-lg border border-line p-3" data-testid="my-agent">
         <AgentAvatar variant={myAgentDto?.variant} color={agentColor} name={myAgent?.name ?? myAgentDto?.name} />
         <div className="min-w-0 text-sm">
-          <div className="truncate font-medium">{myAgent?.name ?? myAgentDto?.name ?? '내 Agent'}</div>
+          <div className="flex items-center gap-1.5 font-medium">
+            <span className="truncate">{myAgent?.name ?? myAgentDto?.name ?? '내 Agent'}</span>
+            <AgentTag color={agentColor} />
+          </div>
           <div className="flex items-center gap-1.5 truncate text-xs text-muted" data-testid="my-agent-label" data-live={myLive ? 'true' : 'false'}>
             {myLive ? (
               <>
@@ -251,7 +259,7 @@ function PreviewTab({ roomId }: { roomId: string }) {
             type="button"
             data-testid="enter-room"
             onClick={() => navigate(`/room/${room.id}`)}
-            className="rounded-md bg-fg px-4 py-1.5 text-sm font-semibold text-bg hover:brightness-95"
+            className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-[var(--on-accent-strong)] hover:brightness-95"
           >
             들어가기
           </button>
@@ -302,7 +310,7 @@ function PreviewTab({ roomId }: { roomId: string }) {
         )}
         {visitTarget && myVisit && (
           <div className="flex w-full items-center gap-2 text-sm" data-testid="visit-status">
-            <span style={{ color: myVisit.status === 'requested' ? APPROVAL_ORANGE : color }}>
+            <span style={{ color: myVisit.status === 'requested' ? APPROVAL_INK : ink(color) }}>
               {myVisit.status === 'requested' ? '방문 승인 대기 중' : '방문 중'}
             </span>
             {myVisit.status === 'active' && (
@@ -326,7 +334,7 @@ function PreviewTab({ roomId }: { roomId: string }) {
         />
       )}
       {act.error && (
-        <p role="alert" className="mt-3 text-xs text-red-300">
+        <p role="alert" className="mt-3 text-xs text-danger">
           {act.error}
         </p>
       )}

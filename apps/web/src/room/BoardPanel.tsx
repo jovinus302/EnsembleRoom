@@ -3,6 +3,8 @@ import { ringGradientStops, visibleCards, type BoardCard, type OwnerTag } from '
 import { api, ApiError } from '../api/client';
 import { FALLBACK_COLOR } from '../messenger/agentIdentity';
 import type { RoomModel } from './useRoomModel';
+import { BoardToolHost, BoardToolStrip } from './boardTools/BoardToolStrip';
+import { ink } from '../theme';
 
 const GOLD = '#f2d04e';
 
@@ -70,7 +72,7 @@ function CommentForm({ roomId, cardId, disabled }: { roomId: string; cardId: str
         등록
       </button>
       {error && (
-        <span role="alert" className="basis-full text-[11px] text-red-300">
+        <span role="alert" className="basis-full text-[11px] text-danger">
           {error}
         </span>
       )}
@@ -114,7 +116,7 @@ function EditForm({ roomId, card, onDone }: { roomId: string; card: BoardCard; o
         className="resize-none rounded-md border border-line bg-bg px-2 py-1 text-sm"
       />
       <div className="flex gap-1.5">
-        <button type="submit" disabled={busy} className="rounded-md bg-fg px-3 py-1 text-xs font-semibold text-bg disabled:opacity-50">
+        <button type="submit" disabled={busy} className="rounded-md bg-accent px-3 py-1 text-xs font-semibold text-[var(--on-accent-strong)] disabled:opacity-50">
           저장
         </button>
         <button type="button" onClick={onDone} className="rounded-md border border-line px-3 py-1 text-xs hover:bg-raised">
@@ -122,7 +124,7 @@ function EditForm({ roomId, card, onDone }: { roomId: string; card: BoardCard; o
         </button>
       </div>
       {error && (
-        <p role="alert" className="text-[11px] text-red-300">
+        <p role="alert" className="text-[11px] text-danger">
           {error}
         </p>
       )}
@@ -141,8 +143,8 @@ function Card({ card, m }: { card: BoardCard; m: RoomModel }) {
     kind === 'human' ? (m.users[id ?? '']?.color ?? FALLBACK_COLOR) : m.resolveAgent(id).color;
   const askable = m.agents.filter((a) => !a.visiting && a.state.mode !== 'traveling');
   const border = o.ours
-    ? { border: '2px solid transparent', backgroundImage: `linear-gradient(#151d30, #151d30), linear-gradient(135deg, ${o.ring.join(',')})`, backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box' }
-    : { border: `2px ${o.dashed ? 'dashed' : 'solid'} ${o.color}`, background: '#151d30' };
+    ? { border: '2px solid transparent', backgroundImage: `linear-gradient(var(--surface), var(--surface)), linear-gradient(135deg, ${o.ring.join(',')})`, backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box' }
+    : { border: `2px ${o.dashed ? 'dashed' : 'solid'} ${o.color}`, background: 'var(--surface)' };
 
   return (
     <li
@@ -150,7 +152,7 @@ function Card({ card, m }: { card: BoardCard; m: RoomModel }) {
       data-owner={card.ownerTag}
       data-ours={o.ours ? 'true' : 'false'}
       data-agreed={card.agreed ? 'true' : 'false'}
-      className="anim-card relative flex flex-col rounded-xl p-3.5 text-sm"
+      className="surface-card anim-card relative flex flex-col rounded-xl p-3.5 text-sm"
       style={border}
     >
       {card.agreed && (
@@ -164,7 +166,7 @@ function Card({ card, m }: { card: BoardCard; m: RoomModel }) {
         </span>
       )}
       <div className="flex items-center gap-2 text-[11px]">
-        <span className="rounded-full border px-2 py-0.5" style={{ borderColor: o.ours ? o.ring[0] : o.color, color: o.ours ? 'var(--fg)' : o.color }}>
+        <span className="rounded-full border px-2 py-0.5" style={{ borderColor: o.ours ? o.ring[0] : o.color, color: o.ours ? 'var(--fg)' : ink(o.color) }}>
           {o.ours ? '✦ ' : ''}
           {o.label}
         </span>
@@ -193,7 +195,7 @@ function Card({ card, m }: { card: BoardCard; m: RoomModel }) {
         <ul className="mt-2.5 flex flex-col gap-1 border-t border-line pt-2" data-testid="card-comments">
           {card.comments.map((c) => (
             <li key={c.seq} className="text-xs leading-relaxed">
-              <span className="font-medium" style={{ color: colorOfActor(c.actorKind, c.actorId) }}>
+              <span className="font-medium" style={{ color: ink(colorOfActor(c.actorKind, c.actorId)) }}>
                 {nameOfActor(c.actorKind, c.actorId)}
               </span>{' '}
               <span className="text-fg/85">{c.text}</span>
@@ -237,7 +239,7 @@ function Card({ card, m }: { card: BoardCard; m: RoomModel }) {
         </div>
       )}
       {error && (
-        <p role="alert" className="mt-1 text-[11px] text-red-300">
+        <p role="alert" className="mt-1 text-[11px] text-danger">
           {error}
         </p>
       )}
@@ -305,7 +307,7 @@ function NewCardForm({ m }: { m: RoomModel }) {
         className="resize-none rounded-md border border-line bg-bg px-2 py-1 text-sm"
       />
       <div className="flex gap-1.5">
-        <button type="submit" disabled={busy || !title.trim()} className="rounded-md bg-fg px-3 py-1 text-xs font-semibold text-bg disabled:opacity-50">
+        <button type="submit" disabled={busy || !title.trim()} className="rounded-md bg-accent px-3 py-1 text-xs font-semibold text-[var(--on-accent-strong)] disabled:opacity-50">
           추가
         </button>
         <button type="button" onClick={() => setOpen(false)} className="rounded-md border border-line px-3 py-1 text-xs hover:bg-raised">
@@ -313,7 +315,7 @@ function NewCardForm({ m }: { m: RoomModel }) {
         </button>
       </div>
       {error && (
-        <p role="alert" className="text-[11px] text-red-300">
+        <p role="alert" className="text-[11px] text-danger">
           {error}
         </p>
       )}
@@ -336,6 +338,7 @@ export function BoardPanel({ model }: { model: RoomModel }) {
           <NewCardForm m={model} />
         </span>
       </div>
+      <BoardToolStrip model={model} />
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
         {cards.length === 0 ? (
           <p className="mt-6 text-center text-sm text-muted">아직 카드가 없어요. Agent가 초안을 만들거나 직접 추가해 보세요.</p>
@@ -347,6 +350,7 @@ export function BoardPanel({ model }: { model: RoomModel }) {
           </ul>
         )}
       </div>
+      <BoardToolHost model={model} />
     </section>
   );
 }

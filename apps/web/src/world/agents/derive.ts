@@ -1,8 +1,8 @@
-import { PALETTE, type AgentActivity, type AgentChip, type AgentMode, type MyAgentStatus, type RoomEvent, type UserDto, type WorldRoom } from '@ensemble/shared';
+import { PALETTE, PREVIEW_INTERACTION_WINDOW_MS, activeLinks, indexInteractions, type AgentActivity, type AgentChip, type AgentMode, type MyAgentStatus, type RoomEvent, type UserDto, type WorldRoom } from '@ensemble/shared';
 import type { RoomModel } from '../../room/useRoomModel';
 import type { ActivityEntry } from '../../store/activityStore';
 import { activityKey } from '../../store/activityStore';
-import type { CharacterInput } from './types';
+import type { CharacterInput, CharacterLink } from './types';
 
 /** three를 끌어오지 않는 순수 함수들: stage/WorldHost가 메인 번들에서 쓴다 */
 
@@ -15,6 +15,48 @@ export function clipSpeech(text: string, max = SPEECH_MAX): string {
   const t = text.replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
   return '…' + t.slice(t.length - max + 1);
+}
+
+/** 방 하나에 그리는 사람(접속 중 + 자리 비움) 상한: 좌석이 모자라면 한 점에 겹치기 때문 */
+const HUMAN_CAP = 6;
+
+/** 사람 캐릭터 id: 접속 중이면 `h:<uid>`, 자리 비움이면 `ha:<uid>:<roomId>` */
+export function humanCharId(uid: string, roomId: string, present: boolean): string {
+  return present ? `h:${uid}` : `ha:${uid}:${roomId}`;
+}
+
+/** 구성원이지만 지금 접속해 있지 않은 사람. 같은 사람이 여러 방에서 비울 수 있어 id에 roomId를 넣는다 */
+export function awayHumanInput(uid: string, roomId: string, name: string, color: string, meId: string, detail: CharacterInput['detail']): CharacterInput {
+  return {
+    id: `ha:${uid}:${roomId}`,
+    kind: 'human',
+    name,
+    color,
+    ownerId: uid,
+    roomId,
+    isMe: uid === meId,
+    activity: 'idle',
+    mode: 'accompanied',
+    recalling: false,
+    representing: false,
+    visiting: false,
+    handoverPending: false,
+    target: null,
+    targetCharId: null,
+    cue: null,
+    speech: null,
+    awaitingApproval: false,
+    detail,
+    seatUserId: uid,
+    away: true,
+  };
+}
+
+/** 이 방에서 사람이 그려질 후보: My Room은 소유자, Our Room은 구성원 */
+function roomPeople(room: Pick<WorldRoom, 'kind' | 'ownerId' | 'memberIds'>): readonly string[] {
+  if (room.kind === 'my') return room.ownerId ? [room.ownerId] : [];
+  if (room.kind === 'our') return room.memberIds;
+  return [];
 }
 
 function lastAgentMessage(events: readonly RoomEvent[], agentId: string): { text: string; seq: number } | null {
@@ -86,10 +128,35 @@ export function deriveFocusCharacters(model: RoomModel, activity: Readonly<Recor
       seatUserId: uid,
     });
   }
+  // 자리 비움: 구성원인데 접속 안 한 사람. 명시적 Leave(위임이 있거나 implicit=false인 member_left)는 그리지 않는다
+  const here = new Set(model.state.presentUserIds);
+  let slots = HUMAN_CAP - out.length;
+  for (const uid of roomPeople(model.room)) {
+    if (slots <= 0) break;
+    if (here.has(uid)) continue;
+    const m = model.state.members[uid];
+    if (m && !m.present) {
+      let explicit = !!m.mandate;
+      for (let i = model.events.length - 1; !explicit && i >= 0; i--) {
+        const e = model.events[i]!;
+        if (e.type === 'member_left' && e.userId === uid) {
+          explicit = !e.implicit;
+          break;
+        }
+      }
+      if (explicit) continue;
+    }
+    const u = model.users[uid];
+    out.push(awayHumanInput(uid, roomId, u?.name ?? uid, u?.color ?? FALLBACK, model.meId, 'full'));
+    slots--;
+  }
   const ids = new Set(out.map((c) => c.id));
   const resolveTarget = (t: CharacterInput['target']): string | null => {
     if (!t || !t.id) return null;
-    if (t.kind === 'user' || t.kind === 'owner_seat') return `h:${t.id}`;
+    if (t.kind === 'user' || t.kind === 'owner_seat') {
+      const id = humanCharId(t.id, roomId, here.has(t.id));
+      return ids.has(id) ? id : null;
+    }
     if (t.kind === 'agent') return t.id;
     return null;
   };
@@ -129,7 +196,50 @@ export function deriveFocusCharacters(model: RoomModel, activity: Readonly<Recor
       ids.add(row.id);
     }
   }
-  return out;
+  return applyInteractions(out, model.events, { roomId, presentUserIds: here, agentIds: new Set(model.agents.map((a) => a.agentId)), replaying: model.replaying, nowMs: Date.now() });
+}
+
+/**
+ * 포커스 방의 이벤트에서 A2A/A2H 연결선과 승인 alert를 파생해 캐릭터에 붙인다(순수 함수).
+ * 연결선은 양 끝 캐릭터가 모두 이 방에 그려질 때만 만든다(자리 비움 사람은 `ha:` id로 매핑). h2a는 그리지 않는다.
+ */
+export function applyInteractions(
+  chars: CharacterInput[],
+  events: readonly RoomEvent[],
+  o: { roomId: string; presentUserIds: ReadonlySet<string>; agentIds: ReadonlySet<string>; replaying: boolean; nowMs: number },
+): CharacterInput[] {
+  if (chars.length === 0) return chars;
+  const ix = indexInteractions(events, { isAgentId: (id) => o.agentIds.has(id) });
+  if (ix.list.length === 0) return chars;
+  const charOf = (id: string): string => (o.agentIds.has(id) ? id : humanCharId(id, o.roomId, o.presentUserIds.has(id)));
+  const ids = new Set(chars.map((c) => c.id));
+  const links = new Map<string, CharacterLink[]>();
+  for (const l of activeLinks(ix, o.nowMs, { replaying: o.replaying })) {
+    if (l.channel === 'h2a') continue;
+    const from = charOf(l.fromId);
+    const to = charOf(l.toId);
+    if (from === to || !ids.has(from) || !ids.has(to)) continue;
+    const arr = links.get(from) ?? [];
+    arr.push({ toCharId: to, channel: l.channel, seq: l.seq, at: l.at, pending: l.pending, ...(l.reverse ? { reverse: true } : {}) });
+    links.set(from, arr);
+  }
+  const alerted = new Set<string>();
+  for (const it of ix.list) {
+    if (it.kind !== 'a2h_approval' || !it.pending) continue;
+    for (const uid of it.toIds) alerted.add(charOf(uid));
+  }
+  if (links.size === 0 && alerted.size === 0) return chars;
+  const ends = new Set<string>();
+  for (const [from, arr] of links) {
+    ends.add(from);
+    for (const l of arr) ends.add(l.toCharId);
+  }
+  return chars.map((c) => {
+    const l = links.get(c.id);
+    const alert = c.kind === 'human' && alerted.has(c.id);
+    const linked = ends.has(c.id);
+    return l || alert || linked ? { ...c, ...(l ? { links: l } : {}), ...(alert ? { alert: 'approval' as const } : {}), ...(linked ? { linked: true } : {}) } : c;
+  });
 }
 
 /** 구독 중인 모든 Room 로그에서 agent_departed의 목적지를 모은다 (agentId → toRoomId, 가장 최근) */
@@ -165,6 +275,7 @@ export function deriveLightCharacters(
   myAgent: MyAgentStatus | null,
   skipRoomId: string | null,
   tripHints: Readonly<Record<string, string>>,
+  nowMs: number = Date.now(),
 ): CharacterInput[] {
   const out: CharacterInput[] = [];
   const base = (p: Partial<CharacterInput> & Pick<CharacterInput, 'id' | 'kind' | 'name' | 'color' | 'roomId'>): CharacterInput => ({
@@ -209,6 +320,25 @@ export function deriveLightCharacters(
   for (const [uid, roomId] of humanPlace) {
     const u = users[uid];
     out.push(base({ id: `h:${uid}`, kind: 'human', name: u?.name ?? '', color: u?.color ?? FALLBACK, ownerId: uid, roomId, isMe: uid === meId, seatUserId: uid }));
+  }
+
+  // 자리 비움: 서버가 detail을 준 방(내 방, 내가 구성원인 Our)에서만. 서리 유리의 남의 방은 정보가 없으니 아무것도 더하지 않는다.
+  // 명시적 Leave: 내 것은 myLeave, 남의 것은 대리 중(representing) Agent 칩으로만 알 수 있다(그냥 비운 것은 구분 불가 -> 자리 비움으로 그림)
+  for (const r of rooms) {
+    if (r.id === skipRoomId || r.kind === 'dm') continue;
+    const d = r.preview.detail;
+    if (!d || !d.presentUserIds) continue;
+    const delegated = new Set(d.agents.filter((c) => c.mode === 'representing').map((c) => guessOwner(c.name, r, users)));
+    let slots = HUMAN_CAP - [...humanPlace.values()].filter((id) => id === r.id).length;
+    for (const uid of roomPeople(r)) {
+      if (slots <= 0) break;
+      if (humanPlace.get(uid) === r.id) continue;
+      if (uid === meId && d.myLeave) continue;
+      if (delegated.has(uid)) continue;
+      const u = users[uid];
+      out.push(awayHumanInput(uid, r.id, u?.name ?? '', u?.color ?? FALLBACK, meId, 'light'));
+      slots--;
+    }
   }
 
   // Agent: 같은 agentId가 여러 칩으로 오면(출발 Room의 visiting 칩 + 호스트 Room 칩) 위치가 확정된 칩이 이긴다
@@ -277,7 +407,44 @@ export function deriveLightCharacters(
       );
     }
   }
-  return out;
+  return attachPreviewLinks(out, rooms, skipRoomId, nowMs);
+}
+
+/**
+ * 조망 캡슐의 "지금 A2A/A2H 진행 중" 연결선. 서버가 구성원에게만 주는 `detail.interaction`으로 만든다(서리 낀 방은 detail이 없어 아무것도 없다).
+ * 양 끝이 그 방에 그려질 때만 잇고, pending이 아닌 것은 20초가 지나면 만들지 않는다. 내용 텍스트는 다루지 않는다. 입력은 바꾸지 않는다.
+ */
+export function attachPreviewLinks(chars: CharacterInput[], rooms: readonly WorldRoom[], skipRoomId: string | null, nowMs: number): CharacterInput[] {
+  const links = new Map<string, CharacterLink[]>();
+  const ends = new Set<string>();
+  for (const r of rooms) {
+    if (r.id === skipRoomId || r.kind === 'dm') continue;
+    const it = r.preview.detail?.interaction;
+    if (!it || (!it.pending && nowMs - it.at >= PREVIEW_INTERACTION_WINDOW_MS)) continue;
+    const here = new Map(chars.filter((c) => c.roomId === r.id).map((c) => [c.id, c] as const));
+    const agentIds = new Set((r.preview.detail?.agents ?? []).map((a) => a.agentId));
+    const charOf = (id: string): string | null => {
+      if (agentIds.has(id)) return here.has(id) ? id : null;
+      if (here.has(`h:${id}`)) return `h:${id}`;
+      return here.has(`ha:${id}:${r.id}`) ? `ha:${id}:${r.id}` : null;
+    };
+    const from = charOf(it.fromId);
+    if (!from) continue;
+    for (const toId of it.toIds) {
+      const to = charOf(toId);
+      if (!to || to === from) continue;
+      const arr = links.get(from) ?? [];
+      arr.push({ toCharId: to, channel: it.channel, seq: it.seq, at: it.at, pending: it.pending });
+      links.set(from, arr);
+      ends.add(from);
+      ends.add(to);
+    }
+  }
+  if (ends.size === 0) return chars;
+  return chars.map((c) => {
+    const l = links.get(c.id);
+    return l || ends.has(c.id) ? { ...c, ...(l ? { links: l } : {}), linked: true } : c;
+  });
 }
 
 function guessOwner(name: string, room: WorldRoom, users: Readonly<Record<string, { id: string; name: string }>>): string | null {

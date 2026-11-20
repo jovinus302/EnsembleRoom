@@ -35,8 +35,8 @@ export function ApprovalInbox() {
         <span
           data-testid="approval-inbox-badge"
           aria-label={`승인 대기 ${n}건`}
-          className="ml-auto rounded-full px-1.5 text-[11px] font-semibold leading-5 text-[#0b1020]"
-          style={{ background: n > 0 ? APPROVAL_ORANGE : 'var(--line)', color: n > 0 ? '#0b1020' : 'var(--muted)' }}
+          className="ml-auto rounded-full px-1.5 text-[11px] font-semibold leading-5 text-[var(--on-accent)]"
+          style={{ background: n > 0 ? APPROVAL_ORANGE : 'var(--line)', color: n > 0 ? 'var(--on-accent)' : 'var(--muted)' }}
         >
           {n}
         </span>

@@ -4,8 +4,8 @@ import type { AppContext } from '../context';
 import { requireRoom, resolveSubject } from '../domain/rooms';
 import { DomainError, forbidden } from '../errors';
 import { buildTurnInput } from './context';
-import { actorOf, executeTool, isToolName, toolsForTurn } from './tools';
-import type { AgentKind, AgentProvider, ToolCall, Trigger, TurnOutcome } from './types';
+import { actorOf, executeTool, isSeedAgent, isToolName, toolsForTurn } from './tools';
+import type { A2AJob, AgentKind, AgentProvider, ToolCall, Trigger, TurnOutcome } from './types';
 
 /**
  * 턴 1회 실행 (계획 6절 Claude 호출 / 도구).
@@ -23,6 +23,10 @@ export interface TurnJob {
   trigger: Trigger;
   /** 방문 턴 상한: 이 도구만 허용 */
   forced: ToolName | null;
+  /** A2A 답(answer)·정리(collect) 턴 */
+  ask?: A2AJob;
+  /** 이 턴에 ask_agents를 줄지(스케줄러가 startJob에서 정한다) */
+  allowAsk?: boolean;
 }
 
 const MAX_STEPS = 3;
@@ -153,7 +157,10 @@ export async function runTurn(
     const room = requireRoom(ctx, roomId);
     const subject = resolveSubject(ctx, room, actor);
     if (!subject) throw forbidden('not_in_room', '이 Room에 접근할 수 없습니다');
-    const toolNames = toolsForTurn(subject, job.forced);
+    // 보수적 턴: 자동 대리(auto_reply)와 A2A 답 턴(a2a_ask). 도구를 say/request_approval/pass로 제한한다.
+    const autoReply = job.trigger.reason === 'auto_reply' || job.trigger.reason === 'a2a_ask';
+    const allowAsk = !!job.allowAsk && !autoReply;
+    const toolNames = toolsForTurn(subject, job.forced, autoReply, isSeedAgent(ctx, agentId), { allowAsk });
     if (toolNames.length === 0) throw forbidden('no_tools', '쓸 수 있는 도구가 없습니다');
 
     // 기억: gateway만 통과한다. ns는 서버가 정한다.
@@ -175,6 +182,8 @@ export async function runTurn(
       subject,
       tools: toolNames,
       recall,
+      ask: job.ask,
+      allowAsk: toolNames.includes('ask_agents'),
     });
 
     let talkingDone = false;
@@ -205,12 +214,27 @@ export async function runTurn(
     if (call.name !== 'pass') activity.phase('acting');
 
     // `to`가 Agent면 talking 단계를 남긴다 (provider가 target을 못 알렸을 때)
-    const to = (call.input as { to?: unknown }).to;
+    const to = job.ask?.role === 'answer' ? job.ask.askerId : (call.input as { to?: unknown }).to;
     if (call.name === 'say' && typeof to === 'string') markTalking(to);
+    if (call.name === 'ask_agents') {
+      const ids = (call.input as { agent_ids?: unknown }).agent_ids;
+      if (Array.isArray(ids) && typeof ids[0] === 'string') markTalking(ids[0]);
+    }
 
     const res = executeTool(
       ctx,
-      { roomId, agentId, agentKind, turnId, forcedTool: job.forced, providedMemoryIds: recall.providedIds },
+      {
+        roomId,
+        agentId,
+        agentKind,
+        turnId,
+        forcedTool: job.forced,
+        providedMemoryIds: recall.providedIds,
+        autoReply,
+        allowAsk,
+        askable: input.askable.map((a) => a.id),
+        ...(job.ask ? { reply: { seq: job.ask.askSeq, ...(job.ask.role === 'answer' ? { forceTo: job.ask.askerId } : {}) } } : {}),
+      },
       call.name,
       call.input,
     );

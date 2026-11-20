@@ -136,7 +136,45 @@ export function Bubble({ spec, width = 2.5, position }: { spec: BubbleSpec; widt
   );
 }
 
-/** 이름표: 작은 알약. 나·소유자·방문 표식 */
+export type TagVariant = 'human' | 'agent' | 'room';
+
+function starPath(g: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  g.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const rr = i % 2 === 0 ? r : r * 0.28;
+    const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+    g[i === 0 ? 'moveTo' : 'lineTo'](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+  }
+  g.closePath();
+}
+
+function hexPath(g: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  g.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+    g[i === 0 ? 'moveTo' : 'lineTo'](cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+  }
+  g.closePath();
+}
+
+/** 모서리를 깎은 각진 태그 */
+function chamferRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, c: number) {
+  g.beginPath();
+  g.moveTo(x + c, y);
+  g.lineTo(x + w - c, y);
+  g.lineTo(x + w, y + c);
+  g.lineTo(x + w, y + h - c);
+  g.lineTo(x + w - c, y + h);
+  g.lineTo(x + c, y + h);
+  g.lineTo(x, y + h - c);
+  g.lineTo(x, y + c);
+  g.closePath();
+}
+
+/**
+ * 이름표. 사람 = 둥근 알약 + 점, Agent = 각진 태그 + 스파크 아이콘, Room Agent = 각진 태그 + 육각 아이콘(라임).
+ * 나·소유자·방문 표식을 함께 그린다.
+ */
 export function NameTag({
   text,
   color,
@@ -144,6 +182,11 @@ export function NameTag({
   me,
   position,
   scale = 1,
+  variant = 'human',
+  onMeasure,
+  compact,
+  subtleBadge,
+  onHover,
 }: {
   text: string;
   color: string;
@@ -151,34 +194,79 @@ export function NameTag({
   me?: boolean;
   position: [number, number, number];
   scale?: number;
+  variant?: TagVariant;
+  /** 월드 크기(가로·세로)를 알려 준다: 라벨 겹침 회피용 */
+  onMeasure?: (w: number, h: number) => void;
+  /** Agent·Room Agent: 아이콘만 있는 작은 칩 */
+  compact?: boolean;
+  /** 배지를 칩 안의 작은 회색 보조 글자로(자리 비움) */
+  subtleBadge?: boolean;
+  onHover?: (over: boolean) => void;
 }) {
   const { tex, w, h } = useMemo(() => {
     const c = document.createElement('canvas');
     const g = c.getContext('2d')!;
     g.font = `800 25px ${FONT}`;
-    const label = text;
+    const label = compact ? '' : text;
     const tw = g.measureText(label).width;
-    const bw = badge ? g.measureText(badge).width + 22 : 0;
-    const dot = 26;
-    c.width = Math.ceil(tw + bw + dot + 36);
+    g.font = `700 17px ${FONT}`;
+    const bwSub = badge && subtleBadge ? g.measureText(badge).width + 10 : 0;
+    g.font = `800 25px ${FONT}`;
+    const bw = compact ? 0 : subtleBadge ? bwSub : badge ? g.measureText(badge).width + 22 : 0;
+    const human = variant === 'human';
+    const lead = human ? 26 : 50;
+    c.width = compact ? 56 : Math.ceil(tw + bw + lead + 36 - (subtleBadge ? 0 : 0));
     c.height = 52;
     const g2 = c.getContext('2d')!;
     g2.font = `800 25px ${FONT}`;
-    g2.fillStyle = me ? 'rgba(255,250,235,0.96)' : 'rgba(28,18,12,0.78)';
-    roundRect(g2, 1, 1, c.width - 2, c.height - 2, 25);
-    g2.fill();
-    g2.lineWidth = me ? 4 : 2.5;
-    g2.strokeStyle = color;
-    g2.stroke();
-    g2.fillStyle = color;
-    g2.beginPath();
-    g2.arc(26, 26, 9, 0, Math.PI * 2);
-    g2.fill();
+    const W = c.width;
+    const H = c.height;
+    if (human) {
+      g2.fillStyle = me ? 'rgba(255,250,235,0.96)' : 'rgba(28,18,12,0.78)';
+      roundRect(g2, 1, 1, W - 2, H - 2, 25);
+      g2.fill();
+      g2.lineWidth = me ? 4 : 2.5;
+      g2.strokeStyle = color;
+      g2.stroke();
+      g2.fillStyle = color;
+      g2.beginPath();
+      g2.arc(26, 26, 9, 0, Math.PI * 2);
+      g2.fill();
+    } else {
+      // 각진 태그: 어두운 청색 계열 바탕 + 왼쪽 색 블록(아이콘)
+      g2.fillStyle = 'rgba(14,20,34,0.9)';
+      chamferRect(g2, 1, 1, W - 2, H - 2, 12);
+      g2.fill();
+      g2.lineWidth = 3;
+      g2.strokeStyle = color;
+      g2.stroke();
+      g2.save();
+      chamferRect(g2, 1, 1, W - 2, H - 2, 12);
+      g2.clip();
+      g2.fillStyle = color;
+      g2.fillRect(0, 0, compact ? W : 46, H);
+      g2.restore();
+      g2.fillStyle = '#10141f';
+      if (variant === 'room') {
+        hexPath(g2, 24, 26, 13);
+        g2.fill();
+        g2.fillStyle = color;
+        hexPath(g2, 24, 26, 6);
+        g2.fill();
+      } else {
+        starPath(g2, 24, 26, 15);
+        g2.fill();
+      }
+    }
     g2.textBaseline = 'middle';
-    g2.fillStyle = me ? '#2b2118' : '#fff4e2';
-    g2.fillText(label, 44, 28);
-    if (badge) {
-      const bx = 44 + tw + 8;
+    g2.fillStyle = human ? (me ? '#2b2118' : '#fff4e2') : '#eef3ff';
+    if (!compact) g2.fillText(label, lead + 18, 28);
+    if (badge && subtleBadge && !compact) {
+      g2.font = `700 17px ${FONT}`;
+      g2.fillStyle = me ? '#8a7f70' : '#b6b0a6';
+      g2.fillText(badge, lead + 18 + tw + 8, 29);
+    } else if (badge && !compact) {
+      const bx = lead + 18 + tw + 8;
       g2.fillStyle = color;
       roundRect(g2, bx, 9, bw - 8, 34, 17);
       g2.fill();
@@ -189,11 +277,15 @@ export function NameTag({
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
     return { tex: t, w: c.width, h: c.height };
-  }, [text, color, badge, me]);
+  }, [text, color, badge, me, variant, compact, subtleBadge]);
   useEffect(() => () => tex.dispose(), [tex]);
   const k = 0.0058 * scale;
+  useEffect(() => {
+    onMeasure?.(w * k, h * k);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [w, h, k]);
   return (
-    <sprite position={position} scale={[w * k, h * k, 1]} renderOrder={28}>
+    <sprite position={position} scale={[w * k, h * k, 1]} renderOrder={28} onPointerOver={onHover ? () => onHover(true) : undefined} onPointerOut={onHover ? () => onHover(false) : undefined}>
       <spriteMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} />
     </sprite>
   );

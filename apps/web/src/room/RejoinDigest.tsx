@@ -72,7 +72,7 @@ function DigestSheet({ roomId }: { roomId: string }) {
     <Sheet title={`돌아온 것을 환영해요 · ${title}`} onClose={() => void confirm()} testId="rejoin-digest">
       {!digest && !error && <p className="mt-4 text-sm text-muted">내가 없는 동안의 일을 정리하는 중…</p>}
       {error && (
-        <p role="alert" className="mt-4 text-sm text-red-300">
+        <p role="alert" className="mt-4 text-sm text-danger">
           {error}
         </p>
       )}
@@ -130,7 +130,7 @@ function DigestSheet({ roomId }: { roomId: string }) {
             data-testid="digest-confirm"
             disabled={busy}
             onClick={() => void confirm()}
-            className="self-start rounded-md bg-fg px-4 py-1.5 text-sm font-semibold text-bg disabled:opacity-50"
+            className="self-start rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-[var(--on-accent-strong)] disabled:opacity-50"
           >
             확인했어요
           </button>

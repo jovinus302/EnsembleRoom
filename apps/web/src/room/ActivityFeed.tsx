@@ -19,7 +19,7 @@ export function ActivityFeed({ model, leftReason }: { model: RoomModel; leftReas
   return (
     <section aria-label={`${title} 활동`} data-testid="activity-feed" className="flex min-h-0 flex-1 flex-col">
       <h2 className="border-b border-line px-5 py-2.5 text-sm font-semibold">활동</h2>
-      <div className="flex min-h-0 flex-1 flex-col bg-panel/60">
+      <div data-room-kind={model.room.kind} className="flex min-h-0 flex-1 flex-col">
         <MessageList roomId={model.roomId} meId={model.meId} users={model.users} replaySeq={model.replaySeq} />
         <Composer
           placeholder={`${title}에 메시지 보내기`}

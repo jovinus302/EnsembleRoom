@@ -73,7 +73,7 @@ export function MandateForm({
         ))}
       </fieldset>
       {error && (
-        <p role="alert" className="text-xs text-red-300">
+        <p role="alert" className="text-xs text-danger">
           {error}
         </p>
       )}
@@ -82,7 +82,7 @@ export function MandateForm({
           type="submit"
           data-testid="mandate-submit"
           disabled={busy || (required && !trimmed)}
-          className="rounded-md bg-fg px-4 py-1.5 text-sm font-semibold text-bg disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-[var(--on-accent-strong)] disabled:opacity-50"
         >
           {submitLabel}
         </button>

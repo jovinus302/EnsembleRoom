@@ -1,5 +1,5 @@
 import { Component, Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AMBIENCE_STAGES, type AmbienceStage, type WorldRoom } from '@ensemble/shared';
+import { AMBIENCE_STAGES, visibleBoardTools, type AmbienceStage, type WorldRoom } from '@ensemble/shared';
 import { useWorld } from '../store/worldStore';
 import { useActivity } from '../store/activityStore';
 import { useRooms } from '../store/roomStore';
@@ -9,6 +9,7 @@ import { usePath } from '../router';
 import { useStage } from './stageStore';
 import { setFxSuppressed } from '../fx/fxStore';
 import { wsClient } from '../api/ws';
+import { toolProps, useBoardToolScene } from '../world/boardToolScene';
 
 /** 이 세션에서 월드 인트로를 이미 봤는가(탭당 1회). `?intro=1`이면 항상 */
 let introDecision: boolean | null = null;
@@ -140,6 +141,20 @@ export function WorldHost() {
     const light = deriveLightCharacters(roomArr, users, viewerId, myAgent, focus.length || (focusModel && focusModel.roomId === focusId) ? focusId : null, tripHints);
     return { characters: mergeCharacters(focus, light), replaying: !!(focusModel && focusModel.roomId === focusId && focusModel.replaying) };
   }, [loaded, viewerId, order, rooms, users, focusModel, focusId, activity, myAgent, tripHints]);
+
+  // 보드 도구 소품: 포커스된 Room(접근 확인된 스냅샷)의 도구만 3D에 전달한다. 포커스가 풀리면 비운다.
+  const toolList = useMemo(
+    () => (focusModel && focusModel.roomId === focusId ? visibleBoardTools(focusModel.state) : null),
+    [focusModel, focusId],
+  );
+  useEffect(() => {
+    if (!focusId || !toolList) return;
+    useBoardToolScene.getState().setRoom(focusId, toolProps(toolList));
+  }, [focusId, toolList]);
+  useEffect(() => {
+    if (!focusId) return;
+    return () => useBoardToolScene.getState().clear(focusId);
+  }, [focusId]);
 
   // 타임라인 재생 중에는 과거 사건이 연출로 터지지 않게 억제한다(8.5)
   const replaying = !!(focusModel && focusModel.roomId === focusId && focusModel.replaying);

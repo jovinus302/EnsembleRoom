@@ -15,6 +15,7 @@ import { requireRoom, resolveSubject, type ActorCtx } from '../domain/rooms';
 import { endVisit } from '../domain/visits';
 import { badRequest, forbidden } from '../errors';
 import { validateUsedMemoryIds } from '../memory/gateway';
+import { BOARD_TOOL_DEFS, BOARD_TOOL_INPUT_SCHEMAS, executeBoardToolCall } from './boardToolTools';
 import type { ToolSpec } from './types';
 
 /**
@@ -51,7 +52,10 @@ export const TOOL_INPUT_SCHEMAS = {
   }),
   remember: obj({ text: z.string().min(1).max(1000), kind: MemoryKindSchema }),
   end_visit: obj({ public_takeout: z.string().max(1500), report_for_owner: z.string().max(3000) }),
+  // `to`가 아니라 agent_ids를 쓴다: claude.ts가 부분 JSON의 문자열 `to`를 대화 상대(target)로 읽기 때문이다.
+  ask_agents: obj({ agent_ids: z.array(z.string().min(1)).min(1).max(3), question: z.string().min(1).max(500) }),
   pass: obj({ reason: PassReasonSchema }),
+  ...BOARD_TOOL_INPUT_SCHEMAS,
 } satisfies Record<ToolName, z.ZodTypeAny>;
 
 const COMMON_PROPS = {
@@ -114,11 +118,21 @@ export const TOOL_DEFS: Record<ToolName, ToolSpec> = {
     description: '방문을 끝낸다. public_takeout은 호스트 Room에 공개되고, report_for_owner는 소유자만 본다.',
     inputSchema: schema({ public_takeout: { type: 'string' }, report_for_owner: { type: 'string' } }, ['public_takeout', 'report_for_owner']),
   },
+  ask_agents: {
+    name: 'ask_agents',
+    description:
+      '지금 이 Room에 없는 구성원의 Agent에게 묻는다. 각자 한 번 답하고, 모두 답하면 당신이 다시 깨어나 정리한다. 사람 메시지 1건당 1회. 자리에 있는 사람에게는 say로 직접 묻는다. say의 to에 Agent id를 넣어 대화를 이어가지 않는다. agent_ids는 [물어볼 수 있는 Agent]에 있는 id만(1~3개).',
+    inputSchema: schema(
+      { agent_ids: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 3, description: '물어볼 Agent id' }, question: { type: 'string', description: '그 Agent들에게 할 질문 한두 문장' } },
+      ['agent_ids', 'question'],
+    ),
+  },
   pass: {
     name: 'pass',
     description: '이번 턴에는 아무것도 하지 않는다.',
     inputSchema: schema({ reason: { type: 'string', enum: PassReasonSchema.options } }, ['reason']),
   },
+  ...BOARD_TOOL_DEFS,
 };
 
 export function toolSpecs(names: readonly ToolName[]): ToolSpec[] {
@@ -128,9 +142,26 @@ export function toolSpecs(names: readonly ToolName[]): ToolSpec[] {
 /**
  * 이 턴에 줄 도구. 권한(`allowedTools`)으로 거른다. 강제 턴이면 그 도구 하나만(권한이 있을 때).
  */
-export function toolsForTurn(subject: PermissionSubject | null, forced: ToolName | null): ToolName[] {
+/** 자동 대리(trigger.reason='auto_reply') 턴의 보수적 위임: 대화와 승인 요청만 */
+export const AUTO_REPLY_TOOLS: readonly ToolName[] = ['say', 'request_approval', 'pass'];
+
+export function toolsForTurn(
+  subject: PermissionSubject | null,
+  forced: ToolName | null,
+  autoReply = false,
+  seedOwner = false,
+  opts: { allowAsk?: boolean } = {},
+): ToolName[] {
   if (!subject) return [];
-  const allowed = allowedTools(subject);
+  let allowed = allowedTools(subject);
+  if (autoReply) allowed = allowed.filter((t) => AUTO_REPLY_TOOLS.includes(t));
+  // 시드 사용자(엄마·Dana)는 로그인하지 않아 승인해 줄 사람이 없다: 승인 요청 없이 대화(say)만, 인물 설정 범위 안에서 스스로 답한다
+  if (seedOwner) allowed = allowed.filter((t) => t !== 'request_approval');
+  // ask_agents는 capability 도구가 아니다. 스케줄러가 정한 allowAsk일 때만, 강제 턴이 아니고 say가 허용된 경우에 pass 앞에 붙인다.
+  if (opts.allowAsk && !autoReply && !forced && allowed.includes('say')) {
+    const i = allowed.indexOf('pass');
+    allowed = i >= 0 ? [...allowed.slice(0, i), 'ask_agents', ...allowed.slice(i)] : [...allowed, 'ask_agents'];
+  }
   return forced ? allowed.filter((t) => t === forced) : allowed;
 }
 
@@ -146,6 +177,14 @@ export interface ExecContext {
   forcedTool: ToolName | null;
   /** 이번 턴에 gateway가 제공한 기억 id */
   providedMemoryIds: readonly string[];
+  /** 자동 대리 턴: 도구를 say/request_approval/pass로 제한 */
+  autoReply?: boolean;
+  /** 이 턴에 ask_agents를 줄 수 있는가 (스케줄러가 정한다) */
+  allowAsk?: boolean;
+  /** ask_agents로 물을 수 있는 Agent id (서버가 턴 시작 때 계산) */
+  askable?: readonly string[];
+  /** A2A 답·정리 턴: 내 발화에 붙일 replyTo(질문 seq)와 강제 수신자(답 턴이면 질문자) */
+  reply?: { seq: number; forceTo?: string };
 }
 
 export interface ExecResult {
@@ -154,6 +193,12 @@ export interface ExecResult {
   passReason?: PassReason;
   data?: Record<string, unknown>;
 }
+
+/** 이 Personal Agent의 소유자가 시드(가상 인물) 사용자인가 */
+export const isSeedAgent = (ctx: AppContext, agentId: string): boolean => {
+  const a = ctx.repo.getAgent(agentId);
+  return !!a && ctx.repo.getUser(a.ownerId)?.kind === 'seed';
+};
 
 export const actorOf = (e: Pick<ExecContext, 'agentId' | 'agentKind' | 'turnId'>): ActorCtx =>
   e.agentKind === 'personal'
@@ -213,7 +258,7 @@ function executeToolInner(ctx: AppContext, ex: ExecContext, name: ToolName, rawI
   // 1) 서버 진실로 권한 재계산: 이 도구를 지금 써도 되는가
   const subject = resolveSubject(ctx, room, actor);
   if (!subject) throw forbidden('not_in_room', '이 Room에 접근할 수 없습니다');
-  const tools = toolsForTurn(subject, ex.forcedTool);
+  const tools = toolsForTurn(subject, ex.forcedTool, ex.autoReply, isSeedAgent(ctx, ex.agentId), { allowAsk: ex.allowAsk });
   if (!tools.includes(name)) throw forbidden('tool_not_allowed', `이 상황에서 쓸 수 없는 도구: ${name}`);
 
   // 2) 입력 검증
@@ -237,8 +282,10 @@ function executeToolInner(ctx: AppContext, ex: ExecContext, name: ToolName, rawI
         type: 'send_message',
         roomId: ex.roomId,
         text: i.text,
-        to: i.to,
+        // A2A 답 턴은 모델이 준 to를 무시하고 질문자에게 간다
+        to: ex.reply?.forceTo ?? i.to,
         memoryRefs: i.used_memory_ids?.length ? i.used_memory_ids : undefined,
+        ...(ex.reply ? { replyTo: ex.reply.seq } : {}),
       });
       return { result: 'acted', tool: name, data: r.data };
     }
@@ -278,7 +325,13 @@ function executeToolInner(ctx: AppContext, ex: ExecContext, name: ToolName, rawI
       // 상대에게 보일 안내는 승인 요청이 만들어진 뒤에만 남기고, 실패해도 승인 요청은 유지한다
       if (i.room_message?.trim()) {
         try {
-          run({ type: 'send_message', roomId: ex.roomId, text: i.room_message.trim() });
+          run({
+            type: 'send_message',
+            roomId: ex.roomId,
+            text: i.room_message.trim(),
+            ...(ex.reply?.forceTo ? { to: ex.reply.forceTo } : {}),
+            ...(ex.reply ? { replyTo: ex.reply.seq } : {}),
+          });
         } catch (err) {
           console.error('[agent] room_message failed', err);
         }
@@ -303,6 +356,26 @@ function executeToolInner(ctx: AppContext, ex: ExecContext, name: ToolName, rawI
         report: i.report_for_owner,
       });
       return { result: 'acted', tool: name, data: r.data };
+    }
+    case 'create_board_tool':
+    case 'update_board_tool':
+      return executeBoardToolCall(ex.roomId, name, parsed.data as never, run);
+    case 'ask_agents': {
+      const i = parsed.data as z.infer<typeof TOOL_INPUT_SCHEMAS.ask_agents>;
+      const askable = ex.askable ?? [];
+      const wanted = new Set(i.agent_ids);
+      const bad = [...wanted].filter((id) => !askable.includes(id));
+      if (bad.length > 0) throw badRequest('not_askable', `지금 물을 수 없는 Agent: ${bad.join(', ')}`);
+      // 수신자는 askable 순서(구성원 순서)로 정규화한다: 결정적 순서
+      const recipients = askable.filter((id) => wanted.has(id));
+      const r = run({
+        type: 'send_message',
+        roomId: ex.roomId,
+        text: i.question,
+        recipients,
+        memoryRefs: i.used_memory_ids?.length ? i.used_memory_ids : undefined,
+      });
+      return { result: 'acted', tool: name, data: { ...r.data, recipients } };
     }
     case 'pass': {
       const i = parsed.data as z.infer<typeof TOOL_INPUT_SCHEMAS.pass>;

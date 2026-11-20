@@ -85,6 +85,19 @@ describe('ClaudeProvider 스트림 매핑', () => {
     expect(out.some((e) => e.type === 'text_delta')).toBe(false);
   });
 
+  it('ask_agents는 도구 목록에 그대로 실리고 question이 text_delta로 흐르며 tool_call로 끝난다', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const events = [start(0, 'ask_agents'), delta(0, '{"agent_ids":["ag_mom"],"question":"토요일 '), delta(0, '12시 반 괜찮아요?"}'), stop(0)];
+    const i = input();
+    i.tools = [...i.tools, { name: 'ask_agents', description: 'ask', inputSchema: { type: 'object', properties: { agent_ids: { type: 'array' }, question: { type: 'string' } } } }];
+    const out = await collect(new ClaudeProvider({ client: fakeClient(events, calls), model: 'm' }), i);
+    expect((calls[0]!.tools as Array<{ name: string }>).map((t) => t.name)).toContain('ask_agents');
+    const deltas = out.filter((e) => e.type === 'text_delta') as Array<{ tool: string; delta: string }>;
+    expect(deltas.every((d) => d.tool === 'ask_agents')).toBe(true);
+    expect(deltas.map((d) => d.delta).join('')).toBe('토요일 12시 반 괜찮아요?');
+    expect(out[out.length - 1]).toEqual({ type: 'tool_call', call: { name: 'ask_agents', input: { agent_ids: ['ag_mom'], question: '토요일 12시 반 괜찮아요?' } } });
+  });
+
   it('입력이 비어 있어도 tool_call({})을 낸다. 강제 턴은 경량 모델을 쓴다', async () => {
     const calls: Array<Record<string, unknown>> = [];
     const p = new ClaudeProvider({ client: fakeClient([start(0, 'pass'), stop(0)], calls), model: 'm-agent', lightModel: 'm-light' });

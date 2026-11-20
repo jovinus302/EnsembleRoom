@@ -3,6 +3,7 @@ import { useSession } from '../store/session';
 import { useWorld } from '../store/worldStore';
 import { ConversationView } from './ConversationView';
 import { RoomPreviewPanel } from './RoomPreviewPanel';
+import { TourHost } from '../onboarding/Tour';
 import { Sidebar } from './Sidebar';
 
 /**
@@ -46,6 +47,7 @@ export function MessengerHome() {
         </div>
       </main>
       {loaded && selected && <RoomPreviewPanel roomId={selected} />}
+      <TourHost id="home" ready={loaded && !!selected} />
     </div>
   );
 }

@@ -1,0 +1,210 @@
+/*
+ * 보드 도구(room/boardTools) 전용 스타일. 전역 CSS는 건드리지 않는다.
+ * 남색 다크 카드 + 종류 색 포인트. 도구 안쪽의 --bg/--fg/--muted/--line 은 아래에서 로컬 재정의해 대비를 유지한다.
+ * 종류 색(--tool, --tool-ink, --tool-text)은 common.tsx 가 내려 주며, 값은 --bt-c-<kind>/--bt-ink-<kind> 이다.
+ */
+
+/* ===================== 토큰 ===================== */
+:root {
+  --bt-title-font: inherit;
+  --bt-c-ladder: #d8b07a;
+  --bt-c-settlement: #d4b66a;
+  --bt-c-trip: #6fb3c0;
+  --bt-c-custom: #7cc17a;
+  --bt-ink-ladder: #2b2012;
+  --bt-ink-settlement: #2b2210;
+  --bt-ink-trip: #0b1b20;
+  --bt-ink-custom: #0d2010;
+  --bt-bg: #141c31;
+  --bt-fg: #e6ecf8;
+  --bt-muted: #a9b6d2;
+  --bt-line: rgb(150 175 230 / 0.25);
+  --bt-raised: rgb(255 255 255 / 0.07);
+  --bt-card-bg: rgb(255 255 255 / 0.06);
+  --bt-card-bd: rgb(150 175 230 / 0.2);
+  --bt-card-sh: none;
+  --bt-inset: rgb(255 255 255 / 0.06);
+  --bt-track: rgb(255 255 255 / 0.12);
+  --bt-rule: rgb(150 175 230 / 0.22);
+  --bt-hdr-rule: rgb(150 175 230 / 0.22);
+  --bt-art-filter: brightness(0.78) saturate(0.9);
+  --bt-wood-1: #e0c79a;
+  --bt-wood-2: #c3a06e;
+  --bt-wood-3: #a67f4c;
+  --bt-wood-edge: #0d1424;
+  --bt-hint-bg: #2c3a5c;
+  --bt-hint-bd: #8aa0d0;
+  --bt-hint-ink: #c9d3ea;
+  --bt-pill: #2c3a5c;
+  --bt-pill-ink: #e6ecf8;
+  --bt-out: #2c3a5c;
+  --bt-out-bd: #8aa0d0;
+  --bt-out-ink: #e6ecf8;
+  --bt-out-dim: #93a2c4;
+  --bt-win-fill: #f6cf6b;
+  --bt-win-bd: #fff3c8;
+  --bt-win-ink: #2a1d0e;
+  --bt-glow: rgb(246 207 107 / 0.85);
+  --bt-paper: #f4f1ea;
+  --bt-paper-ink: #26323a;
+  --bt-paper-edge: rgb(0 0 0 / 0.3);
+}
+
+.tool-shell,
+.tool-window,
+.bt-glass,
+.tw-card {
+  --bg: var(--bt-bg);
+  --fg: var(--bt-fg);
+  --muted: var(--bt-muted);
+  --line: var(--bt-line);
+  --panel-raised: var(--bt-raised);
+}
+
+.tw-card {
+  background: var(--bt-card-bg);
+  border: 1px solid var(--bt-card-bd);
+  box-shadow: var(--bt-card-sh);
+}
+.tw-inset {
+  background: var(--bt-inset);
+}
+.tw-track {
+  background: var(--bt-track);
+}
+.tw-rule {
+  border-color: var(--bt-rule);
+}
+.bt-art {
+  filter: var(--bt-art-filter);
+}
+.tool-shell [class*='font-bold'],
+.tool-window h2 {
+  font-family: var(--bt-title-font);
+}
+.tool-shell-settlement [class*='font-bold'] {
+  font-family: inherit;
+}
+
+
+/* ---------- 도구 창 ---------- */
+.tool-window {
+  color: var(--bt-fg);
+  border-radius: 24px !important;
+  background: linear-gradient(160deg, #1c2640, #141c31);
+  border-color: rgb(150 175 230 / 0.28) !important;
+  box-shadow:
+    inset 1px 1px 0 rgb(255 255 255 / 0.08),
+    0 24px 60px rgb(0 0 0 / 0.6);
+}
+.bt-glass {
+  color: var(--bt-fg);
+  background: rgb(255 255 255 / 0.04);
+  box-shadow: inset 0 0 0 1px rgb(150 175 230 / 0.16);
+}
+
+/* ---------- 트레이 ---------- */
+.tool-tray {
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgb(20 29 52 / 0.75), rgb(12 18 34 / 0.75));
+  border: 1px solid rgb(150 175 230 / 0.2);
+  box-shadow:
+    inset 0 2px 8px rgb(0 0 0 / 0.4),
+    0 8px 22px rgb(0 0 0 / 0.35);
+}
+@keyframes tool-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) rotate(calc(var(--tilt) - 4deg)) scale(1.06);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(3px) rotate(var(--tilt)) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--tilt)) scale(1);
+  }
+}
+.tool-tile {
+  transform: rotate(var(--tilt, 0deg));
+  transition:
+    transform 160ms ease-out,
+    filter 160ms ease-out;
+  filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.5));
+  animation: tool-drop 520ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.tool-tile:hover,
+.tool-tile:focus-within {
+  transform: translateY(-5px) rotate(0deg) scale(1.02);
+  filter: drop-shadow(0 12px 14px rgb(0 0 0 / 0.6));
+}
+
+/* ---------- 타일 ---------- */
+.tool-shell {
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  border-radius: 16px;
+  color: var(--bt-fg);
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--tool) 20%, transparent), transparent 60%),
+    linear-gradient(135deg, #1f2a44, #172036);
+  border: 1px solid rgb(150 175 230 / 0.25);
+  --tool-label: color-mix(in srgb, var(--tool) 70%, #fff);
+  --tool-status: var(--bt-fg);
+  --tool-rule: rgb(150 175 230 / 0.22);
+  box-shadow: inset 1px 1px 0 rgb(255 255 255 / 0.08);
+}
+.tool-shell::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 0;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--tool);
+  z-index: 1;
+}
+.tool-shell:focus-visible {
+  outline-offset: 3px;
+}
+.tool-shell-settlement {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, 'Malgun Gothic', monospace;
+}
+.tool-pin {
+  display: none;
+}
+.tool-shell [data-testid='tool-creator'],
+.tool-shell [data-testid='tool-creator'] span {
+  color: var(--tool-status) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tool-tile {
+    animation: none;
+    transition: none;
+  }
+  .tool-tile:hover,
+  .tool-tile:focus-within {
+    transform: rotate(var(--tilt, 0deg));
+  }
+}
+
+/* ---------- 사다리 보드 ---------- */
+.bt-sand {
+  background: linear-gradient(180deg, #26324f, #1c2640);
+  border-color: rgb(150 175 230 / 0.3) !important;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05);
+}
+
+/* ---------- 영수증: 종이(톱니 밑단) ---------- */
+.tool-receipt {
+  background: var(--bt-paper);
+  color: var(--bt-paper-ink);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, 'Malgun Gothic', monospace;
+  padding: 14px 16px 22px;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 0 0 1px var(--bt-paper-edge);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), 97.5% 100%, 95% calc(100% - 7px), 92.5% 100%, 90% calc(100% - 7px), 87.5% 100%, 85% calc(100% - 7px), 82.5% 100%, 80% calc(100% - 7px), 77.5% 100%, 75% calc(100% - 7px), 72.5% 100%, 70% calc(100% - 7px), 67.5% 100%, 65% calc(100% - 7px), 62.5% 100%, 60% calc(100% - 7px), 57.5% 100%, 55% calc(100% - 7px), 52.5% 100%, 50% calc(100% - 7px), 47.5% 100%, 45% calc(100% - 7px), 42.5% 100%, 40% calc(100% - 7px), 37.5% 100%, 35% calc(100% - 7px), 32.5% 100%, 30% calc(100% - 7px), 27.5% 100%, 25% calc(100% - 7px), 22.5% 100%, 20% calc(100% - 7px), 17.5% 100%, 15% calc(100% - 7px), 12.5% 100%, 10% calc(100% - 7px), 7.5% 100%, 5% calc(100% - 7px), 2.5% 100%, 0% calc(100% - 7px));
+}

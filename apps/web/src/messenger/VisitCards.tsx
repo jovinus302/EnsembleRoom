@@ -3,6 +3,7 @@ import { VISITOR_GRANTABLE, type Capability, type RoomEvent, type UserDto, type 
 import { api, ApiError } from '../api/client';
 import { MandateBlock } from './MandateBlock';
 import { APPROVAL_ORANGE, CAPABILITY_LABEL, END_REASON_LABEL, type VisitState } from './visits';
+import { APPROVAL_INK, ink } from '../theme';
 
 type VisitEvent = Extract<RoomEvent, { type: 'visit_requested' | 'visit_accepted' | 'visit_declined' | 'visit_ended' }>;
 export const isVisitEvent = (e: RoomEvent): e is VisitEvent =>
@@ -54,7 +55,7 @@ function AcceptForm({ visitId }: { visitId: string }) {
           type="button"
           disabled={busy}
           onClick={() => void run(() => api.acceptVisit(visitId, { permissions: perms }))}
-          className="rounded-md px-3 py-1 text-xs font-semibold text-[#0b1020] disabled:opacity-50"
+          className="rounded-md px-3 py-1 text-xs font-semibold text-[var(--on-accent)] disabled:opacity-50"
           style={{ background: APPROVAL_ORANGE }}
         >
           수락
@@ -69,7 +70,7 @@ function AcceptForm({ visitId }: { visitId: string }) {
         </button>
       </div>
       {error && (
-        <p role="alert" className="text-xs text-red-300">
+        <p role="alert" className="text-xs text-danger">
           {error}
         </p>
       )}
@@ -90,7 +91,7 @@ function EndButton({ visitId }: { visitId: string }) {
         방문 종료
       </button>
       {error && (
-        <p role="alert" className="mt-1 text-xs text-red-300">
+        <p role="alert" className="mt-1 text-xs text-danger">
           {error}
         </p>
       )}
@@ -152,7 +153,7 @@ export function VisitCard({
     >
       <div className="flex items-center gap-2">
         <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full" style={{ background: accent }} />
-        <span className="font-medium" style={{ color: event.type === 'visit_requested' ? accent : undefined }}>
+        <span className="font-medium" style={{ color: event.type === 'visit_requested' ? ink(accent) : undefined }}>
           {title}
         </span>
         <span className="ml-auto text-[11px] text-muted">{fmtTime(event.ts)}</span>
@@ -169,7 +170,7 @@ export function VisitCard({
       )}
       {showButtons && state.status === 'requested' && host && <AcceptForm visitId={state.visitId} />}
       {showButtons && state.status === 'requested' && !host && iAmVisitor && (
-        <p className="mt-2 text-xs" style={{ color: APPROVAL_ORANGE }}>
+        <p className="mt-2 text-xs" style={{ color: APPROVAL_INK }}>
           호스트의 승인을 기다리는 중…
         </p>
       )}

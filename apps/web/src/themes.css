@@ -1,0 +1,111 @@
+/*
+ * 디자인 토큰 (남색 단일 테마). 컴포넌트는 아래 "의미 토큰"만 쓴다.
+ *
+ * 의미 토큰 
+ *   표면/글자 : --bg(입력창 등 오목한 면) --panel(+--panel-rgb/--panel-opacity) --panel-raised(=surface-2)
+ *               --surface(시트·투어) --fg --muted --line --focus --hover --scrim --scrim-tour --glass(3D 위 칩·범례)
+ *   강조      : --accent(주요 버튼·활성 탭 바탕) --accent-fg(=--on-accent-strong, 그 위 글자) --on-accent(파스텔 칩 위 글자)
+ *   모양/그림자: --radius(시트 모서리) --shadow(=--shadow-card, 떠 있는 카드) --font-title(제목 글꼴)
+ *   대화      : 말풍선 바탕 = --card-base 에 사람색을 --tint-* 비율로 섞음
+ *               --card-base(카드 바탕) --card-base-dim(미채움 풍선) --tint-me --tint-other --tint-agent-room --tint-agent-dm
+ *               --tint-approval-pending --tint-approval --tint-mandate
+ *   글자용 색 : --ink-pct / --ink-base (ink(color) = color 를 --ink-base 에 --ink-pct 만큼 섞음) --approval-ink
+ *   의미색    : --danger --warn --info --ok --star --sea --sky --plant --sand-gold
+ *   사람/Agent: --person-* 는 서버(USER_COLORS) 색을 그대로 쓰고 글자에만 ink() 를 적용한다. A2A/A2H 색은 INTERACTION_COLORS + ink().
+ *   3D 오버레이: --label-bg --label-border --label-fg --label-fg-dim --label-shadow --label-attn-border --label-attn-shadow
+ *               --label-chip-bg --label-dot-border  (월드 위 이름표)
+ *   무대/썸네일: --stage-a --stage-b --stage-idle --thumb-bg (3D 미사용 폴백·방 미리보기)
+ *   아바타    : --avatar-paper(아바타 안쪽 종이색)
+ *   패널 투명도: --panel-opacity-messenger / --panel-opacity-room (3D 캔버스가 뒤에 있을 때)
+ */
+:root {
+  --scheme: dark;
+  --tracking: 0;
+  --bg: #0b1020;
+  --panel-rgb: 21 29 48;
+  --panel-opacity: 1;
+  --panel-opacity-messenger: 0.8;
+  --panel-opacity-room: 0.88;
+  --raised-rgb: 31 41 66;
+  --raised-alpha: var(--panel-opacity);
+  --panel: rgb(var(--panel-rgb) / var(--panel-opacity));
+  --panel-raised: rgb(var(--raised-rgb) / var(--raised-alpha, var(--panel-opacity)));
+  --surface: #151d30;
+  --line: #2b3850;
+  --fg: #f0f5ff;
+  --muted: #a0aec4;
+  --focus: #8ab4ff;
+  --accent: #f0f5ff;
+  --accent-fg: #0b1020;
+  --on-accent-strong: var(--accent-fg);
+  --on-accent: #0b1020;
+  --sea: #5aa6b8;
+  --sky: #5ab0ff;
+  --plant: #6ee7a0;
+  --sand-gold: #d9b37a;
+  --hover: rgb(255 255 255 / 0.06);
+  --scrim: rgb(0 0 0 / 0.55);
+  --scrim-tour: rgb(0 0 0 / 0.6);
+  --glass: rgb(11 16 32 / 0.55);
+  --shadow: none;
+  --shadow-card: var(--shadow);
+  --radius: 16px;
+  --font-title: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --danger: #fca5a5;
+  --warn: #ffd36a;
+  --info: #7cc4ff;
+  --ok: #64e4bd;
+  --star: #f2d04e;
+
+  --card-base: transparent;
+  --card-base-dim: transparent;
+  --tint-me: 20%;
+  --tint-other: 12%;
+  --tint-agent-room: 10%;
+  --tint-agent-dm: 8%;
+  --tint-approval-pending: 12%;
+  --tint-approval: 4%;
+  --tint-mandate: 8%;
+  --ink-pct: 100%;
+  --ink-base: #000000;
+  --approval-ink: #ff9f43;
+
+  --label-bg: rgba(28, 18, 12, 0.78);
+  --label-border: rgba(255, 238, 214, 0.35);
+  --label-fg: #fff4e2;
+  --label-fg-dim: rgba(255, 244, 226, 0.7);
+  --label-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  --label-attn-border: #ffb45a;
+  --label-attn-shadow: 0 0 10px rgba(255, 180, 90, 0.7);
+  --label-chip-bg: rgba(255, 255, 255, 0.08);
+  --label-dot-border: rgba(255, 255, 255, 0.5);
+
+  --stage-a: #1b2640;
+  --stage-b: #0b1020;
+  --stage-idle: #3a4660;
+  --thumb-bg: #101829;
+  --avatar-paper: #f4f7fd;
+  --tour-dot: #5b6b88;
+}
+
+/* 3D 캔버스가 뒤에 깔렸을 때만 패널을 더 투명하게. --panel/--panel-raised 는 :root 에서 한 번 계산되므로 여기서 다시 선언한다. */
+[data-world="on"][data-screen="messenger"] {
+  --panel-opacity: var(--panel-opacity-messenger);
+  --panel: rgb(var(--panel-rgb) / var(--panel-opacity));
+  --panel-raised: rgb(var(--raised-rgb) / var(--raised-alpha, var(--panel-opacity)));
+}
+[data-world="on"][data-screen="room"] {
+  --panel-opacity: var(--panel-opacity-room);
+  --panel: rgb(var(--panel-rgb) / var(--panel-opacity));
+  --panel-raised: rgb(var(--raised-rgb) / var(--raised-alpha, var(--panel-opacity)));
+}
+
+body {
+  background-color: #0b1020;
+}
+
+/* 시트(모달·투어·로그인 카드): 클래스 surface-sheet */
+.surface-sheet {
+  background-color: var(--surface);
+  border-radius: var(--radius);
+}

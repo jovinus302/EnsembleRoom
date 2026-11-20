@@ -41,9 +41,28 @@ export interface Config {
   maxTurnsPerRoomHour: number;
   /** mock provider의 단계별 지연(ms). 0이면 지연 없음(테스트). 기본 350 */
   agentMockDelayMs: number;
+  /** Our Room 자동 반응·자동 대리 (AGENT_AUTO_REPLY=off면 끔). 기본 켬 */
+  agentAutoReply: boolean;
+  /** A2A: Agent끼리 묻고 답하기(ask_agents). AGENT_A2A=off면 끔(기존 동작과 동일). 기본 켬 */
+  agentA2A: boolean;
+  /** 에피소드(사람 발언 1건)당 ask 라운드 (기본 1) */
+  a2aMaxRounds: number;
+  /** ask당 수신 Agent 상한 (기본 3) */
+  a2aFanoutMax: number;
+  /** 에피소드당 a2a 턴(답+정리) 하드캡 (기본 6) */
+  a2aMaxTurnsPerEpisode: number;
   /** Room 요약을 갱신하는 변화 이벤트 수 (계획 7절: 30) */
   summaryEveryEvents: number;
+  /** 보드 도구 커버 이미지(APIFrame). APIFRAME_API_KEY가 있고 BOARD_TOOL_COVERS가 off가 아니면 켠다. 키 값은 Config에 두지 않는다 */
+  boardCovers: boolean;
 }
+
+/** A2A 기본값 (agent/a2a.ts가 다시 내보낸다) */
+export const A2A_DEFAULTS = {
+  maxRounds: 1,
+  fanoutMax: 3,
+  maxTurnsPerEpisode: 6,
+} as const;
 
 export const AGENT_DEFAULTS = {
   agentChainLimit: 4,
@@ -66,6 +85,13 @@ export function loadConfig(): Config {
     visitMaxTurns: Number(process.env.VISIT_MAX_TURNS ?? AGENT_DEFAULTS.visitMaxTurns),
     maxTurnsPerRoomHour: Number(process.env.MAX_TURNS_PER_ROOM_HOUR ?? AGENT_DEFAULTS.maxTurnsPerRoomHour),
     agentMockDelayMs: Number(process.env.AGENT_MOCK_DELAY_MS ?? 350),
+    agentAutoReply: (process.env.AGENT_AUTO_REPLY ?? 'on').trim().toLowerCase() !== 'off',
+    agentA2A: (process.env.AGENT_A2A ?? 'on').trim().toLowerCase() !== 'off',
+    a2aMaxRounds: Number(process.env.A2A_MAX_ROUNDS ?? A2A_DEFAULTS.maxRounds),
+    a2aFanoutMax: Number(process.env.A2A_FANOUT_MAX ?? A2A_DEFAULTS.fanoutMax),
+    a2aMaxTurnsPerEpisode: Number(process.env.A2A_MAX_TURNS_PER_EPISODE ?? A2A_DEFAULTS.maxTurnsPerEpisode),
     summaryEveryEvents: Number(process.env.SUMMARY_EVERY_EVENTS ?? AGENT_DEFAULTS.summaryEveryEvents),
+    boardCovers:
+      (process.env.BOARD_TOOL_COVERS ?? 'on').trim().toLowerCase() !== 'off' && !!process.env.APIFRAME_API_KEY?.trim(),
   };
 }

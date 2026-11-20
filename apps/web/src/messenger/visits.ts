@@ -59,6 +59,7 @@ export const CAPABILITY_LABEL: Record<Capability, string> = {
   propose_edit: '수정 제안',
   remember: '기억 저장',
   request_approval: '승인 요청',
+  board_tools: '보드 도구',
 };
 
 export const END_REASON_LABEL: Record<VisitEndReason, string> = {

@@ -5,6 +5,7 @@ import { useRooms } from '../store/roomStore';
 import { useSession } from '../store/session';
 import { useWorld } from '../store/worldStore';
 import { titleOf } from './labels';
+import { ink } from '../theme';
 
 const KIND_LABEL: Record<MemoryKind, string> = { fact: '사실', preference: '선호', agreement: '합의', summary: '요약' };
 
@@ -21,7 +22,7 @@ function scopeOf(ns: string): { scope: Scope; roomId?: string } {
 
 const SCOPE_STYLE: Record<Scope, { label: string; color: string }> = {
   private: { label: '나만', color: '#a0aec4' },
-  for: { label: '이 방에 제공', color: '#8ab4ff' },
+  for: { label: '이 방에 제공', color: '#3d7482' },
   room: { label: '방 공유', color: '#7be0c0' },
   other: { label: '기타', color: '#a0aec4' },
 };
@@ -35,7 +36,7 @@ function ScopeChip({ ns, rooms, meId, users }: { ns: string; rooms: Record<strin
       data-testid="memory-scope"
       data-scope={scope}
       className="rounded-full border px-2 py-0.5 text-[11px]"
-      style={{ borderColor: st.color, color: st.color }}
+      style={{ borderColor: st.color, color: ink(st.color) }}
     >
       {st.label}
       {target ? ` · ${titleOf(target, meId, users)}` : ''}
@@ -86,7 +87,7 @@ function MemoryRow({
             <button
               type="button"
               onClick={() => onDelete(item.id)}
-              className="rounded border border-line px-1.5 py-0.5 text-xs text-red-300 hover:bg-raised"
+              className="rounded border border-line px-1.5 py-0.5 text-xs text-danger hover:bg-raised"
             >
               삭제
             </button>
@@ -219,14 +220,14 @@ export function MemoryPanel({ roomId }: { roomId: string }) {
               </option>
             ))}
           </select>
-          <button type="submit" disabled={!text.trim() || !effectiveShare} className="rounded-md bg-fg px-3 py-1 font-semibold text-bg disabled:opacity-50">
+          <button type="submit" disabled={!text.trim() || !effectiveShare} className="rounded-md bg-accent px-3 py-1 font-semibold text-[var(--on-accent-strong)] disabled:opacity-50">
             추가
           </button>
         </div>
       </form>
 
       {error && (
-        <p role="alert" className="mt-3 text-xs text-red-300">
+        <p role="alert" className="mt-3 text-xs text-danger">
           {error}
         </p>
       )}

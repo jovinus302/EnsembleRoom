@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AppContext } from '../src/context';
+import { dispatch } from '../src/domain/actions';
 import { enterRoom, leaveRoom } from '../src/domain/presence';
 import { previewFor, myAgentStatus } from '../src/domain/rooms';
 import { acceptVisit, endVisit, requestHumanVisit, sendAgentVisit } from '../src/domain/visits';
@@ -113,5 +114,34 @@ describe('presentUserIds', () => {
     acceptVisit(ctx, alice, visitId, ['chat']);
     expect(previewFor(ctx, alice, R.myAlice)!.detail!.presentUserIds).toEqual([bob]);
     expect(previewFor(ctx, dana, R.myAlice)!.detail).toBeNull();
+  });
+});
+
+describe('S8: 조망 interaction은 구성원에게만', () => {
+  afterEach(() => ctx.agents.stop());
+  const run = async () => {
+    ctx.agents.start();
+    dispatch(ctx, { kind: 'human', userId: alice }, { type: 'enter_room', roomId: R.family });
+    dispatch(ctx, { kind: 'human', userId: alice }, { type: 'send_message', roomId: R.family, text: '토요일 점심 12시 반 어때? 메뉴도 정하자' });
+    await ctx.agents.drain();
+  };
+
+  it('구성원(Alice)에게는 미해소 승인이 pending A2H로 오고, 내용 텍스트는 없다', async () => {
+    await run();
+    const it = previewFor(ctx, alice, R.family)!.detail!.interaction!;
+    expect(it).toMatchObject({ channel: 'a2h', pending: true });
+    expect(Object.keys(it).sort()).toEqual(['at', 'channel', 'fromId', 'pending', 'seq', 'toIds']);
+    expect(it.toIds).toContain(alice);
+  });
+
+  it('비구성원(Dana)의 preview에는 detail 자체가 없고, 어떤 흔적도 새지 않는다', async () => {
+    await run();
+    const p = previewFor(ctx, dana, R.family);
+    expect(p?.detail ?? null).toBeNull();
+    expect(JSON.stringify(p)).not.toMatch(/interaction|a2a|a2h/);
+  });
+
+  it('상호작용이 없으면 interaction은 null이다', () => {
+    expect(previewFor(ctx, alice, R.family)!.detail!.interaction ?? null).toBeNull();
   });
 });

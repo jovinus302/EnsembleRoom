@@ -4,6 +4,8 @@ export * from './permissions';
 export * from './namespaces';
 export * from './agentState';
 export * from './roomState';
+export * from './boardTools';
 export * from './perspective';
 export * from './colors';
 export * from './themes';
+export * from './interactions';

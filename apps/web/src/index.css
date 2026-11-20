@@ -1,35 +1,6 @@
 @import "tailwindcss";
+@import "./themes.css";
 
-/*
- * 컨셉 문서 톤의 짙은 남색 계열. 이후 단계에서 메신저 뒤에 3D 캔버스가 깔리므로
- * 패널 배경은 --panel-opacity 하나만 낮추면 반투명이 되도록 변수로 둔다.
- */
-:root {
-  --bg: #0b1020;
-  --panel-rgb: 21 29 48;
-  --panel-opacity: 1;
-  --panel: rgb(var(--panel-rgb) / var(--panel-opacity));
-  --panel-raised: rgb(31 41 66 / var(--panel-opacity));
-  --line: #2b3850;
-  --fg: #f0f5ff;
-  --muted: #a0aec4;
-  --focus: #8ab4ff;
-}
-
-/*
- * 화면별 패널 투명도: App 루트의 WorldCanvas가 켜져 있을 때(data-world="on")만 낮춘다.
- * --panel은 :root에서 한 번 계산되므로 여기서 다시 선언해야 --panel-opacity 변경이 반영된다.
- */
-[data-world="on"][data-screen="messenger"] {
-  --panel-opacity: 0.8;
-  --panel: rgb(var(--panel-rgb) / var(--panel-opacity));
-  --panel-raised: rgb(31 41 66 / var(--panel-opacity));
-}
-[data-world="on"][data-screen="room"] {
-  --panel-opacity: 0.88;
-  --panel: rgb(var(--panel-rgb) / var(--panel-opacity));
-  --panel-raised: rgb(31 41 66 / var(--panel-opacity));
-}
 
 @theme inline {
   --color-bg: var(--bg);
@@ -38,6 +9,20 @@
   --color-line: var(--line);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-sea: var(--sea);
+  --color-sky: var(--sky);
+  --color-plant: var(--plant);
+  --color-sand-gold: var(--sand-gold);
+  --color-hover: var(--hover);
+  --color-scrim: var(--scrim);
+  --color-glass: var(--glass);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
+  --color-ok: var(--ok);
+  --color-star: var(--star);
   --font-sans: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
 
@@ -49,9 +34,17 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
   color: var(--fg);
+  color-scheme: var(--scheme, light);
+  letter-spacing: var(--tracking, 0.01em);
   font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-title);
+  letter-spacing: 0.02em;
 }
 
 :focus-visible {

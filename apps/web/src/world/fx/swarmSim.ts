@@ -16,7 +16,7 @@ export const SLOT_FX = [9, 10, 11] as const;
 /** 슬롯별 입자 비중(합이 1이 되도록 정규화) */
 const WEIGHTS = [0.2, 0.08, 0.08, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.07, 0.07, 0.07];
 
-export const MODE = { orbit: 0, cohere: 1, vortex: 2, flow: 3, condense: 4, scatter: 5, settle: 6 } as const;
+export const MODE = { orbit: 0, cohere: 1, vortex: 2, flow: 3, condense: 4, scatter: 5, settle: 6, ring: 7 } as const;
 export type SwarmMode = keyof typeof MODE;
 
 export interface SwarmUniforms {
@@ -86,7 +86,7 @@ void main(){
     off = vec3(off.x * cos(sa) - off.z * sin(sa), off.y * 0.7, off.x * sin(sa) + off.z * cos(sa));
     want = T + off + vec3(sin(uTime * 1.7 + ph), cos(uTime * 1.3 + ph * 1.7), sin(uTime * 1.1 + ph * 0.6)) * rad * 0.12;
     // 모래에 깔리지 않게 지면에서 띄운다: 입자마다 다른 높이(0.6~)로 부유하며 위아래로 일렁인다
-    float lift = 1.0 + 2.3 * fract(seed * 9.13) + 0.3 * sin(uTime * (0.9 + fract(seed * 4.3)) + ph);
+    float lift = 0.6 + 1.1 * fract(seed * 9.13) + 0.3 * sin(uTime * (0.9 + fract(seed * 4.3)) + ph);
     want.y = max(want.y, lift);
     k = 7.0 * (0.4 + 1.2 * fract(seed * 3.7)); c = 2.4; noise = 4.0;
   } else if (mode == 2) {     // vortex: 위로 말려 올라가는 소용돌이(A.y=높이)
@@ -107,6 +107,10 @@ void main(){
     vec3 o = p - T + dir * 0.25;
     extra = normalize(o) * spd * str + vec3(0.0, 2.5, 0.0);
     k = 0.0; c = 1.4; noise = 3.0;
+  } else if (mode == 7) {     // ring: 지면 가까이 깔리는 얇은 고리(A=반경 x/z, A.y=높이 폭). 안쪽으로 파고들지 않는다
+    float a = ph + uTime * spd * (0.55 + 0.9 * fract(seed * 7.31));
+    want = T + vec3(cos(a) * A.x, sin(a * 1.3 + ph) * A.y, sin(a) * A.z) * (0.94 + 0.12 * rr);
+    k = 7.5; c = 3.0; noise = 2.0;
   } else {                    // settle: 가라앉는다
     want = vec3(p.x, 0.15, p.z);
     k = 2.5; c = 2.2; noise = 0.8;
@@ -196,7 +200,7 @@ void main(){
   float speed = length(vel);
   vStretch = clamp(speed * 0.16, 0.0, 3.2) * step(1e-5, sl);
   float tw = 0.8 + 0.2 * sin(uTime * 3.0 + aRnd * 40.0);
-  float base = max(2.2, uSize * uSizeMul * (0.6 + aRnd * 0.8) * uPx / max(-mv.z, 0.1));
+  float base = max(1.6, uSize * uSizeMul * (0.6 + aRnd * 0.8) * uPx / max(-mv.z, 0.1));
   gl_PointSize = base * (1.0 + vStretch);
   // 모래색과 분리되도록 채도·밝기를 올린다(채널 상한 1.45로 눌러 흰색으로 타지 않게)
   vec3 cc = uColor[g];
@@ -308,7 +312,7 @@ export class SwarmSim {
     this.colors = Array.from({ length: GROUPS }, () => new THREE.Color('#ffffff'));
     this.alphas = new Array(GROUPS).fill(0.8);
     const wsum = WEIGHTS.reduce((a, b) => a + b, 0);
-    this.density = WEIGHTS.map((w, i) => Math.min(1, (i === 0 ? 1800 : 1200) / Math.max(1, (this.count * w) / wsum)));
+    this.density = WEIGHTS.map((w, i) => Math.min(1, (i === 0 ? 400 : 260) / Math.max(1, (this.count * w) / wsum)));
 
     this.baseDensity = [...this.density];
     const refs = new Float32Array(this.count * 2);
@@ -330,7 +334,7 @@ export class SwarmSim {
         tVel: { value: null },
         uSize: { value: 0.34 },
         uSizeMul: { value: 1 },
-        uAlphaMul: { value: 0.92 },
+        uAlphaMul: { value: 0.6 },
         uPx: { value: 800 },
         uAspect: { value: 1.6 },
         uTime: this.uniforms.uTime,

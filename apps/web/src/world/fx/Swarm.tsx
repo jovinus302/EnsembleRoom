@@ -10,7 +10,7 @@ import { characterRoomOf, getCharacterWorldPosition, onCharacterEvent } from '..
 import { GROUPS, SLOT_AGENT, SLOT_FX, SLOT_ME, SLOT_REMOTE, SwarmSim, type GroupCmd } from './swarmSim';
 import { capsuleCenter, clamp01, easeInOut, firstNeighbor, interiorAnchor, localToWorld, tubePoint, worldToLocal } from './geo';
 import { cursorWorld } from './cursorWorld';
-import { totalLength } from '../capsule/dims';
+import { footprintHalf, totalLength } from '../capsule/dims';
 
 const ORANGE = '#ff8a3d';
 const GOLD = '#ffd36a';
@@ -78,6 +78,8 @@ export function Swarm(props: SwarmProps) {
   const tmp = useMemo(() => ({ a: new THREE.Vector3(), b: new THREE.Vector3(), c: new THREE.Vector3(), ray: new THREE.Raycaster(), ndc: new THREE.Vector2() }), []);
   const gainRef = useRef(1);
   const lastGround = useRef(new THREE.Vector3(0, CURSOR_Y, 0));
+  /** 포인터가 캔버스 안에서 지면을 한 번이라도 짚었는지. 아니면 lastGround는 월드 원점(가운데 캡슐)이라 쓰지 않는다 */
+  const groundSeen = useRef(false);
   const lastSend = useRef({ t: 0, x: 0, z: 0 });
   const wantColor = useRef<THREE.Color[]>(Array.from({ length: GROUPS }, () => new THREE.Color('#ffffff')));
   const colorOf = (id: string | null | undefined): string => {
@@ -345,11 +347,14 @@ export function Swarm(props: SwarmProps) {
       const d = tmp.ray.ray.direction;
       if (d.y < -0.004) {
         const t = -o.y / d.y;
-        if (t > 0 && t < 600) lastGround.current.set(o.x + d.x * t, CURSOR_Y, o.z + d.z * t);
+        if (t > 0 && t < 600) {
+          lastGround.current.set(o.x + d.x * t, CURSOR_Y, o.z + d.z * t);
+          groundSeen.current = true;
+        }
       }
     }
     cursorWorld.point.copy(lastGround.current);
-    cursorWorld.valid = pointer.seen;
+    cursorWorld.valid = pointer.seen && groundSeen.current;
     cursorWorld.hoverRoom = pr.hoveredId;
 
     const hovered = pr.hoveredId ? pr.layout.placements[pr.hoveredId] : undefined;
@@ -361,27 +366,32 @@ export function Swarm(props: SwarmProps) {
     // 2) 슬롯 0: 내 무리
     const me = C[SLOT_ME]!;
     me.active = true;
-    me.alpha = 0.95 * gain;
+    me.alpha = 0.7 * gain;
     if (hovered && hovModel) {
-      me.mode = 'orbit';
+      // 캡슐 안 캐릭터·이름표를 가리지 않게: 발자국 바깥, 지면 가까이 깔리는 얇은 고리로만 감싼다
+      const hfp = footprintHalf(hovered.dims);
+      me.mode = 'ring';
       me.strength = 1;
-      me.speed = 1.15;
-      capsuleCenter(hovered, me.target, 0.15);
-      me.aux.set(totalLength(hovered.dims) / 2 + 0.9, hovered.dims.radius * 0.8, hovered.dims.radius + 1.2);
+      me.speed = 0.8;
+      me.alpha *= 0.55;
+      me.target.set(hovered.x, 0.8, hovered.z);
+      me.aux.set(hfp.hl + 1.1, 0.25, hfp.hd + 1.1);
       wantColor.current[SLOT_ME]!.set(hovModel.color);
     } else {
       me.mode = pointer.down ? 'condense' : 'cohere';
       me.strength = 1;
-      me.radius = (pointer.down ? 1.3 : inside ? 3.0 : 3.6) * closeK;
+      me.radius = (pointer.down ? 0.7 : inside ? 1.2 : 1.6) * closeK;
       me.speed = 1;
       me.target.copy(lastGround.current);
-      if (!pointer.seen) {
-        // 포인터를 아직 못 봤으면 내 캡슐 위를 천천히 돈다
+      if (!groundSeen.current) {
+        // 포인터가 캔버스 안에 들어온 적이 없으면 내 캡슐 위를 천천히 돈다
         const first = pr.layout.order[0] ? pr.layout.placements[pr.layout.order[0]] : undefined;
         if (first) {
-          me.mode = 'orbit';
-          capsuleCenter(first, me.target, 1.8);
-          me.aux.set(totalLength(first.dims) * 0.55, 1.0, first.dims.radius * 1.4);
+          me.mode = 'ring';
+          // 캡슐 몸체를 덮지 않도록: 모래 위 낮은 높이에서 발자국 바깥을 얇은 고리로 돈다
+          const fp = footprintHalf(first.dims);
+          me.target.set(first.x, 0.9, first.z);
+          me.aux.set(fp.hl + 1.8, 0.2, fp.hd + 1.8);
           me.speed = 0.5;
         }
       }
@@ -404,9 +414,9 @@ export function Swarm(props: SwarmProps) {
       c.target.y = Math.max(CURSOR_Y, c.target.y);
       c.active = true;
       c.mode = 'cohere';
-      c.radius = 2.6 * closeK;
+      c.radius = 1.3 * closeK;
       c.strength = 1;
-      c.alpha = 0.85 * Math.max(gain, 0.45);
+      c.alpha = 0.65 * Math.max(gain, 0.45);
       wantColor.current[slot]!.set(pr.users[r.userId]?.color ?? '#8fc8ff');
     });
 
@@ -519,7 +529,7 @@ export function Swarm(props: SwarmProps) {
     const fovRad = THREE.MathUtils.degToRad((cam as THREE.PerspectiveCamera).fov);
     const px = (state.size.height * state.viewport.dpr) / (2 * Math.tan(fovRad / 2));
     sim.setDensityScale(pr.focusRoomId ? 0.3 : 1);
-    sim.setPointSize((side >= 200 ? 0.2 : side >= 120 ? 0.25 : 0.36) * (pr.focusRoomId ? 0.45 : 1));
+    sim.setPointSize((side >= 200 ? 0.12 : side >= 120 ? 0.15 : 0.22) * (pr.focusRoomId ? 0.45 : 1));
     sim.step(dt, state.clock.elapsedTime, px, state.size.width / Math.max(1, state.size.height));
 
     // 7) 내 커서를 상대에게 알린다(20Hz 상한). 가장 가까운 캡슐 기준 로컬 좌표로 보낸다

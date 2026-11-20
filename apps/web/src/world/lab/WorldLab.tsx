@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AMBIENCE_STAGES, type AgentCueKind, type AmbienceStage, type VisitRef, type WorldRoom } from '@ensemble/shared';
-import { LAB_MODES, LAB_STATES, mockCharacters, type LabAgentMode, type LabState } from './mockChars';
+import { LAB_IX_DEMOS, LAB_MODES, LAB_STATES, mockCharacters, type LabAgentMode, type LabIxDemo, type LabState } from './mockChars';
 import { api } from '../../api/client';
 import { WorldCanvas } from '../WorldCanvas';
 import { QUALITY_TIERS, usePerf, type QualityTier } from '../quality';
 import type { WorldUser } from '../types';
-import { DEFAULT_AMBIENCE, MOCK_ROOMS, MOCK_USERS, buildMockRooms } from './mockWorld';
+import { DEFAULT_AMBIENCE, MOCK_ROOMS, MOCK_SCENES, MOCK_TOOLS, MOCK_USERS, buildMockRooms, type MockSceneName } from './mockWorld';
 import { emit, setRemoteCursor, setFxSuppressed, type FxKind, type FxPayload } from '../../fx/fxStore';
 import { FxOverlay } from '../../stage/FxOverlay';
+import { useBoardToolScene } from '../boardToolScene';
+import { useBoardToolUi } from '../../store/boardToolStore';
 
 /**
  * /lab/world: S15·S16 개발용 화면. mock 월드(기본) 또는 ?real=1(로그인된 세션의 /api/world).
  * 쿼리: viewer=u_alice|u_bob|u_mom|u_dana, focus=<roomId>, select=<roomId>, q=high|mid|low, ui=0(패널 숨김),
- *       visit=<roomId>(그 방문이 수락돼 활성), amb=<roomId>:<stage>,...
+ *       visit=<roomId>(그 방문이 수락돼 활성), amb=<roomId>:<stage>,...,
+ *       scene=seed|min|k22|wide|ours6(mock 장면: 배치·관 라우팅 검증용)
  */
 export function WorldLab() {
   const params = useMemo(() => new URLSearchParams(location.search), []);
@@ -31,15 +34,26 @@ export function WorldLab() {
   });
   const [labState, setLabState] = useState<LabState>((params.get('state') as LabState) ?? 'idle');
   const [labMode, setLabMode] = useState<LabAgentMode>((params.get('mode') as LabAgentMode) ?? 'accompanied');
+  const [ixDemo, setIxDemo] = useState<LabIxDemo>((params.get('ix') as LabIxDemo) ?? 'none');
   const [cue, setCue] = useState<{ kind: AgentCueKind; seq: number } | null>(null);
   const [chars, setChars] = useState(params.get('chars') !== '0');
   const [real, setReal] = useState<{ me: string; users: Record<string, WorldUser>; rooms: WorldRoom[] } | null>(null);
+  const sceneParam = params.get('scene') ?? 'seed';
+  const sceneName = (sceneParam in MOCK_SCENES ? sceneParam : 'seed') as MockSceneName;
   const showUi = params.get('ui') !== '0';
+  // 실제 앱의 WorldHost처럼 포커스된 방에만 보드 도구 소품 데이터를 넣는다(mock)
+  const toolCount = Math.min(MOCK_TOOLS.length, Number(params.get('tools') ?? 3) || 0);
+  useEffect(() => {
+    if (!focusId || real || toolCount <= 0) return;
+    useBoardToolScene.getState().setRoom(focusId, MOCK_TOOLS.slice(0, toolCount));
+    return () => useBoardToolScene.getState().clear(focusId);
+  }, [focusId, real, toolCount]);
+  const openToolId = useBoardToolUi((s) => s.openToolId);
   const [replaying, setReplaying] = useState(false);
   const colorOf = (u: string) => MOCK_USERS[u]?.color ?? '#fff';
   // 장면 버튼: 선택(없으면 기본) 캡슐 기준으로 fxStore에 사건을 넣는다. 서버 없이 연출만 본다
   const scene = (kind: FxKind): FxPayload => {
-    const room = (selectedId && rooms.find((r) => r.id === selectedId)) || rooms.find((r) => r.id === 'our_work')!;
+    const room = (selectedId && rooms.find((r) => r.id === selectedId)) || (rooms.find((r) => r.id === 'our_work') ?? rooms.find((r) => r.kind === 'our') ?? rooms[0]!);
     const me = `h:${viewerId}`;
     const my = `my_${viewerId.replace('u_', '')}`;
     const other = my === 'my_bob' ? 'my_alice' : 'my_bob';
@@ -102,7 +116,7 @@ export function WorldLab() {
       visitIds.map((hostRoomId) => ({ hostRoomId, visitorKind: 'human', visitorUserId: viewerId, status: 'active' })),
     [visitIds, viewerId],
   );
-  const mockRooms = useMemo(() => buildMockRooms(viewerId, visits, ambience), [viewerId, visits, ambience]);
+  const mockRooms = useMemo(() => buildMockRooms(viewerId, visits, ambience, sceneName), [viewerId, visits, ambience, sceneName]);
   const rooms = real ? real.rooms : mockRooms;
   const users = real ? real.users : MOCK_USERS;
   const selectedRoom = rooms.find((r) => r.id === selectedId);
@@ -114,12 +128,13 @@ export function WorldLab() {
             state: labState,
             mode: labMode,
             cue,
+            ix: ixDemo,
             modeUserId: params.get('mu') ?? 'u_alice',
             destRoomId: params.get('dest') ?? 'my_bob',
             speech: params.get('say') ?? '토요일로 확정하면 어떨까요? 장소는 해변 카페로.',
           })
         : undefined,
-    [chars, real, rooms, users, ambience, viewerId, labState, labMode, cue, params],
+    [chars, real, rooms, users, ambience, viewerId, labState, labMode, cue, ixDemo, params],
   );
   const canToggleVisit = !real && selectedRoom && selectedRoom.kind === 'my' && selectedRoom.ownerId !== viewerId;
 
@@ -127,7 +142,7 @@ export function WorldLab() {
     `rounded px-2 py-1 text-xs ${active ? 'bg-[#ffb066] text-black' : 'bg-white/10 text-white hover:bg-white/20'}`;
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-black">
+    <div className="fixed inset-0 overflow-hidden bg-black" data-open-tool={openToolId ?? ''}>
       <WorldCanvas
         viewerId={viewerId}
         rooms={rooms}
@@ -210,6 +225,14 @@ export function WorldLab() {
                 {LAB_MODES.map((m) => (
                   <button key={m} data-testid={`cm-${m}`} className={btn(labMode === m)} onClick={() => setLabMode(m)}>
                     {m}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="w-12 opacity-70">연결선</span>
+                {LAB_IX_DEMOS.map((k) => (
+                  <button key={k} data-testid={`ix-${k}`} className={btn(ixDemo === k)} onClick={() => setIxDemo(k)}>
+                    {k}
                   </button>
                 ))}
               </div>

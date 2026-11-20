@@ -114,7 +114,7 @@ describe('메모리 REST', () => {
   it('내 기억 조회·추가·공유 대상 변경·삭제', async () => {
     const list = (await get('Alice', '/api/memory')).json() as MemoryListResponse;
     expect(ids(list.items).sort()).toEqual(['mem_seed_alice_for_family', 'mem_seed_alice_private']);
-    expect(((await get('Bob', '/api/memory')).json() as MemoryListResponse).items).toEqual([]);
+    expect(ids(((await get('Bob', '/api/memory')).json() as MemoryListResponse).items)).toEqual(['mem_seed_bob_for_team']); // 소유자 본인 것만(A2A 데모 시드)
 
     const created = await post('Alice', '/api/memory', { ns: `agent:${A.alice}:private`, kind: 'fact', text: '고양이를 키운다.' });
     expect(created.statusCode).toBe(200);

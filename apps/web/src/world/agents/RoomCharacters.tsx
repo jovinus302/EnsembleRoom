@@ -5,6 +5,8 @@ import type { CapsuleInteriorContext } from '../types';
 import { ambienceTargets } from '../capsule/InteriorLights';
 import { interiorSpec } from '../interiors/layouts';
 import { Actor, PAWN_H, type ActorRuntime } from './Actor';
+import { InteractionBeams } from './InteractionBeams';
+import { LabelStacker, type LabelEntry } from './LabelStacker';
 import { doorSpot, planRoom } from './plan';
 import type { CharacterInput } from './types';
 
@@ -15,6 +17,8 @@ export interface CharacterCtxValue {
   doors: Readonly<Record<string, -1 | 1>>;
   replaying: boolean;
   reducedMotion: boolean;
+  /** 포커스 중인 방(없으면 조망) */
+  focusRoomId?: string | null;
 }
 export const CharacterCtx = createContext<CharacterCtxValue | null>(null);
 const EMPTY: readonly CharacterInput[] = [];
@@ -77,6 +81,8 @@ export function RoomCharacters({ ctx }: { ctx: CapsuleInteriorContext }) {
     [all, spec, ctx.dims, ctx.model.kind],
   );
   const positions = useMemo(() => new Map<string, THREE.Vector3>(), []);
+  // idle 배회 지점 예약(한 지점에 한 캐릭터). 방마다 하나
+  const reserve = useMemo(() => new Map<number, string>(), [roomId]);
   const light = useRef({ current: 1 });
   const cur = useRef(ctx.model.ambience === 'empty' ? 0 : 1);
   useFrame((_, dt) => {
@@ -84,18 +90,23 @@ export function RoomCharacters({ ctx }: { ctx: CapsuleInteriorContext }) {
     cur.current = THREE.MathUtils.damp(cur.current, t.level, 4, dt);
     light.current.current = cur.current;
   });
+  const labels = useMemo(() => new Map<string, LabelEntry>(), [roomId]);
   const rt = useMemo<ActorRuntime>(
     () => ({
       positions,
       plan,
+      reserve,
       light: light.current,
       quality: ctx.quality,
       replaying: cv?.replaying ?? false,
       reducedMotion: cv?.reducedMotion ?? false,
       doorFor: (side) => doorSpot(ctx.dims, side),
       roomId,
+      labels,
+      tagsHidden: !!cv?.focusRoomId && cv.focusRoomId !== roomId,
+      charCount: all.length,
     }),
-    [positions, plan, ctx.quality, ctx.dims, roomId, cv?.replaying, cv?.reducedMotion],
+    [positions, plan, reserve, labels, all.length, ctx.quality, ctx.dims, roomId, cv?.replaying, cv?.reducedMotion, cv?.focusRoomId],
   );
 
   return (
@@ -123,6 +134,8 @@ export function RoomCharacters({ ctx }: { ctx: CapsuleInteriorContext }) {
             leaveSide={cv?.doors[s.char.id] ?? 1}
           />
         ))}
+        <InteractionBeams chars={all} rt={rt} />
+        <LabelStacker labels={labels} reducedMotion={cv?.reducedMotion ?? false} />
       </Suspense>
     </group>
   );

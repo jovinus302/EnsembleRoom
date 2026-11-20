@@ -1,5 +1,7 @@
 import type {
   AcceptVisitRequest,
+  BoardToolOpRequest,
+  CreateBoardToolRequest,
   ApprovalListResponse,
   CardPatch,
   CreateCardRequest,
@@ -81,6 +83,26 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return json as T;
 }
 
+/** 커버 이미지 등 /api/media 자산. <img>는 Authorization 헤더를 못 보내므로 fetch → blob URL로 쓴다(URL에 토큰 없음). */
+const mediaUrls = new Map<string, Promise<string>>();
+export function fetchMediaUrl(assetId: string): Promise<string> {
+  let p = mediaUrls.get(assetId);
+  if (!p) {
+    const token = getToken();
+    p = fetch(`${API_BASE}/api/media/${encodeURIComponent(assetId)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(async (res) => {
+        if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
+        return URL.createObjectURL(await res.blob());
+      })
+      .catch((e) => {
+        mediaUrls.delete(assetId); // 실패는 캐시하지 않는다(다시 열 때 재시도)
+        throw e;
+      });
+    mediaUrls.set(assetId, p);
+  }
+  return p;
+}
+
 const roomPath = (roomId: string) => `/api/rooms/${encodeURIComponent(roomId)}`;
 
 export interface VisitResult {
@@ -124,6 +146,14 @@ export const api = {
   pointCard: (roomId: string, cardId: string, agentId: string) =>
     request<{ seq: number }>('POST', `${roomPath(roomId)}/point`, { cardId, agentId }),
 
+  /* ----- 보드 도구 (낙관적 업데이트 없음: 결과는 WS 이벤트로 반영) ----- */
+  createBoardTool: (roomId: string, req: CreateBoardToolRequest) =>
+    request<{ seq: number; toolId: string }>('POST', `${roomPath(roomId)}/tools`, req),
+  boardToolOp: (roomId: string, toolId: string, req: BoardToolOpRequest) =>
+    request<{ seq: number; toolId: string; op: string }>('POST', `${roomPath(roomId)}/tools/${encodeURIComponent(toolId)}/ops`, req),
+  removeBoardTool: (roomId: string, toolId: string) =>
+    request<{ seq: number }>('DELETE', `${roomPath(roomId)}/tools/${encodeURIComponent(toolId)}`),
+
   /* ----- 승인 (S10) ----- */
   pendingApprovals: () => request<ApprovalListResponse>('GET', '/api/approvals?mine=pending'),
   vote: (approvalId: string, req: VoteRequest) =>
@@ -162,5 +192,25 @@ const VOTE_ERROR_TEXT: Record<string, string> = {
 
 export function voteErrorText(e: unknown): string {
   if (e instanceof ApiError) return (e.code && VOTE_ERROR_TEXT[e.code]) || e.message;
+  return '요청에 실패했습니다';
+}
+
+/** 보드 도구 오류 코드별 문구 (서버 계약: 계획 4.2) */
+const BOARD_TOOL_ERROR_TEXT: Record<string, string> = {
+  tool_not_found: '도구를 찾을 수 없어요. 이미 내려갔을 수 있어요.',
+  item_not_found: '대상 항목이 이미 사라졌어요.',
+  already_ran: '이미 실행됐어요.',
+  not_ran: '아직 실행 전이에요.',
+  tool_full: '항목이 가득 찼어요.',
+  too_many_tools: '보드 도구는 최대 12개까지 올릴 수 있어요.',
+  invalid_day: '일정 일차가 범위를 벗어났어요.',
+  invalid_tool_init: '도구 내용이 올바르지 않아요.',
+  empty_title: '제목을 입력해 주세요.',
+  op_kind_mismatch: '이 도구에는 할 수 없는 동작이에요.',
+  humans_only: '사람만 할 수 있는 동작이에요.',
+};
+
+export function boardToolErrorText(e: unknown): string {
+  if (e instanceof ApiError) return (e.code && BOARD_TOOL_ERROR_TEXT[e.code]) || e.message;
   return '요청에 실패했습니다';
 }

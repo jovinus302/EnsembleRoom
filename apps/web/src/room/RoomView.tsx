@@ -11,13 +11,16 @@ import { useWorld } from '../store/worldStore';
 import { ActivityFeed } from './ActivityFeed';
 import { AgentStatusList } from './AgentStatusList';
 import { ApprovalPanel } from './ApprovalPanel';
+import { InteractionStrip } from './InteractionStrip';
 import { BoardPanel } from './BoardPanel';
 import { LeaveSheet } from './LeaveSheet';
 import { RoomStage } from './RoomStage';
 import { SendAgentSheet } from './SendAgentSheet';
+import { GuideButton, TourHost } from '../onboarding/Tour';
 import { TimelineScrubber } from './TimelineScrubber';
 import { rejoinAndShowDigest } from './actions';
 import { useRoomModel } from './useRoomModel';
+import { APPROVAL_INK } from '../theme';
 
 const btn = 'rounded-md border border-line px-3 py-1.5 text-sm hover:bg-raised disabled:opacity-50';
 
@@ -57,6 +60,8 @@ export function RoomView({ roomId }: { roomId: string }) {
     },
     [model],
   );
+
+  const agentIds = useMemo(() => (model ? model.agents.map((a) => a.agentId) : []), [model]);
 
   if (!worldLoaded || !model) {
     return <main className="flex h-full items-center justify-center text-muted">불러오는 중…</main>;
@@ -113,12 +118,12 @@ export function RoomView({ roomId }: { roomId: string }) {
         <span
           data-testid="ambience-chip"
           className="rounded-full border px-2 py-0.5 text-[11px]"
-          style={{ borderColor: model.ambience.attention ? APPROVAL_ORANGE : 'var(--line)', color: model.ambience.attention ? APPROVAL_ORANGE : 'var(--muted)' }}
+          style={{ borderColor: model.ambience.attention ? APPROVAL_ORANGE : 'var(--line)', color: model.ambience.attention ? APPROVAL_INK : 'var(--muted)' }}
         >
           {AMBIENCE_LABEL[model.ambience.stage]}
         </span>
         {pendingCount > 0 && (
-          <span className="rounded-full bg-[#ff9f43] px-2 text-[11px] font-semibold leading-5 text-[#0b1020]" data-testid="room-pending-count">
+          <span className="rounded-full bg-[#ff9f43] px-2 text-[11px] font-semibold leading-5 text-[var(--on-accent)]" data-testid="room-pending-count">
             승인 대기 {pendingCount}
           </span>
         )}
@@ -129,7 +134,10 @@ export function RoomView({ roomId }: { roomId: string }) {
           </span>
         )}
 
-        <div className="ml-auto flex items-center gap-2" data-testid="room-actions">
+        <div className="ml-auto flex items-center gap-2">
+          <GuideButton id="room" withLabel />
+        </div>
+        <div className="flex items-center gap-2" data-testid="room-actions">
           {isMember && !left && (
             <button type="button" data-testid="room-leave" disabled={busy || model.replaying} className={btn} onClick={() => setSheet('leave')}>
               Leave
@@ -141,7 +149,7 @@ export function RoomView({ roomId }: { roomId: string }) {
               data-testid="room-rejoin"
               disabled={busy}
               className={btn}
-              style={{ borderColor: '#8ab4ff' }}
+              style={{ borderColor: 'var(--focus)' }}
               onClick={() => void run(() => rejoinAndShowDigest(roomId))}
             >
               Rejoin
@@ -160,6 +168,8 @@ export function RoomView({ roomId }: { roomId: string }) {
         </div>
       </header>
 
+      <InteractionStrip events={model.events} agentIds={agentIds} nameOf={nameOf} />
+
       {me?.digestPending && !left && (
         <div role="status" data-testid="digest-banner" className="pointer-events-auto flex items-center gap-3 border-b border-line bg-[#1b2640] px-5 py-2 text-sm">
           돌아와서 확인하지 않은 요약이 있어요.
@@ -175,7 +185,7 @@ export function RoomView({ roomId }: { roomId: string }) {
         </div>
       )}
       {error && (
-        <p role="alert" className="pointer-events-auto border-b border-line bg-panel px-5 py-2 text-xs text-red-300">
+        <p role="alert" className="pointer-events-auto border-b border-line bg-panel px-5 py-2 text-xs text-danger">
           {error}
         </p>
       )}
@@ -217,7 +227,8 @@ export function RoomView({ roomId }: { roomId: string }) {
         <TimelineScrubber events={model.allEvents} replaySeq={replaySeq} onChange={setReplaySeq} nameOf={nameOf} />
       </div>
 
-      {sheet === 'leave' && <LeaveSheet roomId={roomId} agentName={myAgent?.name ?? '내 Agent'} onClose={() => setSheet(null)} />}
+      <TourHost id="room" ready={model.loaded && access !== 'loading'} />
+      {sheet === 'leave' && <LeaveSheet roomId={roomId} agentName={myAgent?.name ?? '내 Agent'} onClose={() => setSheet(null)} onLeft={() => navigate('/')} />}
       {sheet === 'agent' && (
         <SendAgentSheet
           hostRoomId={roomId}

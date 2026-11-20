@@ -3,6 +3,7 @@ import { AMBIENCE_LABEL, titleOf } from '../messenger/labels';
 import { useSession } from '../store/session';
 import { useWorld } from '../store/worldStore';
 import { useRect } from './WorldHost';
+import { useOrbit } from '../world/cameraOrbit';
 import { QUALITY_SETTINGS, useStage, type QualitySetting } from './stageStore';
 
 const LABEL: Record<QualitySetting, string> = { auto: '자동', high: '높음', mid: '중간', low: '낮음', off: '2D' };
@@ -11,6 +12,7 @@ const LABEL: Record<QualitySetting, string> = { auto: '자동', high: '높음', 
 export function QualityToggle() {
   const quality = useStage((s) => s.quality);
   const webgl = useStage((s) => s.webgl);
+  const orbitDirty = useOrbit((s) => s.dirty);
   const slotRect = useRect(useStage((s) => s.slotEl));
   // 3D 창(슬롯)의 오른쪽 아래에 붙는다. 슬롯이 없으면 화면 왼쪽 아래
   const pos: React.CSSProperties = slotRect
@@ -24,6 +26,18 @@ export function QualityToggle() {
       className="fixed z-30 flex items-center gap-0.5 rounded-full border border-line bg-panel px-1.5 py-1 text-[10px] text-muted backdrop-blur"
       style={pos}
     >
+      {webgl === 'ok' && quality !== 'off' ? (
+        <button
+          type="button"
+          data-testid="view-reset"
+          disabled={!orbitDirty}
+          title="드래그로 각도, 휠로 줌. 더블클릭하면 초기화돼요"
+          onClick={() => useOrbit.getState().reset()}
+          className={`rounded-full px-1.5 py-0.5 ${orbitDirty ? 'bg-[var(--focus)] text-[var(--accent-fg)]' : 'opacity-40'}`}
+        >
+          시점 초기화
+        </button>
+      ) : null}
       <span className="px-1">{webgl === 'ok' ? '3D' : webgl === 'error' ? '3D 오류' : 'WebGL2 없음'}</span>
       {QUALITY_SETTINGS.map((q) => (
         <button
@@ -32,7 +46,7 @@ export function QualityToggle() {
           data-testid={`quality-${q}`}
           aria-pressed={quality === q}
           onClick={() => useStage.getState().setQuality(q)}
-          className={`rounded-full px-1.5 py-0.5 ${quality === q ? 'bg-fg text-bg' : 'hover:text-fg'}`}
+          className={`rounded-full px-1.5 py-0.5 ${quality === q ? 'bg-accent text-[var(--on-accent-strong)]' : 'hover:text-fg'}`}
         >
           {LABEL[q]}
         </button>

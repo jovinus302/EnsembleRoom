@@ -6,7 +6,8 @@ import { ourColor, relation, roomLabel, type RoomRef } from '@ensemble/shared';
 import { Beach } from './Beach';
 import { CameraRig, type FocusUv } from './CameraRig';
 import { Postfx } from './Postfx';
-import { GlassTube, assignPorts, computeTubeCurve } from './GlassTube';
+import { GlassTube } from './GlassTube';
+import { routeCurves, routeTubes } from './routing';
 import { LabelLayer, LabelProjector, type LabelEls, type LabelItem } from './LabelLayer';
 import { CharacterDirector, RoomCharacters, TripOrbs } from './agents';
 import { layoutWorld } from './layout';
@@ -134,20 +135,9 @@ export function WorldCanvas(props: WorldCanvasProps) {
     return { transSet: trans, lightSet: lights };
   }, [layout, models, focusRoomId, selectedRoomId, cfg]);
 
-  const ports = useMemo(() => assignPorts(layout.tubes, layout.placements), [layout]);
-  const allPlacements = useMemo(() => Object.values(layout.placements), [layout]);
-  // 튜브 중심선(캐릭터가 튜브를 따라 이동할 때 같은 곡선을 쓴다)
-  const curves = useMemo(() => {
-    const out = new Map<string, THREE.Curve<THREE.Vector3>>();
-    for (const t of layout.tubes) {
-      const a = layout.placements[t.from];
-      const b = layout.placements[t.to];
-      const pa = ports.get(`${t.from}>${t.to}|from`);
-      const pb = ports.get(`${t.from}>${t.to}|to`);
-      if (a && b && pa && pb) out.set(`${t.from}>${t.to}`, computeTubeCurve(a, b, pa, pb, allPlacements).curve);
-    }
-    return out;
-  }, [layout, ports, allPlacements]);
+  // 튜브 경로의 단일 소스: 렌더와 캐릭터 이동(curves)이 같은 route를 쓴다
+  const routes = useMemo(() => routeTubes(layout), [layout]);
+  const curves = useMemo(() => routeCurves(routes), [routes]);
   const labelEls = useRef<LabelEls>(new Map());
   const labelItems = useMemo<LabelItem[]>(
     () =>
@@ -163,6 +153,7 @@ export function WorldCanvas(props: WorldCanvasProps) {
             anchor: [p.x, p.dims.axisHeight + p.dims.radius + 0.5, p.z] as [number, number, number],
             active: hovered === id || selectedRoomId === id,
             attention: m.ambience === 'attention',
+            people: m.kind === 'our' ? { kind: 'many' as const, colors: [...m.memberColors] } : { kind: 'one' as const, colors: [m.color] },
             badge: m.glass === 'agent' ? { text: 'Agent 방문 중', color: m.viewerColor } : undefined,
           },
         ];
@@ -220,7 +211,7 @@ export function WorldCanvas(props: WorldCanvasProps) {
         ) : null}
         <LabelProjector items={labelItems} els={labelEls} hidden={!!focusRoomId} />
         <CameraRig layout={layout} focusRoomId={focusRoomId} focusUv={focusUv} reducedMotion={reducedMotion} intro={props.intro} />
-        <CharacterDirector input={characters} layout={layout} curves={curves} reducedMotion={reducedMotion}>
+        <CharacterDirector input={characters} layout={layout} curves={curves} reducedMotion={reducedMotion} focusRoomId={focusRoomId}>
         <GlassBufferProvider enabled={cfg.transmissionSlots > 0} resolution={cfg.transmissionResolution} msaa={cfg.transmissionMsaa}>
           <Beach quality={cfg} center={center} extent={extent} bounds={layout.bounds} />
           {layout.tubes.map((t) => {
@@ -228,19 +219,16 @@ export function WorldCanvas(props: WorldCanvasProps) {
             const b = layout.placements[t.to];
             const ma = models[t.from];
             const mb = models[t.to];
-            if (!a || !b || !ma || !mb) return null;
+            const route = routes.get(`${t.from}>${t.to}`);
+            if (!a || !b || !ma || !mb || !route) return null;
             const touches = !!focusRoomId && (t.from === focusRoomId || t.to === focusRoomId);
             return (
               <GlassTube
                 key={`${t.from}>${t.to}`}
-                from={a}
-                to={b}
+                route={route}
                 colorA={ma.color}
                 colorB={mb.color}
                 dim={touches ? 0.18 : focusRoomId ? 0.6 : 1}
-                obstacles={allPlacements}
-                portA={ports.get(`${t.from}>${t.to}|from`)!}
-                portB={ports.get(`${t.from}>${t.to}|to`)!}
               />
             );
           })}

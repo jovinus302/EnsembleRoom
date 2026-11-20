@@ -27,7 +27,7 @@ export function ApprovalPanel({ model }: { model: RoomModel }) {
       <h2 className="flex items-center gap-2 text-sm font-semibold">
         승인
         {items.pending.length > 0 && (
-          <span className="rounded-full bg-[#ff9f43] px-2 text-[11px] font-semibold leading-5 text-[#0b1020]">대기 {items.pending.length}</span>
+          <span className="rounded-full bg-[#ff9f43] px-2 text-[11px] font-semibold leading-5 text-[var(--on-accent)]">대기 {items.pending.length}</span>
         )}
       </h2>
       {items.pending.length === 0 && items.done.length === 0 && <p className="mt-2 text-xs text-muted">승인할 일이 없어요.</p>}

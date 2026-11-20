@@ -44,7 +44,7 @@ export function Composer({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex items-end gap-2 border-t border-line bg-panel px-4 py-3">
+    <form onSubmit={onSubmit} data-tour="composer" className="flex items-end gap-2 border-t border-line bg-panel px-4 py-3 backdrop-blur-md">
       {targets.length > 0 && (
         <>
           <label htmlFor="composer-to" className="sr-only">

@@ -129,6 +129,20 @@ export const RoomPreviewDetailSchema = z.object({
   pendingApprovals: z.number().int().min(0),
   /** 지금 그 방에 있는 사람(명시적 Leave 제외, 수락된 사람 방문자 포함). ambience와 같은 출처 */
   presentUserIds: z.array(id).optional(),
+  /** 내가 명시적으로 Leave한 상태: delegated=Agent 대리 중(위임 있음), plain=위임 없이 자리만 비움. 아니면 null/생략 */
+  myLeave: z.enum(['delegated', 'plain']).nullable().optional(),
+  /** 지금 진행 중인 A2A/A2H(구성원에게만). 내용 텍스트는 없다. 없으면 null/생략 */
+  interaction: z
+    .object({
+      channel: z.enum(['a2a', 'a2h']),
+      fromId: id,
+      toIds: z.array(id),
+      seq: z.number().int(),
+      at: z.number(),
+      pending: z.boolean(),
+    })
+    .nullable()
+    .optional(),
 });
 export type RoomPreviewDetail = z.infer<typeof RoomPreviewDetailSchema>;
 

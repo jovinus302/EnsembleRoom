@@ -1,4 +1,4 @@
-import type { RoomEvent, RoomPreview } from '@ensemble/shared';
+import { INTERACTION_COLORS, type RoomEvent, type RoomPreview } from '@ensemble/shared';
 import { useSession } from '../store/session';
 import { useWorld } from '../store/worldStore';
 import { emit } from './fxStore';
@@ -32,22 +32,39 @@ export function fxFromRoomEvent(e: RoomEvent): void {
   const actor = charId(e.actorKind, e.actorId);
   const mine = e.actorKind === 'human' && e.actorId === me;
   switch (e.type) {
-    case 'message':
+    case 'message': {
       // 내가 보낸 것은 send_local이 같은 clientId로 이미 재생했다(key 중복 제거)
-      emit('message', {
-        roomId: e.roomId,
-        actorId: actor,
-        targetId: e.to ? (rooms[e.roomId]?.memberIds.includes(e.to) ? `h:${e.to}` : e.to) : null,
-        key: e.clientId ?? `m${e.roomId}:${e.seq}`,
-        mine,
-        color: e.actorId ? userColor(e.actorId) : undefined,
-      });
+      const memberIds = rooms[e.roomId]?.memberIds ?? [];
+      const toChar = (id: string) => (memberIds.includes(id) ? `h:${id}` : id);
+      // A2A 질문(recipients): 수신자마다 투사체 하나(보라). 그 밖에는 to 한 명 또는 대상 없음
+      const multi = e.recipients && e.recipients.length > 0 ? e.recipients : null;
+      const targets: (string | null)[] = multi ?? [e.to ?? null];
+      const baseKey = e.clientId ?? `m${e.roomId}:${e.seq}`;
+      targets.forEach((t, i) =>
+        emit('message', {
+          roomId: e.roomId,
+          actorId: actor,
+          targetId: t ? toChar(t) : null,
+          key: i === 0 ? baseKey : `${baseKey}#${i}`,
+          mine,
+          color: multi ? INTERACTION_COLORS.a2a : e.actorId ? userColor(e.actorId) : undefined,
+        }),
+      );
       break;
+    }
     case 'agent_turn_started':
       emit('agent_called', { roomId: e.roomId, actorId: actor, key: `call:${e.turnId ?? e.seq}`, mine });
       break;
     case 'approval_requested':
       emit('approval_requested', { roomId: e.roomId, actorId: actor, key: `ap:${e.roomId}`, involvesMe: !!me && e.approvers.includes(me), text: e.summary });
+      // Agent가 올린 승인: 승인자마다 그 사람(자리 비움 포함) 쪽으로 주황 투사체 (A2H)
+      if (e.actorKind === 'agent' || e.actorKind === 'room_agent') {
+        const members = rooms[e.roomId]?.memberIds ?? [];
+        for (const uid of e.approvers) {
+          if (!members.includes(uid)) continue;
+          emit('message', { roomId: e.roomId, actorId: actor, targetId: `h:${uid}`, key: `apm:${e.approvalId}:${uid}`, mine, color: INTERACTION_COLORS.a2h });
+        }
+      }
       break;
     case 'approval_resolved':
       emit('approval_resolved', { roomId: e.roomId, outcome: e.outcome, key: `apr:${e.approvalId}`, mine });

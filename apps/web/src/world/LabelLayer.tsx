@@ -1,6 +1,7 @@
 import { useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { ink } from '../theme';
 
 /**
  * 조망용 이름 칩. 캔버스 안(drei Html)이 아니라 **캔버스 밖 DOM 레이어**에 그린다:
@@ -19,6 +20,8 @@ export interface LabelItem {
   attention: boolean;
   /** 라벨 옆 작은 표식(예: 내 Agent 방문 중) */
   badge?: { text: string; color: string };
+  /** 1인 방(소유자 실루엣) / 여럿의 방(겹친 색 점 + 인원 수) */
+  people?: { kind: 'one' | 'many'; colors: string[] };
 }
 
 export type LabelEls = Map<string, HTMLElement>;
@@ -82,6 +85,7 @@ export function LabelLayer({ items, els }: { items: readonly LabelItem[]; els: R
             else m.delete(it.id);
           }}
           data-world-label={it.id}
+          className="world-label"
           style={{
             position: 'absolute',
             left: 0,
@@ -91,28 +95,35 @@ export function LabelLayer({ items, els }: { items: readonly LabelItem[]; els: R
             gap: 6,
             padding: '3px 10px 3px 8px',
             borderRadius: 999,
-            background: 'rgba(28,18,12,0.78)',
-            border: `1px solid ${it.attention ? '#ffb45a' : 'rgba(255,238,214,0.35)'}`,
-            color: '#fff4e2',
+            background: 'var(--label-bg)',
+            border: `1px solid ${it.attention ? 'var(--label-attn-border)' : 'var(--label-border)'}`,
+            color: 'var(--label-fg)',
             font: '600 13px/1.2 "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif',
             whiteSpace: 'nowrap',
             letterSpacing: '0.01em',
-            boxShadow: it.attention ? '0 0 10px rgba(255,180,90,0.7)' : '0 1px 6px rgba(0,0,0,0.35)',
+            boxShadow: it.attention ? 'var(--label-attn-shadow)' : 'var(--label-shadow)',
             willChange: 'transform',
           }}
         >
-          <span style={{ width: 9, height: 9, borderRadius: 9, background: it.color, boxShadow: `0 0 6px ${it.color}`, flex: 'none' }} />
+          {it.people?.kind === 'many' ? <PeopleDots colors={it.people.colors} /> : it.people?.kind === 'one' ? <PersonIcon color={it.people.colors[0] ?? it.color} /> : (
+            <span style={{ width: 9, height: 9, borderRadius: 9, background: it.color, boxShadow: `0 0 6px ${it.color}`, flex: 'none' }} />
+          )}
           {it.label}
+          {it.people?.kind === 'many' && (
+            <span data-testid="label-people-count" style={{ font: '700 11px/1 system-ui, sans-serif', color: 'var(--label-fg-dim)' }}>
+              {it.people.colors.length}
+            </span>
+          )}
           {it.badge && (
             <span
               data-testid="label-badge"
               style={{
                 font: '700 10.5px/1.2 "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif',
-                color: it.badge.color,
+                color: ink(it.badge.color),
                 border: `1px solid ${it.badge.color}`,
                 borderRadius: 999,
                 padding: '1px 6px',
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--label-chip-bg)',
               }}
             >
               {it.badge.text}
@@ -121,5 +132,29 @@ export function LabelLayer({ items, els }: { items: readonly LabelItem[]; els: R
         </div>
       ))}
     </div>
+  );
+}
+
+/** 1인: 소유자 색 실루엣(머리 + 어깨), 10px */
+function PersonIcon({ color }: { color: string }) {
+  return (
+    <svg data-testid="label-people-one" width="10" height="10" viewBox="0 0 10 10" style={{ flex: 'none', filter: `drop-shadow(0 0 3px ${color})` }}>
+      <circle cx="5" cy="3" r="2.2" fill={color} />
+      <path d="M0.8 10 C0.8 6.6 2.6 5.6 5 5.6 C7.4 5.6 9.2 6.6 9.2 10 Z" fill={color} />
+    </svg>
+  );
+}
+
+/** 여럿: 겹친 8px 색 점(최대 5) */
+function PeopleDots({ colors }: { colors: readonly string[] }) {
+  return (
+    <span data-testid="label-people-many" style={{ display: 'inline-flex', flex: 'none', paddingRight: 3 }}>
+      {colors.slice(0, 5).map((c, i) => (
+        <span
+          key={i}
+          style={{ width: 8, height: 8, borderRadius: 8, background: c, border: '1px solid var(--label-dot-border)', marginLeft: i === 0 ? 0 : -3, boxSizing: 'content-box' }}
+        />
+      ))}
+    </span>
   );
 }

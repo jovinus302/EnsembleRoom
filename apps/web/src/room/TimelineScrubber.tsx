@@ -72,7 +72,7 @@ export function TimelineScrubber({
           value={Math.min(pos, Math.max(n, 1))}
           disabled={n === 0}
           onChange={(e) => set(Number(e.target.value))}
-          className="relative z-10 w-full accent-[#8ab4ff]"
+          className="relative z-10 w-full accent-[var(--focus)]"
         />
         {n > 0 && (
           <div aria-hidden="true" className="pointer-events-none absolute inset-x-[7px] top-[17px] h-1.5">
@@ -90,7 +90,7 @@ export function TimelineScrubber({
         {replaySeq === null ? (
           <span>지금 · 이벤트 {n}개</span>
         ) : (
-          <span style={{ color: '#ffd9a0' }}>
+          <span style={{ color: 'var(--warn)' }}>
             과거 재생 · #{current?.seq ?? 0} {current ? eventLabel(current, nameOf) : '시작 전'}
           </span>
         )}

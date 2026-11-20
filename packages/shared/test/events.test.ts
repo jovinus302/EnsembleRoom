@@ -19,7 +19,7 @@ describe('events schema', () => {
   it('샘플이 모든 영속 이벤트 타입을 한 번씩 덮는다', () => {
     const sampled = SAMPLE_PAYLOADS.map((p) => p.type).sort();
     expect(sampled).toEqual([...EVENT_TYPES].sort());
-    expect(EVENT_TYPES).toHaveLength(29);
+    expect(EVENT_TYPES).toHaveLength(32);
   });
 
   it.each(SAMPLE_PAYLOADS.map((p) => [p.type, p] as const))('%s 샘플이 스키마를 통과한다', (_t, payload) => {

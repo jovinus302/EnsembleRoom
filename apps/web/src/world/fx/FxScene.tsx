@@ -179,7 +179,12 @@ export function FxScene(props: FxSceneProps) {
       };
     };
 
-    const charPos = (id: string | null | undefined, out: THREE.Vector3) => !!id && !!getCharacterWorldPosition(id, out, true);
+    // 사람은 접속 중이면 `h:<uid>`, 자리 비움이면 `ha:<uid>:<roomId>`로 등록된다: 못 찾으면 후자로 대체 조회
+    const charPos = (id: string | null | undefined, out: THREE.Vector3, roomId?: string | null) => {
+      if (!id) return false;
+      if (getCharacterWorldPosition(id, out, true)) return true;
+      return !!roomId && id.startsWith('h:') && !!getCharacterWorldPosition(`ha:${id.slice(2)}:${roomId}`, out, true);
+    };
     const capPos = (roomId: string | null | undefined, lift = 0.5): THREE.Vector3 | null => {
       const p = roomId ? P.current.layout.placements[roomId] : undefined;
       return p ? capsuleCenter(p, new THREE.Vector3(), lift - p.dims.axisHeight + p.dims.floorHeight + 0.4) : null;
@@ -228,8 +233,8 @@ export function FxScene(props: FxSceneProps) {
         case 'message': {
           const a = new THREE.Vector3();
           const b = new THREE.Vector3();
-          const hasA = charPos(ev.actorId, a);
-          let hasB = charPos(ev.targetId, b);
+          const hasA = charPos(ev.actorId, a, ev.roomId);
+          let hasB = charPos(ev.targetId, b, ev.roomId);
           if (!hasB && ev.roomId) {
             // 수신자 지정이 없으면 같은 Room의 다른 인물에게(Agent 우선), 없으면 캡슐 한가운데로
             const others = (P.current.characters ?? []).filter((c) => c.roomId === ev.roomId && c.id !== ev.actorId);
@@ -263,7 +268,7 @@ export function FxScene(props: FxSceneProps) {
         }
         case 'agent_called': {
           const b = new THREE.Vector3();
-          if (charPos(ev.actorId, b)) {
+          if (charPos(ev.actorId, b, ev.roomId)) {
             add(ring(b.clone().setY(b.y - 0.8), rcol, 0.3, 2.2, 0.8));
             add(ring(b.clone().setY(b.y - 0.8), '#ffffff', 0.2, 1.4, 0.6, undefined, 0.1, 0.7));
           }
@@ -487,12 +492,12 @@ function ApprovalCrystal({ placement: p, reducedMotion }: { placement: WorldLayo
     const t = s.clock.elapsedTime;
     const pop = Math.min(1, (performance.now() - born.current) / 450);
     const pulse = reducedMotion ? 1 : 1 + 0.18 * Math.sin(t * 5.5);
-    const sc = (1 - Math.pow(1 - pop, 3)) * 0.9 * pulse;
+    const sc = (1 - Math.pow(1 - pop, 3)) * 0.55 * pulse;
     m.scale.setScalar(sc);
     m.rotation.y = reducedMotion ? 0.5 : t * 1.6;
     m.position.y = p.dims.axisHeight + p.dims.radius + 3.4 + (reducedMotion ? 0 : Math.sin(t * 2.2) * 0.18);
     g.position.copy(m.position);
-    g.scale.setScalar(sc * 5.5);
+    g.scale.setScalar(sc * 4.2);
     gmat.opacity = 0.55 + 0.3 * Math.sin(t * 5.5);
   });
   return (

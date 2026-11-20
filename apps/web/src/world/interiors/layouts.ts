@@ -1,5 +1,5 @@
 import type { ThemeId, ThemeVariant } from '@ensemble/shared';
-import { MINI_SCALE, type CapsuleDims } from '../capsule/dims';
+import { MINI_SCALE, capsuleDims, type CapsuleDims } from '../capsule/dims';
 import type { QualityTier } from '../quality';
 
 /**
@@ -22,6 +22,10 @@ export interface PropSpec {
   p?: 0 | 1 | 2;
   /** 천 재질 색 선택: a = 소유자(구성원) 색, b = 보조색 */
   tone?: 'a' | 'b';
+  /** true면 좌표·크기를 방 확대(`scaleSpec`)에서 제외한다: 최종 월드 치수로 직접 쓴 소품(줄인 탁자와 그 위 물건) */
+  abs?: boolean;
+  /** 장애물 반경 배율(기준 소품 대비). scaleSpec이 확대한 소품은 자동으로 k가 들어간다 */
+  sc?: number;
 }
 
 export interface InteriorSeat {
@@ -64,6 +68,14 @@ export interface InteriorSpec {
   seats: InteriorSeat[];
   board: BoardAnchor;
   memoryShelf: MemoryShelfAnchor;
+  /** 보드 도구(사다리·정산표·여행 계획) 소품이 놓이는 탁자 위 자리 [x, 윗면 높이, z]. 4개까지(5번째부터는 3D에 안 그린다) */
+  toolSlots: V3[];
+  /** 도구 소품 배율(탁자 크기에 맞춤) */
+  toolScale: number;
+  /** true면 toolSlots·toolScale이 최종 월드 치수다(scaleSpec이 키우지 않는다) */
+  toolsAbs?: boolean;
+  /** 중앙 탁자(최종 월드 좌표). 사람·Agent가 이 탁자를 둘러 서는 호의 중심과 크기를 정한다. 없으면 기본값 */
+  table?: { cx: number; cz: number; hw: number; hd: number };
   /** 벽 색 팔레트 키와 바닥 판재 */
   floor: 'birch' | 'walnut' | 'oak' | 'concrete';
   wall: 'studio' | 'lounge' | 'home' | 'meeting';
@@ -153,13 +165,13 @@ export const TOP = {
 
 const yawToward = (fx: number, fz: number, tx: number, tz: number) => Math.atan2(tx - fx, tz - fz);
 
-function seat(index: number, x: number, z: number, toX: number, toZ: number, agent: V3 = [0.55, 0, 0.1]): InteriorSeat {
+function seat(index: number, x: number, z: number, toX: number, toZ: number, agent: V3 = [0.85, 0, 0.12]): InteriorSeat {
   return { index, position: [x, 0, z], yaw: yawToward(x, z, toX, toZ), agentOffset: agent };
 }
 
 // ---------------------------------------------------------------- 스튜디오 (Alice My Room, long)
 
-function studio(d: CapsuleDims): InteriorSpec {
+function studio(d: CapsuleDims, _k: number): InteriorSpec {
   const bz = (depth: number) => wallFrame(d, 0, depth / 2 + 0.03).z; // 뒷벽 직선부에 붙은 소품의 z
   const deskZ = bz(hk(0.392));
   const deskW = hk(0.734);
@@ -216,6 +228,13 @@ function studio(d: CapsuleDims): InteriorSpec {
     seats: [seat(0, dx1 + 0.25, 0.28, dx1 + 0.25, deskZ), seat(1, 0.45, 0.62, 0.45, wallZ)],
     board: makeBoard('frame', 0.42, boardY, boardZ, 1.15, 0.7, 3, 1),
     memoryShelf: { position: [2.2, TOP.bookcaseOpen * 0.55, bz(hk(0.25)) + 0.2], yaw: 0, length: 1.7 },
+    toolSlots: [
+      [dx2 - 0.42, TOP.desk, deskZ + 0.2],
+      [dx2 + 0.38, TOP.desk, deskZ + 0.2],
+      [0.62, TOP.sideTable, bz(hk(0.22)) + 0.04],
+      [dx1 + 0.5, TOP.desk, deskZ + 0.22],
+    ],
+    toolScale: 1.0,
     floor: 'birch',
     wall: 'studio',
     wallCap: 1.62,
@@ -225,7 +244,7 @@ function studio(d: CapsuleDims): InteriorSpec {
 
 // ---------------------------------------------------------------- 라운지 (Bob My Room, long)
 
-function lounge(d: CapsuleDims): InteriorSpec {
+function lounge(d: CapsuleDims, _k: number): InteriorSpec {
   const bz = (depth: number) => wallFrame(d, 0, depth / 2 + 0.03).z;
   const wallZ = wallFrame(d, 0, 0).z;
   const sofaX = -1.75;
@@ -264,6 +283,13 @@ function lounge(d: CapsuleDims): InteriorSpec {
     seats: [seat(0, sofaX - 0.4, -0.22, sofaX, 0.6), seat(1, sofaX + 0.45, -0.22, sofaX, 0.6)],
     board: makeBoard('frame', sofaX, 1.18, wallFrame(d, 0, 0.06).z, 1.45, 0.62, 3, 1),
     memoryShelf: { position: [1.3, TOP.bookcaseWide * 0.6, bz(hk(0.25)) + 0.2], yaw: 0, length: 2.2 },
+    toolSlots: [
+      [sofaX - 0.36, TOP.tableCoffee, 0.8],
+      [sofaX + 0.04, TOP.tableCoffee, 0.86],
+      [sofaX + 0.42, TOP.tableCoffee, 0.8],
+      [-0.42, TOP.sideTable, bz(hk(0.22)) + 0.14],
+    ],
+    toolScale: 0.8,
     floor: 'walnut',
     wall: 'lounge',
     wallCap: 1.62,
@@ -299,21 +325,23 @@ function cafeCommon(d: CapsuleDims, side: -1 | 1, counterRot = 0): PropSpec[] {
   return out;
 }
 
-function cafeHome(d: CapsuleDims): InteriorSpec {
+/** 줄인 탁자 배율: 이전 월드 치수 대비 길이·깊이 72% */
+const TABLE_U = 0.72;
+
+function cafeHome(d: CapsuleDims, k: number): InteriorSpec {
   const wallZ = wallFrame(d, 0, 0).z;
-  const tx = 0.0;
-  const tz = 0.05;
+  const tz = 0.05; // 탁자 중심(최종 월드 좌표)
+  const U = TABLE_U;
+  const tableS: V3 = [1.3 * CS * U, CS, 1.4 * CS * U];
+  const tableHW = (0.841 * S * tableS[0]) / 2;
+  const tableHD = (0.447 * S * tableS[2]) / 2;
   const props: PropSpec[] = [
-    { id: 'rug-rectangle', x: tx, z: tz + 0.1, s: [1.8, 1, 1.75], tone: 'a' },
+    { id: 'rug-rectangle', x: 0, z: 0.15, s: [1.8, 1, 1.75], tone: 'a' },
     ...cafeCommon(d, -1),
-    // 식탁 + 의자(좌석 뒤에 놓인다)
-    { id: 'table-cloth', x: tx, z: tz, s: [1.3 * CS, CS, 1.4 * CS], tone: 'a' },
-    { id: 'chair-cushion', x: tx - 0.55, z: tz - 1.05, rot: 0, s: CS, tone: 'b' },
-    { id: 'chair-cushion', x: tx + 0.55, z: tz - 1.1, rot: 8, s: CS, tone: 'b' },
-    { id: 'chair-cushion', x: tx - 0.55, z: tz + 1.15, rot: 180, s: CS, tone: 'b' },
-    { id: 'chair-cushion', x: tx + 0.6, z: tz + 1.1, rot: 172, s: CS, tone: 'b', p: 1 },
-    { id: 'plant-small-3', x: tx, z: tz, y: ch(0.327) + 0.02, s: CS },
-    { id: 'lamp-round-table', x: tx + 0.4, z: tz - 0.1, y: ch(0.327) + 0.01, s: CS * 0.9, p: 1 },
+    // 줄인 식탁(최종 치수) + 양끝 의자. 사람은 식탁 둘레의 호(agents/plan.ts)에 선다
+    { id: 'table-cloth', x: 0, z: tz, s: tableS, tone: 'a', abs: true, sc: U },
+    { id: 'chair-cushion', x: -(tableHW + 0.38), z: tz, rot: 90, s: CS, tone: 'b', abs: true, p: 1 },
+    { id: 'chair-cushion', x: tableHW + 0.38, z: tz, rot: -90, s: CS, tone: 'b', abs: true, p: 1 },
     // 거실: 오른쪽 호에 소파, 앞에 러그와 낮은 테이블
     { id: 'rug-round', x: 2.9, z: 0.55, s: 2.1, tone: 'b' },
     ...(() => {
@@ -335,19 +363,31 @@ function cafeHome(d: CapsuleDims): InteriorSpec {
     { id: 'lamp-wall', x: wallFrame(d, -1.0, 0.04).x, z: wallFrame(d, -1.0, 0.04).z, y: 1.55, s: CS, p: 2 },
     { id: 'lamp-wall', x: wallFrame(d, 1.0, 0.04).x, z: wallFrame(d, 1.0, 0.04).z, y: 1.55, s: CS, p: 2 },
   ];
+  // 좌석 0..3은 탁자 둘레(최종 좌표를 기준 좌표로 환산), 4·5는 소파 쪽. 캐릭터 배치는 plan.ts의 호가 하고, 좌석은 idle 배회·디버그용이다
+  const sf = (i: number, x: number, z: number) => seat(i, x / k, z / k, 0, tz / k);
   const seats = [
-    seat(0, tx - 0.55, tz - 0.55, tx, tz + 0.2, [0.5, 0, 0.1]),
-    seat(1, tx + 0.55, tz - 0.55, tx, tz + 0.2, [-0.5, 0, 0.1]),
-    seat(2, tx - 0.55, tz + 0.75, tx, tz, [0.5, 0, 0.1]),
-    seat(3, tx + 0.55, tz + 0.75, tx, tz, [-0.5, 0, 0.1]),
-    seat(4, 2.35, 0.2, 3.0, 1.2, [0.5, 0, 0.1]),
-    seat(5, 3.35, 0.95, 2.8, 1.0, [-0.5, 0, 0.1]),
+    sf(0, -tableHW - 0.5, tz - 0.9),
+    sf(1, tableHW + 0.5, tz - 0.9),
+    sf(2, -tableHW - 0.5, tz + 0.9),
+    sf(3, tableHW + 0.5, tz + 0.9),
+    seat(4, 2.35, 0.2, 3.0, 1.2),
+    seat(5, 3.35, 0.95, 2.8, 1.0),
   ];
   return {
     props,
     seats,
     board: makeBoard('frame', 0, 1.55, wallFrame(d, 0, 0.06).z, 2.1, 0.8, 3, 1),
     memoryShelf: { position: [-0.9, 1.1, wallZ + 0.2], yaw: 0, length: 1.4 },
+    // 줄어든 상판(1.3 x 0.76) 위: 앞뒤로 엇갈려 4개
+    toolSlots: [
+      [-0.42, TOP.tableHome, tz - 0.1],
+      [-0.14, TOP.tableHome, tz + 0.12],
+      [0.14, TOP.tableHome, tz - 0.1],
+      [0.42, TOP.tableHome, tz + 0.12],
+    ],
+    toolScale: 1.0,
+    toolsAbs: true,
+    table: { cx: 0, cz: tz, hw: tableHW, hd: tableHD },
     floor: 'oak',
     wall: 'home',
     wallCap: 2.1,
@@ -355,29 +395,26 @@ function cafeHome(d: CapsuleDims): InteriorSpec {
   };
 }
 
-function cafeMeeting(d: CapsuleDims): InteriorSpec {
+function cafeMeeting(d: CapsuleDims, k: number): InteriorSpec {
   const wallZ = wallFrame(d, 0, 0).z;
-  const tz = 0.15;
-  const tw = ch(0.852);
+  const tz = 0.1; // 탁자 중심(최종 월드 좌표)
+  const U = TABLE_U;
+  const tw = ch(0.852) * U; // 3칸 중 한 칸의 폭
+  const tableS: V3 = [CS * U, CS, CS * 1.3 * U];
+  const tableHW = (3 * tw) / 2;
+  const tableHD = (0.447 * S * tableS[2]) / 2;
   const props: PropSpec[] = [
-    { id: 'rug-rectangle', x: 0, z: tz + 0.05, s: [2.4, 1, 2.2], tone: 'b' },
+    { id: 'rug-rectangle', x: 0, z: 0.2, s: [2.4, 1, 2.2], tone: 'b' },
     ...cafeCommon(d, 1),
-    // 긴 테이블 3칸
-    { id: 'table-cross', x: -tw, z: tz, s: [CS, CS, CS * 1.3] },
-    { id: 'table-cross', x: 0, z: tz, s: [CS, CS, CS * 1.3] },
-    { id: 'table-cross', x: tw, z: tz, s: [CS, CS, CS * 1.3] },
-    { id: 'laptop', x: -tw, z: tz + 0.25, y: TOP.tableCross, rot: 8, s: CS * 0.9, p: 0 },
-    { id: 'laptop', x: tw * 0.9, z: tz - 0.3, y: TOP.tableCross, rot: 180 - 6, s: CS * 0.9, p: 1 },
-    { id: 'laptop', x: 0.1, z: tz + 0.3, y: TOP.tableCross, rot: -4, s: CS * 0.9, p: 1 },
-    { id: 'plant-small-3', x: 0.2, z: tz - 0.2, y: TOP.tableCross, s: CS, p: 1 },
-    { id: 'books', x: -tw * 0.5, z: tz - 0.15, y: TOP.tableCross, rot: 15, s: CS, p: 2 },
-    // 의자: 좌석 바깥쪽에 놓인다
-    ...[-1, 0, 1].flatMap((i): PropSpec[] => [
-      { id: 'chair-modern-cushion', x: i * 1.45, z: tz - 1.6 + (i === 0 ? 0.1 : 0), rot: i * 6, s: CS, tone: 'a' },
-      { id: 'chair-modern-cushion', x: i * 1.45, z: tz + 1.75, rot: 180 - i * 6, s: CS, tone: 'a', p: i === 0 ? 1 : 0 },
-    ]),
-    { id: 'chair-modern-cushion', x: -3.25, z: tz, rot: 90, s: CS, tone: 'b', p: 1 },
-    { id: 'chair-modern-cushion', x: 3.0, z: tz + 0.3, rot: -90, s: CS, tone: 'b', p: 1 },
+    // 줄인 긴 탁자 3칸(최종 치수). 의자는 양끝만: 사람은 탁자 뒤·옆 호에 서므로 앞뒤 의자는 시야와 자리를 가린다
+    { id: 'table-cross', x: -tw, z: tz, s: tableS, abs: true, sc: U },
+    { id: 'table-cross', x: 0, z: tz, s: tableS, abs: true, sc: U },
+    { id: 'table-cross', x: tw, z: tz, s: tableS, abs: true, sc: U },
+    { id: 'laptop', x: -tw * 1.15, z: tz + 0.2, y: TOP.tableCross, rot: 8, s: CS * 0.8, abs: true, p: 0 },
+    { id: 'laptop', x: tw * 1.15, z: tz + 0.2, y: TOP.tableCross, rot: -8, s: CS * 0.8, abs: true, p: 1 },
+    { id: 'books', x: tw * 0.15, z: tz - 0.2, y: TOP.tableCross, rot: 15, s: CS * 0.8, abs: true, p: 2 },
+    { id: 'chair-modern-cushion', x: -(tableHW + 0.4), z: tz, rot: 90, s: CS, tone: 'b', abs: true, p: 1 },
+    { id: 'chair-modern-cushion', x: tableHW + 0.4, z: tz, rot: -90, s: CS, tone: 'b', abs: true, p: 1 },
     // 벽: 발표 화면 + 스피커 + 화분
     { id: 'speaker', x: wallFrame(d, -1.95, 0.2).x, z: wallFrame(d, -1.95, 0.2).z, s: CS, p: 1 },
     { id: 'speaker', x: wallFrame(d, 1.9, 0.2).x, z: wallFrame(d, 1.9, 0.2).z, s: CS, p: 1 },
@@ -389,21 +426,33 @@ function cafeMeeting(d: CapsuleDims): InteriorSpec {
     { id: 'television-modern', x: wallFrame(d, -3.3, 0.15).x + 0.2, z: wallFrame(d, -3.3, 0.15).z, y: 1.15, rot: wallFrame(d, -3.3, 0).rot, s: CS * 0.8, p: 2 },
     { id: 'trashcan', x: -3.3, z: 1.55, s: CS, p: 2 },
   ];
+  // 좌석은 탁자 둘레(최종 좌표를 기준 좌표로 환산). 캐릭터 배치는 plan.ts의 호가 하고, 좌석은 idle 배회·디버그용이다
+  const sf = (i: number, x: number, z: number) => seat(i, x / k, z / k, 0, tz / k);
   const seats: InteriorSeat[] = [
-    seat(0, -1.45, tz - 0.9, -1.45, tz),
-    seat(1, 0, tz - 0.9, 0, tz),
-    seat(2, 1.45, tz - 0.9, 1.45, tz),
-    seat(3, -1.45, tz + 1.1, -1.45, tz),
-    seat(4, 0, tz + 1.15, 0, tz),
-    seat(5, 1.45, tz + 1.1, 1.45, tz),
-    seat(6, -2.75, tz + 0.05, -1.5, tz),
-    seat(7, 2.65, tz + 0.15, 1.5, tz),
+    sf(0, -tw, tz - 0.9),
+    sf(1, 0, tz - 0.9),
+    sf(2, tw, tz - 0.9),
+    sf(3, -tw, tz + 0.9),
+    sf(4, 0, tz + 0.95),
+    sf(5, tw, tz + 0.9),
+    sf(6, -tableHW - 0.8, tz),
+    sf(7, tableHW + 0.8, tz),
   ];
   return {
     props,
     seats,
     board: makeBoard('whiteboard', 0, 1.2, wallFrame(d, 0, 0.06).z, 3.0, 1.3, 4, 2),
     memoryShelf: { position: [3.1, 1.2, wallFrame(d, 3.1, 0.2).z], yaw: 0, length: 1.2 },
+    // 줄어든 상판(3.1 x 0.7) 위 가운데 줄
+    toolSlots: [
+      [-0.85, TOP.tableCross, tz - 0.02],
+      [-0.28, TOP.tableCross, tz - 0.02],
+      [0.28, TOP.tableCross, tz - 0.02],
+      [0.85, TOP.tableCross, tz - 0.02],
+    ],
+    toolScale: 1.3,
+    toolsAbs: true,
+    table: { cx: 0, cz: tz, hw: tableHW, hd: tableHD },
     floor: 'concrete',
     wall: 'meeting',
     wallCap: 2.15,
@@ -430,6 +479,42 @@ function makeBoard(kind: BoardAnchor['kind'], x: number, y: number, z: number, w
   return { kind, position: [x, y, z + 0.02], yaw: 0, width: w, height: hh, slots };
 }
 
+
+// ---------------------------------------------------------------- 방 확대
+
+function scaleS(sv: PropSpec['s'], k: number): number | V3 {
+  if (sv === undefined) return k;
+  if (typeof sv === 'number') return sv * k;
+  return [sv[0] * k, sv[1] * k, sv[2] * k];
+}
+
+/** 기준 치수로 짠 세트를 k배 키운다: 위치·높이·소품 크기를 모두 k배(벽·바닥은 이미 새 dims로 그려진다). abs 소품과 toolsAbs 도구 자리는 그대로 둔다 */
+export function scaleSpec(spec: InteriorSpec, k: number): InteriorSpec {
+  if (k === 1) return spec;
+  const v3 = (v: V3): V3 => [v[0] * k, v[1] * k, v[2] * k];
+  return {
+    ...spec,
+    props: spec.props.map((p) => {
+      if (p.abs) return p;
+      const q: PropSpec = { ...p, x: p.x * k, z: p.z * k, s: scaleS(p.s, k), sc: (p.sc ?? 1) * k };
+      if (p.y !== undefined) q.y = p.y * k;
+      return q;
+    }),
+    seats: spec.seats.map((s) => ({ ...s, position: v3(s.position), agentOffset: v3(s.agentOffset) })),
+    board: {
+      ...spec.board,
+      position: v3(spec.board.position),
+      width: spec.board.width * k,
+      height: spec.board.height * k,
+      slots: spec.board.slots.map((sl) => ({ ...sl, position: v3(sl.position), width: sl.width * k, height: sl.height * k })),
+    },
+    memoryShelf: { ...spec.memoryShelf, position: v3(spec.memoryShelf.position), length: spec.memoryShelf.length * k },
+    toolSlots: spec.toolsAbs ? spec.toolSlots : spec.toolSlots.map(v3),
+    toolScale: spec.toolsAbs ? spec.toolScale : spec.toolScale * k,
+    wallCap: spec.wallCap * k,
+  };
+}
+
 // ---------------------------------------------------------------- 공개 API
 
 const cache = new Map<string, InteriorSpec>();
@@ -439,7 +524,11 @@ export function interiorSpec(theme: ThemeId, variant: ThemeVariant | null, dims:
   const key = `${theme}|${variant ?? ''}|${dims.proportion}`;
   let spec = cache.get(key);
   if (!spec) {
-    spec = theme === 'studio' ? studio(dims) : theme === 'lounge' ? lounge(dims) : variant === 'meeting' ? cafeMeeting(dims) : cafeHome(dims);
+    // 소품 좌표는 기준 치수(배율 1)로 짠 뒤 캡슐이 커진 만큼 키운다. 단 abs 소품(줄인 탁자)은 최종 치수 그대로
+    const d0 = capsuleDims(dims.proportion, 1);
+    const k = dims.radius / d0.radius;
+    const built = theme === 'studio' ? studio(d0, k) : theme === 'lounge' ? lounge(d0, k) : variant === 'meeting' ? cafeMeeting(d0, k) : cafeHome(d0, k);
+    spec = scaleSpec(built, k);
     cache.set(key, spec);
   }
   return spec;
@@ -462,6 +551,10 @@ export function interiorSeats(theme: ThemeId, variant: ThemeVariant | null, dims
 /** S18/S19용: 카드가 붙는 보드(벽 액자/화이트보드) 앵커 */
 export function interiorBoard(theme: ThemeId, variant: ThemeVariant | null, dims: CapsuleDims): BoardAnchor {
   return interiorSpec(theme, variant, dims).board;
+}
+/** 보드 도구 소품 자리(내부 좌표계) */
+export function interiorToolSlots(theme: ThemeId, variant: ThemeVariant | null, dims: CapsuleDims): V3[] {
+  return interiorSpec(theme, variant, dims).toolSlots;
 }
 export function interiorMemoryShelf(theme: ThemeId, variant: ThemeVariant | null, dims: CapsuleDims): MemoryShelfAnchor {
   return interiorSpec(theme, variant, dims).memoryShelf;

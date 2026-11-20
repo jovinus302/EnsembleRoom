@@ -82,7 +82,7 @@ function buildPath(layout: WorldLayout, curves: ReadonlyMap<string, THREE.Curve<
       if (!a || !b) return null;
       seg = [new THREE.Vector3(a.x, TUBE_Y, a.z), new THREE.Vector3(b.x, TUBE_Y, b.z)];
     }
-    for (const p of seg) pts.push(p.clone().setY(TUBE_Y));
+    for (const p of seg) pts.push(p.clone());
   }
   if (pts.length < 2) return null;
   const cum = [0];
@@ -125,12 +125,14 @@ export function CharacterDirector({
   layout,
   curves,
   reducedMotion,
+  focusRoomId,
   children,
 }: {
   input: WorldCharacters | undefined;
   layout: WorldLayout;
   curves: ReadonlyMap<string, THREE.Curve<THREE.Vector3>>;
   reducedMotion: boolean;
+  focusRoomId?: string | null;
   children: ReactNode;
 }) {
   const chars = input?.characters ?? EMPTY_LIST;
@@ -246,9 +248,9 @@ export function CharacterDirector({
   }, [chars, version]);
 
   const value = useMemo<CharacterCtxValue>(
-    () => ({ byRoom, doors: { ...doors }, replaying: !!input?.replaying, reducedMotion }),
+    () => ({ byRoom, doors: { ...doors }, replaying: !!input?.replaying, reducedMotion, focusRoomId: focusRoomId ?? null }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [byRoom, input?.replaying, reducedMotion, version],
+    [byRoom, input?.replaying, reducedMotion, version, focusRoomId],
   );
 
   const finish = (t: Trip) => {

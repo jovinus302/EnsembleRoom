@@ -8,6 +8,7 @@ import type { WsLike } from './realtime/hub';
 import { approvalRoutes } from './routes/approvals';
 import { authRoutes } from './routes/auth';
 import { digestRoutes } from './routes/digest';
+import { mediaRoutes } from './routes/media';
 import { memoryRoutes } from './routes/memory';
 import { metricsRoutes } from './routes/metrics';
 import { roomRoutes } from './routes/rooms';
@@ -43,6 +44,7 @@ export async function buildApp(ctx: AppContext, opts: { logger?: boolean } = {})
   approvalRoutes(app, ctx);
   digestRoutes(app, ctx);
   metricsRoutes(app, ctx);
+  mediaRoutes(app, ctx);
 
   // /ws?token=<세션 토큰>. 인증 실패는 4401로 닫는다.
   app.get('/ws', { websocket: true }, (socket, req) => {

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { CapsuleDims } from './dims';
+import { makeOutline, outlineAt } from './outline';
 
 /** 색 정지점 배열에서 t(0..1)의 선형 보간 색 (linear 작업 색공간) */
 export function gradientAt(stops: readonly string[], t: number, wrap = false): THREE.Color {
@@ -80,4 +82,73 @@ export function seamRing(radius: number, colors: readonly string[]): THREE.Torus
   g.rotateY(Math.PI / 2);
   paintGradient(g, colors, (_x, y, z) => (Math.atan2(y, z) / Math.PI + 1) / 2, true);
   return g;
+}
+
+/** 스타디움 측면 띠(비인덱스). 사각형마다 중점 색을 단색으로 칠한다. 법선은 둘레 바깥 법선 */
+export function stadiumBand(
+  halfL: number,
+  halfD: number,
+  y0: number,
+  y1: number,
+  colorAt: (x: number, z: number) => THREE.Color,
+  step = 0.08,
+): THREE.BufferGeometry {
+  const o = makeOutline(halfL, halfD);
+  const n = Math.max(8, Math.ceil(o.P / step));
+  const pos: number[] = [];
+  const nor: number[] = [];
+  const col: number[] = [];
+  const push = (x: number, y: number, z: number, nx: number, nz: number, c: THREE.Color) => {
+    pos.push(x, y, z);
+    nor.push(nx, 0, nz);
+    col.push(c.r, c.g, c.b);
+  };
+  for (let i = 0; i < n; i++) {
+    const sa = -o.P / 2 + (o.P * i) / n;
+    const sb = -o.P / 2 + (o.P * (i + 1)) / n;
+    const a = outlineAt(o, sa);
+    const b = outlineAt(o, sb);
+    const m = outlineAt(o, (sa + sb) / 2);
+    const c = colorAt(m.x, m.z);
+    // 바깥에서 볼 때 반시계: (A,C,D) (A,B,C), A=(a,y0) B=(a,y1) C=(b,y1) D=(b,y0)
+    push(a.x, y0, a.z, a.nx, a.nz, c);
+    push(b.x, y1, b.z, b.nx, b.nz, c);
+    push(b.x, y0, b.z, b.nx, b.nz, c);
+    push(a.x, y0, a.z, a.nx, a.nz, c);
+    push(a.x, y1, a.z, a.nx, a.nz, c);
+    push(b.x, y1, b.z, b.nx, b.nz, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return g;
+}
+
+/** x 방향 폭 w마다 구성원 색을 순환하는 줄무늬 */
+export function stripeColorAt(colors: readonly string[], halfL: number, w = 0.5): (x: number, z: number) => THREE.Color {
+  const cols = colors.map((c) => new THREE.Color(c));
+  const n = Math.max(cols.length, 1);
+  return (x) => cols[Math.max(Math.floor((x + halfL) / w), 0) % n] ?? new THREE.Color('#ffffff');
+}
+
+/** Our 마루 앞쪽에 구성원 수만큼 놓는 색 구슬(최대 6). 병합 + vertex color */
+export function memberDots(colors: readonly string[], d: CapsuleDims): THREE.BufferGeometry {
+  const list = colors.slice(0, 6);
+  const parts = list.map((c, i) => {
+    const g = new THREE.SphereGeometry(0.17, 16, 12);
+    g.translate((i - (list.length - 1) / 2) * 0.52, 0.17, d.floorHalfDepth + 0.42);
+    const col = new THREE.Color(c);
+    const arr = new Float32Array(g.getAttribute('position').count * 3);
+    for (let k = 0; k < arr.length; k += 3) {
+      arr[k] = col.r;
+      arr[k + 1] = col.g;
+      arr[k + 2] = col.b;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+    return g;
+  });
+  const merged = mergeGeometries(parts, false);
+  parts.forEach((g) => g.dispose());
+  return merged ?? new THREE.BufferGeometry();
 }

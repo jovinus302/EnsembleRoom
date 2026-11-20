@@ -48,12 +48,12 @@ export function ConversationView({ roomId }: { roomId: string }) {
           </span>
         )}
         {wsStatus !== 'open' && wsStatus !== 'idle' && (
-          <span role="status" className="ml-auto text-xs text-amber-300">
+          <span role="status" className="ml-auto text-xs text-warn">
             {wsStatus === 'connecting' ? '연결 중…' : '연결이 끊겼습니다. 다시 연결하는 중…'}
           </span>
         )}
       </header>
-      <div className="flex min-h-0 flex-1 flex-col bg-panel/60">
+      <div data-room-kind={room.kind} className="flex min-h-0 flex-1 flex-col">
         <MessageList roomId={roomId} meId={meId} users={users} />
         <Composer placeholder={`${title}에 메시지 보내기`} targets={targets} onSend={(t, to) => void sendMessage(roomId, t, undefined, to)} />
       </div>

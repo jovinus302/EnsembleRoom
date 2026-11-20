@@ -15,10 +15,13 @@ export function LeaveSheet({
   roomId,
   agentName,
   onClose,
+  onLeft,
 }: {
   roomId: string;
   agentName: string;
   onClose: () => void;
+  /** Leave가 완료된 뒤(시트를 닫은 다음) 호출 */
+  onLeft?: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +47,7 @@ export function LeaveSheet({
           try {
             await api.leave(roomId, m ? { mandate: m } : {});
             onClose();
+            onLeft?.();
           } catch (e) {
             setError(e instanceof ApiError ? e.message : '요청에 실패했습니다');
           } finally {

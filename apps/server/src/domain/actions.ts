@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import {
   effectiveCapabilities,
+  type BoardToolInitInput,
+  type BoardToolOpInput,
   type CardPatch,
   type Capability,
   type EventPayload,
@@ -18,6 +20,7 @@ import type { RoomRow } from '../db/repo';
 import { badRequest, conflict, forbidden, notFound } from '../errors';
 import { APPROVAL_REQUEST_HANDLERS } from './approvalRequests';
 import { APPROVAL_HANDLERS } from './approvals';
+import { BOARD_TOOL_HANDLERS } from './boardTools';
 import { LIFECYCLE_HANDLERS } from './lifecycleHandlers';
 import { requireRoom, resolveSubject, type ActorCtx } from './rooms';
 
@@ -32,12 +35,18 @@ import { requireRoom, resolveSubject, type ActorCtx } from './rooms';
  */
 
 export type Action =
-  | { type: 'send_message'; roomId: string; text: string; to?: string; clientId?: string; memoryRefs?: string[] }
+  | { type: 'send_message'; roomId: string; text: string; to?: string; clientId?: string; memoryRefs?: string[]; recipients?: string[]; replyTo?: number }
   | { type: 'create_card'; roomId: string; title: string; body: string; ownerTag?: OwnerTag }
   | { type: 'update_card'; roomId: string; cardId: string; patch: CardPatch; baseVersion: number }
   | { type: 'add_comment'; roomId: string; cardId: string; text: string }
   | { type: 'point_card'; roomId: string; cardId: string; agentId: string }
   | { type: 'mark_seen'; roomId: string; seq: number }
+  // 보드 도구 (domain/boardTools.ts). init·op는 입력 형태(id·seed 없음)
+  | { type: 'create_board_tool'; roomId: string; title: string; init: BoardToolInitInput }
+  | { type: 'update_board_tool'; roomId: string; toolId: string; op: BoardToolOpInput }
+  | { type: 'remove_board_tool'; roomId: string; toolId: string }
+  // 커버 이미지 상태: 서버 시스템(media/covers.ts)만. REST·Agent 도구로는 만들 수 없다
+  | { type: 'set_board_tool_cover'; roomId: string; toolId: string; status: 'pending' | 'ready' | 'failed'; assetId?: string }
   // presence (domain/presence.ts)
   | { type: 'enter_room'; roomId: string }
   | { type: 'leave_room'; roomId: string; mandate?: Mandate }
@@ -118,7 +127,7 @@ function liveCard(env: HandlerEnv, cardId: string) {
 }
 
 /** 새 카드의 ownerTag를 정한다. 사람은 자기 것이나 우리 것만, Agent는 자기 것만 */
-function resolveOwnerTag(env: HandlerEnv, requested: OwnerTag | undefined): OwnerTag {
+export function resolveOwnerTag(env: HandlerEnv, requested: OwnerTag | undefined): OwnerTag {
   const { actor, room } = env;
   const own: OwnerTag | null =
     actor.kind === 'human'
@@ -142,13 +151,36 @@ function resolveOwnerTag(env: HandlerEnv, requested: OwnerTag | undefined): Owne
 
 const sendMessage: ActionHandler<Extract<Action, { type: 'send_message' }>> = {
   capability: 'chat',
-  authorize({ ctx }, a) {
+  authorize(env, a) {
+    const { ctx } = env;
     if (!a.text.trim()) throw badRequest('empty_message');
     if (a.to !== undefined && !entityExists(ctx, a.to)) throw badRequest('unknown_recipient', `존재하지 않는 수신자: ${a.to}`);
+    // A2A 필드(recipients, replyTo)는 Agent(서버의 ask_agents 도구·답 턴)만 쓴다. 사람은 보낼 수 없다.
+    if (a.recipients !== undefined || a.replyTo !== undefined) {
+      if (env.actor.kind !== 'agent' && env.actor.kind !== 'room_agent') throw forbidden('agent_only_field', 'recipients·replyTo는 Agent만 쓸 수 있습니다');
+    }
+    if (a.recipients !== undefined) {
+      if (a.recipients.length < 1 || a.recipients.length > 3) throw badRequest('invalid_recipients', '수신 Agent는 1~3명이어야 합니다');
+      if (new Set(a.recipients).size !== a.recipients.length) throw badRequest('invalid_recipients', '수신 Agent가 중복되었습니다');
+      for (const r of a.recipients) if (!agentExists(ctx, r)) throw badRequest('unknown_recipient', `존재하지 않는 Agent: ${r}`);
+    }
+    if (a.replyTo !== undefined && (!Number.isInteger(a.replyTo) || a.replyTo < 1 || a.replyTo > ctx.store.lastSeq(env.room.id))) {
+      throw badRequest('invalid_reply_to', '이 Room에 없는 seq입니다');
+    }
   },
   apply(_env, a) {
     return {
-      events: [{ type: 'message', text: a.text, to: a.to, memoryRefs: a.memoryRefs, clientId: a.clientId }],
+      events: [
+        {
+          type: 'message',
+          text: a.text,
+          to: a.to,
+          memoryRefs: a.memoryRefs,
+          clientId: a.clientId,
+          ...(a.recipients ? { recipients: a.recipients } : {}),
+          ...(a.replyTo !== undefined ? { replyTo: a.replyTo } : {}),
+        },
+      ],
     };
   },
 };
@@ -233,6 +265,7 @@ const HANDLERS: { [K in ActionType]: ActionHandler<Extract<Action, { type: K }>>
   ...LIFECYCLE_HANDLERS,
   ...APPROVAL_REQUEST_HANDLERS,
   ...APPROVAL_HANDLERS,
+  ...BOARD_TOOL_HANDLERS,
   send_message: sendMessage,
   create_card: createCard,
   update_card: updateCard,

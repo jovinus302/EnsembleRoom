@@ -3,7 +3,9 @@ import {
   buildAgentStates,
   buildRoomState,
   glassClarity,
+  indexInteractions,
   pendingApprovalsFor,
+  pickPreviewInteraction,
   roomAmbience,
   type AgentChip,
   type AgentTravel,
@@ -123,7 +125,7 @@ export const QUIET_EVENTS = new Set([
 /** leftAtSeq 이후 viewer에게 보이는 변화 수 */
 export function missedChangeCount(ctx: AppContext, viewerId: string, roomId: string, leftAtSeq: number | null): number {
   if (leftAtSeq === null) return 0;
-  return ctx.store.listVisible(viewerId, roomId, { afterSeq: leftAtSeq }).filter((e) => !QUIET_EVENTS.has(e.type)).length;
+  return ctx.store.listVisible(viewerId, roomId, { afterSeq: leftAtSeq }).filter((e) => !QUIET_EVENTS.has(e.type) && !(e.type === 'board_tool_updated' && e.op.op === 'cover_set')).length;
 }
 
 /** 사람 사용자가 이 Room을 볼 수 있는가 (구독·스냅샷 접근 판정) */
@@ -173,6 +175,14 @@ function agentTravelOf(ctx: AppContext, v: VisitRow): AgentTravel | null {
     }
   }
   return null;
+}
+
+/** viewer의 명시적 Leave 상태. 암묵적 퇴장·미입장은 null */
+function myLeaveOf(ctx: AppContext, roomId: string, viewerId: string, state: RoomState): 'delegated' | 'plain' | null {
+  const m = state.members[viewerId];
+  if (!m || m.present) return null;
+  if (m.mandate) return 'delegated';
+  return lastLeaveOf(ctx, roomId, viewerId)?.implicit === false ? 'plain' : null;
 }
 
 /** viewer 시점의 Room 미리보기. 월드에 보이지 않는 Room이면 null. 남의 캡슐에는 detail을 주지 않는다. */
@@ -246,6 +256,12 @@ export function previewFor(ctx: AppContext, viewerId: string, roomId: string): R
       agents,
       pendingApprovals: pendingApprovalsFor(state, viewerId).length,
       presentUserIds: [...state.presentUserIds],
+      myLeave: myLeaveOf(ctx, roomId, viewerId, state),
+      // 구성원(detail을 받는 사람)에게만: 보이는 이벤트 최근 80개로 진행 중인 A2A/A2H의 종류만 알린다(내용 없음)
+      interaction: pickPreviewInteraction(
+        indexInteractions(visible.slice(-80), { isAgentId: (aid) => refs.some((r) => r.agentId === aid) || known.has(aid) }),
+        Date.now(),
+      ),
     };
   }
 

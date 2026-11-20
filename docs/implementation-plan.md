@@ -119,8 +119,8 @@
 **Our Room**
 - 실제 공동 소유 Room이다. 모델은 이름 + 구성원뿐이다.
 - 시드 3개: "친구들"(Alice, Bob), "우리 가족"(Alice + 시드 사용자 '엄마'), "팀"(Alice, Bob, 시드 사용자 'Dana').
-- 세 Room 모두 같은 코드로 동작한다. 시드 사용자(`users.kind='seed'`)의 Agent는 실행하지 않고, 승인자 계산에서도 제외한다.
-- "우리 가족"과 "팀"에는 시드 이벤트와 기억을 넣어 격리를 시연한다.
+- 세 Room 모두 같은 코드로 동작한다. 시드 사용자(`users.kind='seed'`)는 로그인하지 않으므로 항상 자리 비움이며, 그 Agent는 자동 대리(`auto_reply`)로 인물 설정(`agents.persona_public`)에 맞게 `say`/`pass`만 한다(승인해 줄 사람이 없어 `request_approval`은 도구 목록과 서버 검증에서 모두 막는다). 승인자 계산에서도 제외한다.
+- 세 Room 모두 시드 대화·카드·방 기억을 넣는다(친구들: 주말 저녁 영화 모임, 미확정 카드). 가족과 팀의 기억은 서로 다르게 두어 격리를 시연한다.
 
 **실내 테마 (1차에 실제 제작은 3세트)**
 - `studio`(작업실): Alice의 My Room.
@@ -216,13 +216,14 @@ EnsembleRoom/
   - `visit_takeout{visitId, text}` (호스트 Room에 공개)
   - `visit_ended{visitId, reason}`
   - `agent_returned{agentId, visitId}`, `visit_report{visitId, summary}` (출발 Room, private:소유자)
-- **내용**: `message{text, to?, memoryRefs?}`, `card_created`, `card_updated{cardId, patch, version}`, `comment_added{cardId, text}`, `card_pointed{cardId, toAgentId}`
+- **내용**: `message{text, to?, memoryRefs?, recipients?, replyTo?}`(`recipients`: A2A 질문의 수신 Agent 1~3개, `replyTo`: 답·정리가 잇는 질문 seq. 둘 다 Agent만 쓸 수 있고 사람이 보내면 403 `agent_only_field`), `card_created`, `card_updated{cardId, patch, version}`, `comment_added{cardId, text}`, `card_pointed{cardId, toAgentId}`
 - **Agent**:
   - `agent_turn_started{agentId, turnId, trigger{seq, reason}}`
   - `agent_step{agentId, turnId, kind reading|recalling|drafting|talking, target?}` (턴당 최대 3개)
   - `agent_turn_ended{agentId, turnId, result acted|pass|error, passReason?}`
   - `agent_paused{agentId, reason chain_limit|budget|visit_turn_limit}`
 - **승인**: `approval_requested{approvalId, approvers[], kind, summary, publicRationale}`, `approval_voted`, `approval_resolved{approvalId, outcome}`
+- **보드 도구**: `board_tool_created{toolId, title, ownerTag, init}`, `board_tool_updated{toolId, op}`(op는 `title_set`, `ladder_set`, `ladder_run{seed}`, `ladder_reset`, `expense_add/remove`, `trip_item_add/remove`, `check_add/set/remove`, 자유형 `block_add/remove`, `block_check_add/set/remove`, `vote_option_add/remove`, `vote_cast`, `counter_add`), `board_tool_removed{toolId}`. 도구는 카드가 아니라 별도 엔티티(`RoomState.boardTools`)이며 투영 테이블 없이 이벤트 리듀싱으로 만든다. 가시성은 항상 `room`.
 - **합의**: `agreement_formed{cardId, memberIds}`
 - **메모리**: `memory_retained{itemId, ns, kind}` (ns가 private이면 가시성도 private:소유자)
 
@@ -234,6 +235,7 @@ EnsembleRoom/
 - Room 조회: `GET /api/rooms/:id/snapshot`
 - Room 쓰기: `POST /api/rooms/:id/messages{text,to?,clientId}`, `POST .../cards`, `PATCH .../cards/:cardId`, `POST .../comments`, `POST .../point{cardId, agentId}`, `POST .../leave{mandate}`, `POST .../rejoin`, `POST .../seen{seq}`
 - 방문: `POST /api/rooms/:id/visits{kind:'human'}`, `POST /api/rooms/:id/visits/agent{mandate}`, `POST /api/visits/:id/accept{permissions}`, `POST /api/visits/:id/decline`, `POST /api/visits/:id/end`
+- 보드 도구: `POST /api/rooms/:id/tools{title, init}`, `POST /api/rooms/:id/tools/:toolId/ops{op}`, `DELETE /api/rooms/:id/tools/:toolId`
 - 승인: `GET /api/approvals?mine=pending`, `POST /api/approvals/:id/vote{decision, edited?}`
 - 메모리: `GET/POST/DELETE /api/memory`, `GET /api/rooms/:id/memory`
 - 지표: `GET /api/metrics`
@@ -261,12 +263,22 @@ EnsembleRoom/
    - `to`나 `point`로 지정된 Agent
    - my Room에서 작성자가 소유자 → 소유자의 Agent
    - 방문자의 메시지이고 소유자가 부재 → 호스트 Agent
-   - Our Room: 작성자의 Agent는 부르지 않는다. 질문이나 "정리"가 있거나 부재 구성원과 관련된 내용이면 Room Agent를 부른다(키워드와 `to`로 판정).
-2. **Agent 이벤트**: `to`로 지정된 다른 Agent만 부른다. `chainCount`를 1 올리고, `AGENT_CHAIN_LIMIT`(기본 4)에 도달하면 `agent_paused`를 기록한다.
-3. `agent_arrived` → 방문한 Agent에게 도착 턴을 1회 준다.
-4. 방문 턴 수가 `VISIT_MAX_TURNS`(기본 6)에 도달하면 `end_visit`만 허용하는 턴을 강제한다.
-5. Room당 턴은 직렬 1개다. 대기열 중복은 제거하고, Agent는 자기 이벤트로 깨어나지 않는다. 시간당 상한은 `MAX_TURNS_PER_ROOM_HOUR`(60)이다.
-6. **트리거 판정 직후, LLM 호출 전에 `agent_turn_started`를 동기로 append한다.**
+   - Our Room: 작성자의 Agent는 부르지 않는다. `AGENT_AUTO_REPLY`(기본 on)가 켜져 있으면 사람이 보낸 모든 메시지가 Room Agent를 깨운다(짧게 반응하고 정말 할 말이 없을 때만 pass). 꺼져 있으면 이전 규칙(질문, "정리", 부재 구성원 언급일 때만).
+   - Our Room 자동 대리(`reason: auto_reply`): 지금 Room에 present가 아니고 명시적 Leave도 하지 않은 구성원(한 번도 입장하지 않았거나 암묵적 퇴장만 한 사람, 시드 사용자 포함)의 Personal Agent를 깨운다. (a) 이름이 언급됐거나 `to`로 지정된 구성원이 있으면 그 부재 구성원 전원(Room Agent는 깨우지 않음, 단 "룸 에이전트"·"room agent"·"@room"으로 명시 호출하면 함께). (b) 지목이 없으면 Room Agent + 부재 구성원을 구성원 순서대로 **최대 2명**(`AUTO_REPLY_MAX_AGENTS`), 질문·제안이 아닌 잡담도 포함한다. 단 문자·숫자 2개 이하의 반응("ㅇㅇ", "ㅋㅋ")에는 Personal Agent를 깨우지 않는다. 사람 메시지 1건당 각 Agent는 최대 1턴이고 Agent의 `say`(to 없음)는 다른 Agent를 깨우지 않으므로 연쇄는 생기지 않는다(`AGENT_CHAIN_LIMIT`·`MAX_TURNS_PER_ROOM_HOUR`도 그대로). 지정된 구성원이 present면 본인이 답하고 아무도 깨우지 않으며, 위임 없이 Leave했으면 아무도 대신 답하지 않는다.
+   - 시드 사용자(엄마·Dana) 턴은 프롬프트에 `[인물 대리 응답]`이 붙고 도구는 `say`·`pass`뿐이다(persona 말투 우선). Bob 같은 로그인 사용자는 일정 등 소유자 결정은 `request_approval`로 넘긴다.
+   - 자동 대리 턴은 representing 모드이고 위임은 보수적 기본값(대화만, 소유자가 정할 일은 `request_approval`)이다. 도구는 `say`·`request_approval`·`pass`로 제한하고 기억은 기존 Our Room 범위(그 Room·for-room ns)만 쓰므로 가시성·권한을 넓히지 않는다. 구성원이 다시 접속(present)하면 대기 중인 자동 대리 작업도 버려 즉시 멈추고, 그 사이 쌓인 승인은 기존 승인함·Rejoin 다이제스트로 보인다. 접속 중인 구성원의 Agent는 지정됐을 때만 말한다. My Room·DM은 바뀌지 않는다.
+2. **A2A(Agent↔Agent, `AGENT_A2A` 기본 on)**: Agent가 `ask_agents{agent_ids, question}`로 보낸 질문(`message.recipients`)은 수신 Agent마다 `a2a_ask` 턴을 1회 준다.
+   - 대상은 Our Room에서 지금 present가 아닌 구성원(자동 대리 또는 위임 Leave)의 Personal Agent뿐이다. Room Agent·방문 중인 Agent·질문자 소유자의 Agent는 제외한다. 대기 중이던 같은 Agent의 `auto_reply` job은 이 턴으로 제자리 교체한다.
+   - `a2a_ask` 턴은 보수적 위임이다. 도구는 `say`·`request_approval`·`pass`뿐이고(시드 소유자는 `say`·`pass`), 서버가 `to`=질문자, `replyTo`=질문 seq를 강제한다. 답(`replyTo`가 있는 message)은 아무도 깨우지 않는다.
+   - fan-in: 수신자 전원이 끝나면(버려진 job 포함) 질문자에게 `a2a_collect` 턴을 1회 준다.
+   - `ask_agents`는 `room_agent_call`, `addressed`(Personal Agent), `a2a_collect` 턴에서 라운드가 남았을 때만 노출한다. `allowedTools`에는 들어 있지 않다.
+   - 한도: 에피소드(사람 content 이벤트마다 리셋)당 1라운드(`A2A_MAX_ROUNDS`), 팬아웃 3(`A2A_FANOUT_MAX`), a2a 턴 6(`A2A_MAX_TURNS_PER_EPISODE`, 초과 시 `agent_paused` `chain_limit`). a2a 턴은 `chainCount`를 올리지 않는다.
+   - **상호작용 8종 분류**(`shared/interactions.ts`의 `indexInteractions`): `h2a_direct`, `h2a_delegate`, `a2a_ask`, `a2a_answer`, `a2a_result`, `a2h_ask`, `a2h_report`, `a2h_approval`.
+3. **Agent 이벤트**: `to`로 지정된 다른 Agent만 부른다. `chainCount`를 1 올리고, `AGENT_CHAIN_LIMIT`(기본 4)에 도달하면 `agent_paused`를 기록한다.
+4. `agent_arrived` → 방문한 Agent에게 도착 턴을 1회 준다.
+5. 방문 턴 수가 `VISIT_MAX_TURNS`(기본 6)에 도달하면 `end_visit`만 허용하는 턴을 강제한다.
+6. Room당 턴은 직렬 1개다. 대기열 중복은 제거하고, Agent는 자기 이벤트로 깨어나지 않는다. 시간당 상한은 `MAX_TURNS_PER_ROOM_HOUR`(60)이다.
+7. **트리거 판정 직후, LLM 호출 전에 `agent_turn_started`를 동기로 append한다.**
 
 **Claude 호출** (`claude.ts`, `runTurn.ts`)
 - `messages.stream`에 tools를 넣고 `tool_choice:{type:'any'}`로 호출한다. **턴당 행동은 1개**다.
@@ -304,6 +316,8 @@ EnsembleRoom/
   - Our Room 구성원(사람): `chat, comment, edit_board`(합의된 카드는 decision 승인을 거쳐야 수정 가능).
   - Our Room 구성원 Agent: `chat, comment, propose_edit, remember`. `propose_edit` 승인자는 소유자를 제외한 사람 구성원 1인.
   - Room Agent: `chat, comment, propose_edit, request_approval`. decision 승인자는 시드가 아닌 사람 구성원 전원.
+- 보드 도구(capability `board_tools`): my Room 소유자, Our 구성원(사람), Room Agent, 소유자·구성원의 Agent(동행·대리 포함)가 가진다. 사람 방문자는 보기만 하고(`VISITOR_GRANTABLE` 불변), 방문 Agent는 금지다. 사다리 실행·다시 하기와 도구 삭제는 사람만(403 `humans_only`). Agent 도구는 `create_board_tool`(ladder/settlement/trip 생성 + 선택적 `room_message`)과 `update_board_tool`(ladder_run·ladder_reset 제외)이고, 자동 대리 턴의 도구 목록(`AUTO_REPLY_TOOLS`)에는 없다. 사다리 결과는 서버가 `crypto.randomInt`로 만든 시드만 이벤트에 저장하고 가로줄·결과는 shared 순수 함수(mulberry32)가 계산해 서버·웹·재생이 같다. 시드 도구는 `db/seedBoardTools.ts`(도구 이벤트가 없는 Room에만, 멱등).
+- 자유형 도구(`kind: 'custom'`, 메모판): 블록 4종(`text`/`checklist`/`vote`/`counter`)의 선언적 조합. 스키마는 전부 `.strict()`이고 HTML·URL·스타일 필드가 없으며 웹은 고정 컴포넌트가 텍스트 노드로만 그린다. 투표 내역(`votes: userId → optionId`)과 카운터 값은 이벤트가 아니라 리듀서 상태에만 있고, 투표자는 이벤트의 actor(사람 userId)다. `vote_cast`·`counter_add`·`vote_option_remove`는 사람만(403 `humans_only`)이고 `AGENT_TOOL_OPS`에 없다. 오류 코드는 기존 체계(`item_not_found` 404 / `op_kind_mismatch` 400 / `tool_full` 409). 생성 경로는 기존 `create_board_tool`의 `kind: 'custom'`(`blocks`)이며 별도 provider를 쓰지 않는다. 시드에는 custom 도구가 없다.
 - `dispatch(actorCtx, action)`가 모든 쓰기 직전에 서버 진실로 `effectiveCapabilities`를 다시 계산한다. 위반하면 403과 `agent_turn_ended{error}`.
 - `to`, `card_id`, `used_memory_ids`가 실제로 존재하는지, 이번 턴에 제공된 항목의 부분집합인지 검증한다.
 
@@ -403,15 +417,19 @@ EnsembleRoom/
   - 낮고 따뜻한 태양광이 유리 하이라이트와 긴 그림자를 만든다.
   - TiltShift2로 미니어처 접사 느낌을 준다. 초점 띠는 현재 대상 캡슐을 따라간다.
 - **캡슐 = Room 하나**
-  - 공통 셸: 가로로 누운 알약형(CapsuleGeometry를 회전), 세로 이음매 링 2개, 원목 받침 트레이, 벽 간판(`RoomSign`).
-  - My와 Your 캡슐은 길쭉한 비율이고, Our 캡슐은 1.6배 크고 통통하다(좌석이 많다).
+  - 공통 셸: 가로로 누운 알약형(CapsuleGeometry를 회전), 세로 이음매 링 2개, 원목 받침 트레이, 벽 간판(`RoomSign`). 유리 치수(radius/length/floor)는 종류와 무관하게 고정이라 실내 배치가 그대로다.
+  - **종류는 형태로 구분한다**(색 없이도 갈린다).
+    - My와 Your 캡슐은 길쭉한 알약에 소유자 **단색** 띠 받침이다. 내 방은 투명, 남의 방은 서리 유리에 뒷줄 배치라 닫힌 느낌을 낸다.
+    - Our 캡슐은 통통하고(약 1.6배), 받침이 유리보다 0.6 넓은 **마루(porch)**다(바닥 면적 약 2.6배). 띠는 **구성원 색 줄무늬**(폭 0.5마다 순환), 마루 앞에 **구성원 수만큼 색 구슬**(최대 6)이 놓인다. 이음매 링은 구성원 색 그라데이션을 유지한다.
+    - 간판과 조망 이름표 칩도 1인(소유자 실루엣) / 여럿(겹친 색 점 + 인원 수)으로 구분한다. 사람 방과 Agent 방 표식은 캐릭터 칩의 시각 언어(사람 = 둥근 칩, Agent = 각진 태그)를 따른다.
 - **배치** (`world/layout.ts`, viewer 중심)
-  - 내 캡슐이 카메라 바로 앞 중앙에 있다.
-  - Our 캡슐들이 그 뒤로 부채꼴로 놓인다.
-  - 각 Our 캡슐 뒤편에 그 Our의 다른 구성원의 캡슐이 놓인다.
+  - 3행이다: 내 캡슐(z=12, 카메라 바로 앞 중앙), Our 캡슐들(z=-4), 상대 캡슐들(z=-20). 행 안에서는 x로 펼치고 가장자리는 약간 뒤로 휜다(z -= 0.08|x|).
+  - Our 순서는 완전탐색(최대 6개)으로 정한다: 2층 교차 수 최소 -> 연결 길이 합 최소 -> 원래 순서 선호. 상대 캡슐 x는 연결된 Our x의 평균에 순서를 지키는 최소 간격(`spreadMinGap`)으로 놓는다.
   - **Bob 창에서는 Bob의 캡슐이 앞 중앙**이고, 라벨은 `perspective.ts`로 "My Room / Alice의 Room"이 반대로 붙는다.
-- **연결: 유리 튜브 통로** (`GlassTube`)
+- **연결: 유리 튜브 통로** (`GlassTube`, 경로는 `world/routing.ts`의 `routeTubes` 하나에서만 나온다)
   - 내 캡슐과 내가 속한 Our 캡슐, 그리고 Our 캡슐과 다른 구성원 캡슐을 튜브로 잇는다.
+  - **포트 규칙**: 포트는 받침 벽 스타디움 둘레의 1차원 좌표로 배정한다. 상대 쪽을 향한 최근접점에 두고 최소 간격(1.3)으로 펼치며, 앞면 간판 구역은 금지한다. 그래서 끝단에서 U턴하는 고리가 없다.
+  - **교차는 아치**: 서로 교차하는 관 한 쌍은 한쪽이 높이 1.1의 아치로 넘어간다(내 방에서 나온 관은 아래로 둔다). 다른 캡슐은 우회점으로 피한다. 이동 연출(TripOrb)도 같은 곡선(아치 포함)을 따른다.
   - 튜브 안쪽 바닥은 출발 쪽 색에서 도착 쪽 색으로 그라데이션된다. 그래서 "내 영역에서 우리 영역, 다시 상대 영역으로 넘어간다"가 보인다.
   - **Our 캡슐은 "내 유리와 네 유리가 만나 생긴 공간"**으로 읽히도록 만든다: 튜브가 모이는 위치, 유리 테두리의 구성원 색 그라데이션 링.
 - **유리 = 경계** (소유, 권한, 기억이 1:1로 대응. `perspective.glassClarity`)
@@ -659,7 +677,10 @@ EnsembleRoom/
    - 둘 다 승인하면 코랄과 스카이 무리가 카드로 모여 우리 색으로 섞인다. 펜던트 전구가 차례로 켜지고 테두리 그라데이션이 한 바퀴 돌며 하이파이브 Lottie가 나온다.
    - Alice가 Leave한다. 카페 조명이 `occupied`(Bob이 있음) 상태로 유지되는 가운데 Alice의 Agent가 대리 참여를 이어간다. Bob이 시간을 바꾸려 하자 승인이 Alice에게 남는다.
    - Alice가 Rejoin해 타임라인을 3D로 되감아 보고(조명과 유리 상태도 함께 되감김), 수정 후 승인한다.
-5. **같은 나, 다른 우리**
+5. **보드 도구**
+   - "친구들"에서 "오늘 커피 누가 살까?"를 보내면 Room Agent가 탁자에 사다리를 올려 둔다(시드에는 같은 사다리가 이미 있다). 사람이 사다리 타기를 누르면 두 창에서 같은 경로와 결과가 나온다. "정산"이라는 말에는 정산표, "여행 가자"에는 여행 계획이 올라온다. "뭐 먹을지 투표하자"에는 메모판(투표 블록)이, "할 일 나누자: 장보기, 청소"에는 체크리스트 블록이 올라온다(투표는 사람이 한 표씩, Agent는 투표하지 않는다).
+   - 방문자 Alice는 보기만 하고 실행 버튼이 없다. 자동 대리 응답에서는 도구를 만들지 않는다.
+6. **같은 나, 다른 우리**
    - "우리 가족"(home variant)에서 "이번 주말 어때?"라고 물으면, Agent가 선반의 가족 공유 병에서 입자를 끌어와(recalling) 일요일 행사를 들어 토요일을 제안한다. 출처 칩은 "내 기억 · 우리 가족에만 공유"다.
    - "팀"(meeting variant)에서 같은 질문을 하면 그 병이 선반에 아예 없고, 가족 이야기도 나오지 않는다.
 

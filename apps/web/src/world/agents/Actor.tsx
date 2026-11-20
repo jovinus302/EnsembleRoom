@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { PALETTE } from '@ensemble/shared';
 import { glowTexture } from '../capsule/glow';
+import { portraitDataUrl } from '../../avatar/portrait';
 import {
   ATLAS_URL,
   YAW_FRAMES,
@@ -16,7 +17,9 @@ import {
 import { Bubble, NameTag, dashedRingTexture, type BubbleSpec } from './labels';
 import { registerCharacter, emitCharacterEvent } from './registry';
 import type { RoomPlan, Spot } from './plan';
+import { DWELL, D_SOCIAL, WALK, createIdle, releaseIdle, startIdle, stepIdle, stopIdle, rand, type IdleState } from './idle';
 import type { CharacterInput } from './types';
+import type { LabelEntry } from './LabelStacker';
 
 void ATLAS_URL;
 const ORANGE = new THREE.Color(PALETTE.approvalOrange);
@@ -24,13 +27,20 @@ const INK = '#2b2118';
 
 export const AGENT_H = 0.86;
 /** 캡슐 안에서 한눈에 보이도록 인물 전체를 키운다 */
-const CHAR_SCALE = 1.3;
+const CHAR_SCALE = 1.42;
 export const PAWN_H = 0.82;
+
+/** 소유자 캐릭터 위치: 접속 중(`h:`)이 없으면 자리 비움(`ha:<uid>:<roomId>`)으로 대체 */
+function ownerPos(rt: ActorRuntime, uid: string): THREE.Vector3 | undefined {
+  return rt.positions.get(`h:${uid}`) ?? rt.positions.get(`ha:${uid}:${rt.roomId}`);
+}
 
 export interface ActorRuntime {
   /** 모든 Actor의 현재 로컬 위치 (시선·말하기 대상 조회) */
   positions: Map<string, THREE.Vector3>;
   plan: RoomPlan;
+  /** idle 배회 지점 예약(지점 인덱스 -> 캐릭터 id) */
+  reserve: Map<number, string>;
   /** 조명 단계에서 온 실내 밝기(0.45~1) */
   light: { current: number };
   quality: 'high' | 'mid' | 'low';
@@ -38,23 +48,89 @@ export interface ActorRuntime {
   reducedMotion: boolean;
   doorFor: (side: -1 | 1) => Spot;
   roomId: string;
+  /** 이름표 겹침 회피(LabelStacker)가 읽는 라벨 목록 */
+  labels: Map<string, LabelEntry>;
+  /** 방을 포커스 중이고 이 방이 포커스 방이 아님: 이름표·말풍선을 그리지 않는다 */
+  tagsHidden?: boolean;
+  /** 이 방에 그려지는 캐릭터 수(이름표 펼침 판단) */
+  charCount: number;
 }
 
 // ------------------------------------------------------------------ 공용 부품
 
-let pawnGeo: THREE.BufferGeometry | null = null;
-function pawnGeometry(): THREE.BufferGeometry {
-  if (pawnGeo) return pawnGeo;
-  const pts: THREE.Vector2[] = [];
-  const prof: [number, number][] = [
-    [0.0, 0.0], [0.2, 0.0], [0.215, 0.03], [0.17, 0.07], [0.1, 0.16], [0.085, 0.3], [0.1, 0.36], [0.17, 0.38], [0.1, 0.42], [0.085, 0.47],
-  ];
-  for (const [r, y] of prof) pts.push(new THREE.Vector2(r, y));
-  const body = new THREE.LatheGeometry(pts, 28);
-  const head = new THREE.SphereGeometry(0.155, 24, 18);
-  head.translate(0, 0.6, 0);
-  pawnGeo = mergeGeometries([body, head]) ?? body;
-  return pawnGeo;
+/** 사람 아바타: 어깨가 있는 몸통 + 머리(구). 얼굴 원판(초상)은 별도 빌보드 */
+let torsoGeo: THREE.BufferGeometry | null = null;
+function humanTorsoGeometry(): THREE.BufferGeometry {
+  if (torsoGeo) return torsoGeo;
+  const prof: [number, number][] = [[0.0, 0.0], [0.2, 0.0], [0.225, 0.04], [0.2, 0.16], [0.215, 0.3], [0.17, 0.42], [0.075, 0.46], [0.0, 0.46]];
+  torsoGeo = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 28);
+  return torsoGeo;
+}
+let headGeo: THREE.BufferGeometry | null = null;
+const humanHeadGeometry = () => (headGeo ??= new THREE.SphereGeometry(0.155, 24, 18).translate(0, 0.62, 0));
+const faceGeo = () => (FACE_GEO ??= new THREE.CircleGeometry(0.15, 32).translate(0, 0.62, 0.16));
+let FACE_GEO: THREE.CircleGeometry | null = null;
+
+/**
+ * 사람 얼굴 원판 텍스처: 먼저 빈 원판(크림 바탕 + 소유자 색 테두리)을 그려 두고, 초상 SVG를 비동기 로드해
+ * 같은 캔버스에 덮어 그린다. 이니셜 글자는 쓰지 않는다. low 품질은 해상도(S)만 낮춘다.
+ * 인스턴스(Actor)별로 만들고 언마운트 시 dispose한다. SVG data URL 문자열은 portrait.ts에서 캐시된다.
+ */
+function faceTexture(name: string, color: string, S: number): THREE.CanvasTexture {
+  const k = S / 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d')!;
+  const ring = () => {
+    g.lineWidth = 28 * k;
+    g.strokeStyle = color;
+    g.beginPath();
+    g.arc(S / 2, S / 2, 110 * k, 0, Math.PI * 2);
+    g.stroke();
+  };
+  g.fillStyle = '#fff7e8';
+  g.beginPath();
+  g.arc(S / 2, S / 2, 124 * k, 0, Math.PI * 2);
+  g.fill();
+  ring();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  const img = new Image();
+  img.onload = () => {
+    g.clearRect(0, 0, S, S);
+    g.save();
+    g.beginPath();
+    g.arc(S / 2, S / 2, 124 * k, 0, Math.PI * 2);
+    g.clip();
+    g.drawImage(img, 0, 0, S, S);
+    g.restore();
+    ring();
+    t.needsUpdate = true;
+  };
+  img.src = portraitDataUrl(name, color, S);
+  return t;
+}
+
+let starTexCache: THREE.CanvasTexture | null = null;
+/** Agent 표식: 4갈래 스파크 */
+function starTexture(): THREE.CanvasTexture {
+  if (starTexCache) return starTexCache;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#fff';
+  g.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const r = i % 2 === 0 ? 60 : 13;
+    const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+    g[i === 0 ? 'moveTo' : 'lineTo'](64 + Math.cos(a) * r, 64 + Math.sin(a) * r);
+  }
+  g.closePath();
+  g.fill();
+  starTexCache = new THREE.CanvasTexture(c);
+  starTexCache.colorSpace = THREE.SRGBColorSpace;
+  return starTexCache;
 }
 let ringGeoCache: THREE.RingGeometry | null = null;
 const ringGeo = () => (ringGeoCache ??= new THREE.RingGeometry(0.3, 0.37, 40).rotateX(-Math.PI / 2));
@@ -62,6 +138,24 @@ let discGeoCache: THREE.CircleGeometry | null = null;
 const discGeo = () => (discGeoCache ??= new THREE.CircleGeometry(0.42, 28).rotateX(-Math.PI / 2));
 let diamondGeoCache: THREE.OctahedronGeometry | null = null;
 const diamondGeo = () => (diamondGeoCache ??= new THREE.OctahedronGeometry(0.13, 0).scale(1, 1.5, 1));
+let diamondRingCache: THREE.RingGeometry | null = null;
+const diamondRingGeo = () => (diamondRingCache ??= new THREE.RingGeometry(0.33, 0.42, 4, 1).rotateX(-Math.PI / 2));
+let hexRingCache: THREE.RingGeometry | null = null;
+const hexRingGeo = () => (hexRingCache ??= new THREE.RingGeometry(0.34, 0.42, 6, 1).rotateX(-Math.PI / 2));
+let diamondPadCache: THREE.CircleGeometry | null = null;
+const diamondPadGeo = () => (diamondPadCache ??= new THREE.CircleGeometry(0.42, 4).rotateX(-Math.PI / 2));
+let hexPadCache: THREE.CircleGeometry | null = null;
+const hexPadGeo = () => (hexPadCache ??= new THREE.CircleGeometry(0.42, 6).rotateX(-Math.PI / 2));
+let linkGeoCache: THREE.PlaneGeometry | null = null;
+/** +z 방향으로 길이 1, 폭 1인 바닥 띠 (소유자 연결선) */
+const linkGeo = () => (linkGeoCache ??= new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5));
+let antennaGeoCache: THREE.CylinderGeometry | null = null;
+const antennaGeo = () => (antennaGeoCache ??= new THREE.CylinderGeometry(0.012, 0.012, 0.16, 6).translate(0, 0.08, 0));
+let haloGeoCache: THREE.TorusGeometry | null = null;
+const haloGeo = () => (haloGeoCache ??= new THREE.TorusGeometry(0.2, 0.02, 8, 36).rotateX(Math.PI / 2));
+/** 종류별 크기: 사람 > Room Agent > Personal Agent */
+const MARK_Y = 0.68;
+const KIND_K = { human: 1.14, room: 0.8, agent: 0.7 } as const;
 const armGeo = () => ARM_GEO;
 const ARM_GEO = topPlane(0.2, 0.26);
 const EGG_S = 1.36;
@@ -168,7 +262,10 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
   const tex = useCharacterTextures();
   const isHuman = char.kind === 'human';
   const isRoom = char.kind === 'room_agent';
+  const away = !!char.away && isHuman;
   const full = char.detail === 'full';
+  // 포커스 중에는 포커스 방 밖 캡슐의 이름표를 숨긴다(유리 너머로 작고 흐리게 비쳐 지저분하다)
+  const tagsOn = full && !rt.tagsHidden;
   const color = useMemo(() => new THREE.Color(char.color), [char.color]);
   const home = rt.plan.home.get(char.id) ?? { x: 0, z: 0.4, yaw: 0 };
   const boardSpot = rt.plan.board.get(char.id) ?? home;
@@ -183,6 +280,13 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
   const dash = useRef<THREE.Mesh>(null);
   const cardRef = useRef<THREE.Mesh>(null);
   const silhouette = useRef<THREE.Mesh>(null);
+  const sparkG = useRef<THREE.Group>(null);
+  const haloRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Sprite>(null);
+  const linkRef = useRef<THREE.Mesh>(null);
+  const padRef = useRef<THREE.Mesh>(null);
+  const K = isHuman ? KIND_K.human : isRoom ? KIND_K.room : KIND_K.agent;
+  const accent = isRoom ? PALETTE.roomAgentLime : char.color;
 
   const bodyMat = useMemo(() => createSpriteMaterial(isRoom ? tex.atlas : tex.body), [tex, isRoom]);
   const armMat = useMemo(() => createSpriteMaterial(tex.arm), [tex]);
@@ -208,15 +312,64 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
     [char.color],
   );
   const cardMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#fff6e0', side: THREE.DoubleSide }), []);
+  // 자리 비움: 채도를 빼고 반투명(깊이는 쓰지 않아 뒤가 비친다)
+  const awayColor = useMemo(() => new THREE.Color(char.color).lerp(new THREE.Color('#a9afba'), 0.6), [char.color]);
+  const torsoMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: (away ? awayColor.clone() : new THREE.Color(char.color)).multiplyScalar(0.9),
+        roughness: 0.8,
+        metalness: 0,
+        emissive: away ? awayColor : char.color,
+        emissiveIntensity: away ? 0.1 : 0.18,
+        transparent: away,
+        opacity: away ? 0.42 : 1,
+        depthWrite: !away,
+      }),
+    [char.color, away, awayColor],
+  );
+  const headMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: (away ? awayColor.clone() : new THREE.Color(char.color)).lerp(new THREE.Color('#ffffff'), 0.3),
+        roughness: 0.8,
+        metalness: 0,
+        emissive: away ? awayColor : char.color,
+        emissiveIntensity: away ? 0.1 : 0.16,
+        transparent: away,
+        opacity: away ? 0.42 : 1,
+        depthWrite: !away,
+      }),
+    [char.color, away, awayColor],
+  );
+  const faceSize = rt.quality === 'low' ? 96 : 256;
+  const faceTex = useMemo(() => faceTexture(char.name, char.color, faceSize), [char.name, char.color, faceSize]);
+  useEffect(() => () => faceTex.dispose(), [faceTex]);
+  const faceMat = useMemo(
+    () => new THREE.MeshBasicMaterial({ map: faceTex, transparent: true, opacity: away ? 0.42 : 1, color: away ? '#b9bec8' : '#ffffff', toneMapped: false, side: THREE.DoubleSide }),
+    [faceTex, away],
+  );
+  const sparkMat = useMemo(
+    () => new THREE.SpriteMaterial({ map: starTexture(), color: new THREE.Color(accent).lerp(new THREE.Color('#ffffff'), 0.5).multiplyScalar(2.2), transparent: true, depthWrite: false, toneMapped: false }),
+    [accent],
+  );
+  const antennaMat = useMemo(() => new THREE.MeshBasicMaterial({ color: new THREE.Color(accent).lerp(new THREE.Color('#ffffff'), 0.4), toneMapped: false, transparent: true }), [accent]);
+  const glowMat = useMemo(
+    () => new THREE.SpriteMaterial({ map: glowTexture(), color: accent, transparent: true, opacity: 0.3, depthWrite: false, toneMapped: false }),
+    [accent],
+  );
+  const haloMat = useMemo(() => new THREE.MeshBasicMaterial({ color: new THREE.Color(PALETTE.roomAgentLime).multiplyScalar(1.5), toneMapped: false, transparent: true }), []);
+  const padMat = useMemo(() => new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }), [accent]);
+  const linkMat = useMemo(() => new THREE.MeshBasicMaterial({ color: char.color, transparent: true, opacity: 0.55, depthWrite: false, toneMapped: false }), [char.color]);
   const silMat = useMemo(
     () => new THREE.MeshBasicMaterial({ color: char.color, transparent: true, opacity: 0.28, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }),
     [char.color],
   );
   useEffect(
     () => () => {
-      [bodyMat, armMat, pawnMat, ringMat, meRingMat, shadowMat, diamondMat, dashMat, cardMat, silMat].forEach((m) => m.dispose());
+      [bodyMat, armMat, pawnMat, ringMat, meRingMat, shadowMat, diamondMat, dashMat, cardMat, silMat, torsoMat, headMat, faceMat, sparkMat, antennaMat, glowMat, haloMat, linkMat, padMat].forEach((m) => m.dispose());
     },
-    [bodyMat, armMat, pawnMat, ringMat, meRingMat, shadowMat, diamondMat, dashMat, cardMat, silMat],
+    [bodyMat, armMat, pawnMat, ringMat, meRingMat, shadowMat, diamondMat, dashMat, cardMat, silMat, torsoMat, headMat, faceMat, sparkMat, antennaMat, glowMat, haloMat, linkMat, padMat],
   );
 
   // 입자 상태
@@ -246,19 +399,21 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
     gazeRel: 0,
     jumpY: 0,
     holdUntil: 0,
+    idle: null as IdleState | null,
   });
   const temp = useMemo(() => ({ v: new THREE.Vector3(), cam: new THREE.Vector3(), q: new THREE.Vector4() }), []);
 
   const unregister = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!root.current) return;
-    unregister.current = registerCharacter(char.id, root.current, isHuman ? PAWN_H : AGENT_H, rt.roomId);
+    unregister.current = registerCharacter(char.id, root.current, isHuman ? PAWN_H * K : AGENT_H * K, rt.roomId);
     emitCharacterEvent({ type: 'spawn', id: char.id, roomId: rt.roomId, kind: char.kind });
     const id = char.id;
     const roomId = rt.roomId;
     const kind = char.kind;
     return () => {
       unregister.current?.();
+      if (st.current.idle) releaseIdle(st.current.idle, rt, id);
       emitCharacterEvent({ type: 'despawn', id, roomId, kind });
       rt.positions.delete(id);
     };
@@ -278,13 +433,19 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
 
     if (!s.inited) {
       s.inited = true;
-      s.x = door.x;
-      s.z = door.z;
+      // 자리 비움은 걸어 들어오지 않고 제자리에서 서서히 나타난다
+      s.x = away ? home.x : door.x;
+      s.z = away ? home.z : door.z;
       s.born = t;
       s.prevX = s.x;
       s.prevZ = s.z;
     }
     if (leaving && s.leaveT < 0) s.leaveT = t;
+    if (!s.idle) {
+      s.idle = createIdle(char.id);
+      s.idle.nextAt = t + 3 + s.idle.ph;
+    }
+    const idle = s.idle;
 
     // ---- 목표 위치 ----
     let tx = home.x;
@@ -296,9 +457,38 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
       tx = boardSpot.x;
       tz = boardSpot.z;
     }
-    const lam = rt.reducedMotion ? 9 : 2.8;
-    s.x = damp(s.x, tx, lam, dt);
-    s.z = damp(s.z, tz, lam, dt);
+    // idle 배회: 평상시(연출 없음)의 Agent만. 다른 연출이 시작되면 즉시 끊고 기존 이동이 현재 위치에서 이어받는다
+    const canIdle =
+      !isHuman &&
+      !leaving &&
+      !writing &&
+      !char.recalling &&
+      !char.awaitingApproval &&
+      !char.representing &&
+      !paused &&
+      char.activity === 'idle' &&
+      !rt.reducedMotion &&
+      rt.quality !== 'low' &&
+      t - s.born > 1.2 &&
+      !(t - s.cueT < 1.6) &&
+      t >= s.holdUntil;
+    if (canIdle) {
+      if (!idle.active && t >= idle.nextAt) startIdle(idle, s, rt, char.id, char.ownerId, home, t);
+    } else {
+      if (idle.active) stopIdle(idle, rt, char.id, t);
+      else idle.nextAt = Math.max(idle.nextAt, t + 1);
+    }
+    const idleOn = idle.active;
+    if (idleOn) {
+      stepIdle(idle, s, rt, char.id, char.ownerId, home, t, dt);
+      tx = idle.tx;
+      tz = idle.tz;
+    } else {
+      const lam = rt.reducedMotion ? 9 : 2.8;
+      s.x = damp(s.x, tx, lam, dt);
+      s.z = damp(s.z, tz, lam, dt);
+    }
+    const idleWalk = idleOn && idle.phase === WALK;
     const mv = Math.hypot(s.x - s.prevX, s.z - s.prevZ) / Math.max(dt, 1e-4);
     s.speed = damp(s.speed, mv, 10, dt);
     s.prevX = s.x;
@@ -313,6 +503,14 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
       hasLook = true;
     } else if (char.recalling && !leaving) {
       look.set(rt.plan.shelf.x, 0, rt.plan.shelf.z);
+      hasLook = true;
+    } else if (idleWalk) {
+      look.set(idle.tx, 0, idle.tz);
+      hasLook = Math.hypot(idle.tx - s.x, idle.tz - s.z) > 0.05;
+    } else if (idleOn && idle.phase === DWELL) {
+      const so = idle.dkind === D_SOCIAL && idle.socialId ? rt.positions.get(idle.socialId) : undefined;
+      if (so) look.set(so.x, 0, so.z);
+      else look.set(s.x + Math.sin(idle.lookYaw), 0, s.z + Math.cos(idle.lookYaw));
       hasLook = true;
     } else if (tgt && (char.activity === 'talking' || char.activity === 'awaiting' || char.activity === 'idle')) {
       look.set(tgt.x, 0, tgt.z);
@@ -336,7 +534,7 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
       const cy0 = Math.atan2(temp.cam.x - s.x, temp.cam.z - s.z);
       if (!isHuman && !leaving) {
         const dd = Math.atan2(Math.sin(cy0 - wantYaw), Math.cos(cy0 - wantYaw));
-        wantYaw += dd * (writing || char.recalling ? 0.3 : 0.62);
+        wantYaw += dd * (writing || char.recalling ? 0.3 : idleWalk ? 0.4 : 0.62);
       }
       s.gazeRel = gazeYaw - cy0;
     }
@@ -349,7 +547,18 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
     temp.cam.copy(state.camera.position);
     grp.worldToLocal(temp.cam);
     const camYaw = Math.atan2(temp.cam.x - s.x, temp.cam.z - s.z);
-    if (bill.current) bill.current.rotation.y = camYaw;
+    // 사람: 가끔 고개를 살짝 돌린다(얼굴 원판이 옆으로 비낀다)
+    let headTurn = 0;
+    if (isHuman && !away && !leaving && !rt.reducedMotion) {
+      if (t >= idle.htNext) {
+        idle.htStart = t;
+        idle.htDir = (rand(idle) < 0.5 ? -1 : 1) * (0.4 + rand(idle) * 0.3);
+        idle.htNext = t + 6 + rand(idle) * 9;
+      }
+      const hu = (t - idle.htStart) / 1.8;
+      if (hu >= 0 && hu < 1) headTurn = Math.sin(hu * Math.PI) * idle.htDir;
+    }
+    if (bill.current) bill.current.rotation.y = camYaw + headTurn;
     const rel = s.faceYaw - camYaw;
     const cosRel = Math.cos(rel);
     const sinRel = Math.sin(rel);
@@ -373,7 +582,7 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
     const cueAge = t - s.cueT;
     const cueKind = s.cueKind;
     let hop = 0;
-    let nod = 0;
+    let nod = idleOn ? idle.nod : 0;
     let shake = 0;
     let flash = 0;
     let sparkle = false;
@@ -396,11 +605,15 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
     const act = char.activity;
     const tps = char.speech?.tokensPerSec ?? 0;
     const speaking = act === 'talking' || act === 'drafting' || (char.speech?.text ? char.speech.phase !== 'thinking' : false);
-    const breathe = 1 + Math.sin(t * 1.9 + home.x * 3) * 0.018;
-    const bob = Math.sin(t * 1.5 + home.z * 2.0) * (paused ? 0.004 : 0.022) + (s.speed > 0.2 ? Math.abs(Math.sin(t * 11)) * 0.05 : 0);
+    // 사람은 아주 약한 숨쉬기만, Agent는 조금 더
+    const breathe = 1 + Math.sin(t * 1.9 + home.x * 3) * (isHuman ? 0.009 : 0.018);
+    const gait = s.speed > 0.2 ? (idleOn ? Math.abs(Math.sin(t * 6 + idle.ph)) * 0.035 : Math.abs(Math.sin(t * 11)) * 0.05) : 0;
+    const bob = Math.sin(t * 1.5 + home.z * 2.0) * (paused ? 0.004 : isHuman ? 0.009 : 0.022) + gait;
     const thinking = act === 'thinking';
     const jitter = thinking ? Math.sin(t * 38) * 0.006 : 0;
     const lowered = paused ? -0.09 : 0;
+    // Agent는 바닥에서 살짝 떠 있다 (사람은 서 있다)
+    const floatH = isHuman ? 0 : paused ? 0.02 : 0.08 + (rt.reducedMotion ? 0 : Math.sin(t * 1.8 + home.x * 2) * 0.045);
 
     // 입 벌림 ∝ tokensPerSec
     const mouthTarget = speaking
@@ -423,15 +636,15 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
     const lightK = rt.light.current;
     // ---- 위치·스케일 적용 ----
     r.position.set(s.x + shake, 0, s.z);
-    r.scale.setScalar(CHAR_SCALE);
+    r.scale.setScalar(CHAR_SCALE * K);
     s.jumpY = damp(s.jumpY, hop, 22, dt);
     const sc = appear;
     r.visible = appear > 0.01;
     if (body.current) {
-      body.current.position.y = (bob + s.jumpY + lowered) * 1;
+      body.current.position.y = bob + s.jumpY + lowered + floatH;
       const squash = 1 + (hop > 0 ? 0 : 0);
       body.current.scale.set(sc * breathe * (thinking ? 1.02 : 1) * squash, sc * (2 - breathe) * (paused ? 0.94 : 1), sc * breathe);
-      body.current.rotation.z = (writing ? 0.1 * (sinRel > 0 ? 1 : -1) : 0) + nod * 0.3 + jitter * 6;
+      body.current.rotation.z = (writing ? 0.1 * (sinRel > 0 ? 1 : -1) : 0) + nod * 0.3 + jitter * 6 + (idleWalk ? Math.sin(t * 6 + idle.ph) * 0.05 * Math.min(1, s.speed / 0.4) : 0);
       body.current.rotation.x = nod * 0.2;
     }
 
@@ -502,18 +715,63 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
     // 바닥 링
     if (ring.current) {
       const pulse = char.awaitingApproval ? 1 + Math.sin(t * 5) * 0.08 : char.isMe ? 1 + Math.sin(t * 2.2) * 0.03 : 1;
-      ring.current.scale.setScalar(pulse * (isHuman ? 1 : 0.88) * appear);
+      ring.current.scale.setScalar(pulse * (isHuman ? 1 : 1.4) * appear);
       ringMat.color.set(char.awaitingApproval ? '#ffb45a' : char.color);
-      ringMat.opacity = (0.5 + 0.5 * lightK) * appear;
+      ringMat.opacity = (0.5 + 0.5 * lightK) * appear * (away ? 0.35 : 1);
     }
     meRingMat.opacity = 0.9 * appear;
-    shadowMat.opacity = 0.5 * appear * (1 - Math.min(0.6, (bob + s.jumpY) * 2));
+    shadowMat.opacity = 0.5 * appear * (1 - Math.min(0.6, (bob + s.jumpY + floatH) * 2));
     if (dash.current) {
       dash.current.visible = char.visiting;
       dash.current.rotation.y = t * 0.5;
     }
     if (silhouette.current) {
       silhouette.current.visible = false;
+    }
+    // Agent 표식: 머리 위 스파크(+안테나/후광), 은은한 발광
+    const by = bob + s.jumpY + lowered + floatH;
+    if (sparkG.current) {
+      sparkG.current.visible = !isHuman && appear > 0.05;
+      sparkG.current.position.y = MARK_Y + by;
+      sparkG.current.scale.setScalar(Math.max(0.01, appear));
+      const pulse = rt.reducedMotion || paused ? 1 : 1 + Math.sin(t * 3.2) * 0.12;
+      sparkMat.rotation = rt.reducedMotion || paused ? 0 : t * 0.9;
+      sparkMat.opacity = paused ? 0.45 : 1;
+      antennaMat.opacity = paused ? 0.45 : 1;
+      const sp = sparkG.current.getObjectByName('spark');
+      if (sp) sp.scale.setScalar(0.62 * pulse);
+    }
+    if (haloRef.current) {
+      haloRef.current.rotation.y = rt.reducedMotion ? 0 : t * 1.4;
+      haloMat.opacity = paused ? 0.4 : 1;
+    }
+    if (glowRef.current) {
+      glowRef.current.visible = !isHuman && appear > 0.05;
+      glowRef.current.position.y = AGENT_H * 0.55 + by;
+      glowMat.opacity = (paused ? 0.1 : 0.26 + (rt.reducedMotion ? 0 : Math.sin(t * 2 + home.z) * 0.07) + (writing || thinking ? 0.12 : 0)) * appear * (0.55 + 0.45 * lightK);
+    }
+    if (padRef.current) {
+      padRef.current.scale.setScalar(1.4 * appear);
+      padMat.opacity = (paused ? 0.1 : 0.3) * appear;
+    }
+    // 소유자 연결선: Personal Agent <-> 같은 방의 소유자 (바닥)
+    if (linkRef.current) {
+      const o = !isHuman && !isRoom && !leaving && !char.visiting && char.ownerId ? ownerPos(rt, char.ownerId) : undefined;
+      const lk = linkRef.current;
+      const csc = CHAR_SCALE * K;
+      const ddx = o ? o.x - s.x : 0;
+      const ddz = o ? o.z - s.z : 0;
+      const dist = Math.hypot(ddx, ddz);
+      const len = dist - 0.2;
+      lk.visible = !!o && len > 0.08 && dist < 8 && appear > 0.5;
+      if (lk.visible) {
+        const ux = ddx / dist;
+        const uz = ddz / dist;
+        lk.position.set((ux * 0.1) / csc, 0.02, (uz * 0.1) / csc);
+        lk.rotation.y = Math.atan2(ddx, ddz);
+        lk.scale.set(0.07 / csc, 1, len / csc);
+        linkMat.opacity = (paused ? 0.25 : 0.55) * appear;
+      }
     }
 
     // ---- 입자 모드 ----
@@ -526,7 +784,7 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
         pTo.current.set(0, AGENT_H * 0.7, 0);
       } else if (thinking) pm = 'think';
       else if (sparkle && cueKind === 'flow_to_owner') {
-        const o = char.seatUserId ? rt.positions.get(`h:${char.seatUserId}`) : undefined;
+        const o = char.seatUserId ? ownerPos(rt, char.seatUserId) : undefined;
         pTo.current.set((o?.x ?? s.x) - s.x, 0, (o?.z ?? s.z) - s.z);
         pm = 'owner';
       } else if (sparkle) pm = 'sparkle';
@@ -542,16 +800,24 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
     void camYaw;
   });
 
+  // Agent·Room Agent 이름표는 평소 아이콘 칩만. 활동 중이거나 연결선 끝이거나 호버거나 방이 한산하면(<=3) 전체 이름을 펼친다
+  const [hover, setHover] = useState(false);
+  const activeNow = (char.activity !== 'idle' && char.activity !== 'paused') || char.recalling || !!char.linked || !!char.speech?.text;
+  const compactTag = !isHuman && !activeNow && !hover && rt.charCount > 3;
   let crowd = false;
   for (const [oid, sp] of rt.plan.home) {
     if (oid !== char.id && !isHuman && Math.hypot(sp.x - (rt.plan.home.get(char.id)?.x ?? 0), sp.z - (rt.plan.home.get(char.id)?.z ?? 0)) < 0.95) crowd = true;
   }
-  const tagY = (isHuman ? PAWN_H : AGENT_H) + 0.3 + (crowd ? 0.26 : 0);
-  const badge = char.representing ? '대리' : char.visiting ? '방문' : null;
-  const tagText = char.isMe && !isRoom ? `${char.name} · 나` : isRoom ? `${char.name} · 우리` : char.name;
+  const tagY = compactTag ? AGENT_H + (isRoom ? 0.5 : 0.3) / K : (isHuman ? PAWN_H : AGENT_H) + (isHuman ? 0.62 : isRoom ? 0.78 : 0.42) / K + (crowd ? 0.26 / K : 0);
+  const badge = away ? '자리 비움' : char.representing ? '대리' : char.visiting ? '방문' : null;
+  // 사람: 이름 / Personal Agent: 이름 · Agent / Room Agent: Room Agent
+  const agentBase = char.name.replace(/\s*(의\s*)?Agent$/i, '').trim() || char.name;
+  const tagText = isRoom ? 'Room Agent' : isHuman ? (char.isMe ? `${char.name} · 나` : char.name) : `${agentBase} · Agent`;
   const bubbleSpec = useMemo<BubbleSpec | null>(() => {
-    if (!full) return null;
+    if (!tagsOn) return null;
     if (char.awaitingApproval) return { kind: 'ask', text: '승인이 필요해요', color: '#ff9a3c' };
+    // 사람: 이 사람이 승인자인 Agent 승인 대기
+    if (char.alert === 'approval') return { kind: 'ask', text: char.isMe ? '내 승인 필요' : '승인 대기', color: '#ff9a3c' };
     if (char.activity === 'paused') return { kind: 'paused', text: '일시정지', color: '#8b94a6' };
     const sp = char.speech;
     if (!sp) return null;
@@ -559,26 +825,83 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
     if (sp.phase === 'thinking' || (!sp.text && char.activity === 'thinking')) return { kind: 'thinking', text: '', color: char.color };
     if (sp.text) return { kind: sp.phase === 'said' ? 'said' : 'writing', text: sp.text, color: char.color };
     return { kind: 'writing', text: '', color: char.color };
-  }, [full, char.awaitingApproval, char.activity, char.speech, char.color]);
+  }, [tagsOn, char.awaitingApproval, char.alert, char.isMe, char.activity, char.speech, char.color]);
   const bubbleKey = bubbleSpec ? `${bubbleSpec.kind}|${bubbleSpec.text}|${bubbleSpec.color}` : 'none';
   void INK;
   void armGeo;
   void ringGeo;
+
+  // 이름표 겹침 회피: 라벨 그룹을 rt.labels에 등록한다(LabelStacker가 매 프레임 위치를 조정)
+  const labelG = useRef<THREE.Group>(null);
+  const leader = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color: accent, transparent: true, opacity: 0.7, depthTest: false, depthWrite: false, toneMapped: false }));
+    l.renderOrder = 27;
+    l.frustumCulled = false;
+    l.visible = false;
+    l.raycast = () => undefined;
+    return l;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    (leader.material as THREE.LineBasicMaterial).color.set(accent);
+  }, [leader, accent]);
+  const labelEntry = useRef<LabelEntry | null>(null);
+  // NameTag가 알려 주는 크기는 캐릭터 루트 로컬 단위다. 월드 크기(루트 스케일 곱)로 바꿔 둔다.
+  // 자식 효과가 부모 효과(엔트리 생성)보다 먼저 돌므로, 측정값은 ref에 보관했다가 엔트리 생성 때 쓴다.
+  const measured = useRef<{ w: number; h: number } | null>(null);
+  const onMeasure = (w: number, h: number) => {
+    const sc = CHAR_SCALE * K;
+    measured.current = { w: w * sc, h: h * sc };
+    if (labelEntry.current) {
+      labelEntry.current.w = w * sc;
+      labelEntry.current.h = h * sc;
+    }
+  };
+  useEffect(() => {
+    const g = labelG.current;
+    if (!g || !tagsOn) return;
+    const e: LabelEntry = { group: g, line: leader, baseY: tagY, headY: (isHuman ? PAWN_H : AGENT_H) * CHAR_SCALE * K * 0.95, w: measured.current?.w ?? 1.2, h: measured.current?.h ?? 0.3, bubble: null, cur: 0, leaving: false };
+    labelEntry.current = e;
+    rt.labels.set(char.id, e);
+    return () => {
+      if (rt.labels.get(char.id) === e) rt.labels.delete(char.id);
+      labelEntry.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tagsOn, char.id, rt.labels]);
+  if (labelEntry.current) {
+    labelEntry.current.baseY = tagY;
+    labelEntry.current.leaving = leaving;
+    labelEntry.current.bubble = bubbleSpec ? { w: 2.1 / K, h: 0.95 / K, y: 0.12 / K } : null;
+  }
 
   return (
     <group ref={root}>
       {/* 접지 그림자 */}
       <mesh geometry={discGeo()} material={shadowMat} position={[0, 0.012, 0]} renderOrder={2} />
       {/* 소유자 색 링 (나는 흰 바깥 링이 하나 더) */}
-      <mesh ref={ring} geometry={ringGeo()} material={ringMat} position={[0, 0.018, 0]} renderOrder={3} />
-      {char.isMe ? <mesh geometry={ringGeo()} material={meRingMat} position={[0, 0.016, 0]} scale={1.22} renderOrder={3} /> : null}
+      <mesh ref={ring} geometry={isHuman ? ringGeo() : isRoom ? hexRingGeo() : diamondRingGeo()} material={ringMat} position={[0, 0.018, 0]} renderOrder={3} />
+      {char.isMe && isHuman ? <mesh geometry={ringGeo()} material={meRingMat} position={[0, 0.016, 0]} scale={1.22} renderOrder={3} /> : null}
+      {!isHuman ? <mesh ref={padRef} geometry={isRoom ? hexPadGeo() : diamondPadGeo()} material={padMat} position={[0, 0.014, 0]} renderOrder={2} /> : null}
+      {/* 소유자 연결선 (Personal Agent만) */}
+      {!isHuman && !isRoom ? <mesh ref={linkRef} geometry={linkGeo()} material={linkMat} visible={false} renderOrder={3} /> : null}
+      {/* 은은한 발광 (Agent) */}
+      {!isHuman ? <sprite ref={glowRef} material={glowMat} scale={[1.7, 1.7, 1]} position={[0, AGENT_H * 0.55, 0]} renderOrder={5} /> : null}
       {/* 방문 배지: 점선 링 */}
       <mesh ref={dash} position={[0, 0.02, 0]} rotation-x={-Math.PI / 2} renderOrder={3} material={dashMat}>
         <planeGeometry args={[1.05, 1.05]} />
       </mesh>
       <group ref={body}>
         {isHuman ? (
-          <mesh geometry={pawnGeometry()} material={pawnMat} castShadow />
+          <>
+            <mesh geometry={humanTorsoGeometry()} material={torsoMat} castShadow />
+            <mesh geometry={humanHeadGeometry()} material={headMat} castShadow />
+            <group ref={bill}>
+              <mesh geometry={faceGeo()} material={faceMat} renderOrder={6} />
+            </group>
+          </>
         ) : (
           <group ref={bill}>
             <mesh geometry={isRoom ? GHOST_GEO : EGG_GEO} material={bodyMat} renderOrder={6} />
@@ -596,11 +919,22 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
           </group>
         )}
       </group>
+      {/* Agent 종류 표식: Personal = 안테나 + 스파크, Room = 후광 + 스파크 */}
+      {!isHuman ? (
+        <group ref={sparkG} position={[0, MARK_Y, 0]}>
+          {!isRoom ? <mesh geometry={antennaGeo()} material={antennaMat} position={[0, 0, 0]} /> : null}
+          {isRoom ? <mesh ref={haloRef} geometry={haloGeo()} material={haloMat} position={[0, 0.1, 0]} /> : null}
+          <sprite name="spark" material={sparkMat} position={[0, isRoom ? 0.34 : 0.28, 0]} scale={[0.62, 0.62, 1]} renderOrder={10} />
+        </group>
+      ) : null}
       {/* 승인 대기 결정 */}
       <mesh ref={diamond} geometry={diamondGeo()} material={diamondMat} visible={false} renderOrder={9} />
-      {full ? <NameTag text={tagText} color={isRoom ? PALETTE.roomAgentLime : char.color} badge={badge} me={char.isMe} position={[0, tagY + (bubbleSpec ? 0 : 0), 0]} /> : null}
-      {full && bubbleSpec ? <Bubble key={bubbleKey.slice(0, 4)} spec={bubbleSpec} position={[0, tagY + 0.12, 0]} /> : null}
-      {!full && !isHuman ? <LightMarker activity={char.activity} color={char.color} y={AGENT_H + 0.25} /> : null}
+      <primitive object={leader} />
+      <group ref={labelG} position={[0, tagY, 0]}>
+        {tagsOn ? <NameTag text={tagText} color={accent} badge={badge} me={char.isMe} variant={isHuman ? 'human' : isRoom ? 'room' : 'agent'} scale={(isHuman || isRoom ? 1 : 0.88) / K} position={[0, 0, 0]} onMeasure={onMeasure} compact={compactTag} subtleBadge={away} onHover={isHuman ? undefined : setHover} /> : null}
+        {tagsOn && bubbleSpec ? <Bubble key={bubbleKey.slice(0, 4)} spec={bubbleSpec} width={2.5 / K} position={[0, 0.12 / K, 0]} /> : null}
+      </group>
+      {!full && !isHuman ? <LightMarker activity={char.activity} color={char.color} y={AGENT_H + 0.55 / K} /> : null}
       <Particles color={useMemo(() => new THREE.Color(isRoom ? PALETTE.roomAgentLime : char.color).lerp(new THREE.Color('#ffffff'), 0.25), [char.color, isRoom])} mode={pMode} from={pFrom} to={pTo} enabled={full && rt.quality !== 'low'} />
       <mesh ref={silhouette} visible={false} />
     </group>

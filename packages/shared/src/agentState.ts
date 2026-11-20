@@ -19,6 +19,7 @@ import type { RoomEvent } from './events';
  * | agent_departed                          | mode traveling, location null, target door, cue dissolve     |
  * | agent_arrived                           | mode visiting, location 호스트 Room, cue reassemble          |
  * | visit_takeout (이 Agent가 작성)         | cue hold_card                                                |
+ * | board_tool_created (이 Agent가 올림)    | cue hold_card + target card(toolId)                          |
  * | agent_returned (+ visit_report)         | handoverPending, cue present_cards, 원래 mode 복귀           |
  * | member_rejoined(missed>0)               | handoverPending, mode accompanied, cue flow_to_owner         |
  * | digest_viewed                           | handoverPending 해제, cue jump                               |
@@ -226,6 +227,13 @@ export function reduceAgentState(ref: AgentRef, prev: AgentVisualState, e: RoomE
           handoverPending: true,
           cue: cue('present_cards'),
         });
+      }
+      break;
+
+    case 'board_tool_created':
+      // 도구를 올려놓는 Agent는 카드를 들어 보이는 연출을 재사용한다. card 타깃은 3D에서 resolve되지 않아(null) 제자리 연출이 된다
+      if (e.actorId === ref.agentId && (e.actorKind === 'agent' || e.actorKind === 'room_agent') && s.mode !== 'traveling') {
+        set({ cue: cue('hold_card'), target: { kind: 'card', id: e.toolId } });
       }
       break;
 

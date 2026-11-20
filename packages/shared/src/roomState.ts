@@ -1,4 +1,5 @@
 import type { Capability } from './permissions';
+import { applyBoardToolOp, createBoardTool, type BoardTool } from './boardTools';
 import type {
   ActorKind,
   ApprovalKind,
@@ -109,6 +110,10 @@ export interface RoomState {
   board: Record<string, BoardCard>;
   /** 카드 생성 순서 */
   cardOrder: string[];
+  /** 보드 도구 (사다리·정산표·여행 계획) */
+  boardTools: Record<string, BoardTool>;
+  /** 도구 생성 순서 */
+  toolOrder: string[];
   visits: Record<string, VisitState>;
   approvals: Record<string, ApprovalState>;
   /** 지금 Room 안에 있는 사람 (방문자 포함) */
@@ -127,6 +132,8 @@ export function initialRoomState(roomId: string): RoomState {
     members: {},
     board: {},
     cardOrder: [],
+    boardTools: {},
+    toolOrder: [],
     visits: {},
     approvals: {},
     presentUserIds: [],
@@ -330,6 +337,34 @@ export function reduceRoomState(prev: RoomState, e: RoomEvent): RoomState {
     case 'agreement_formed':
       return patchCard(s, e.cardId, (c) => ({ ...c, agreed: true }));
 
+    case 'board_tool_created': {
+      if (s.boardTools[e.toolId]) return s;
+      const tool = createBoardTool({
+        toolId: e.toolId,
+        title: e.title,
+        ownerTag: e.ownerTag,
+        init: e.init,
+        seq: e.seq,
+        actorKind: e.actorKind,
+        actorId: e.actorId,
+      });
+      return { ...s, boardTools: { ...s.boardTools, [e.toolId]: tool }, toolOrder: [...s.toolOrder, e.toolId] };
+    }
+
+    case 'board_tool_updated': {
+      const tool = s.boardTools[e.toolId];
+      if (!tool || tool.removed) return s;
+      const next = applyBoardToolOp(tool, e.op, { seq: e.seq, actor: { kind: e.actorKind, id: e.actorId } });
+      if (next === tool) return s;
+      return { ...s, boardTools: { ...s.boardTools, [e.toolId]: next } };
+    }
+
+    case 'board_tool_removed': {
+      const tool = s.boardTools[e.toolId];
+      if (!tool || tool.removed) return s;
+      return { ...s, boardTools: { ...s.boardTools, [e.toolId]: { ...tool, removed: true, updatedSeq: e.seq } } };
+    }
+
     case 'approval_requested': {
       const approval: ApprovalState = {
         approvalId: e.approvalId,
@@ -409,6 +444,10 @@ export function pendingApprovalsFor(state: RoomState, userId: string): ApprovalS
 
 export function visibleCards(state: RoomState): BoardCard[] {
   return state.cardOrder.map((id) => state.board[id]!).filter((c) => !c.deleted);
+}
+
+export function visibleBoardTools(state: RoomState): BoardTool[] {
+  return state.toolOrder.map((id) => state.boardTools[id]!).filter((t) => !t.removed);
 }
 
 /* ------------------------------------------------------------------ */

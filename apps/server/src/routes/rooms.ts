@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodType } from 'zod';
 import {
+  BoardToolOpRequestSchema,
   CommentRequestSchema,
+  CreateBoardToolRequestSchema,
   CreateCardRequestSchema,
   LeaveRequestSchema,
   PatchCardRequestSchema,
@@ -17,7 +19,7 @@ import type { AppContext } from '../context';
 import { dispatch, type Action, type DispatchResult } from '../domain/actions';
 import { enterRoom, leaveRoom, rejoinRoom, viewDigest } from '../domain/presence';
 import { buildSnapshot, buildWorld } from '../domain/rooms';
-import { badRequest } from '../errors';
+import { badRequest, forbidden } from '../errors';
 
 function parse<T>(schema: ZodType<T>, body: unknown): T {
   const r = schema.safeParse(body);
@@ -40,6 +42,11 @@ export function roomRoutes(app: FastifyInstance, ctx: AppContext): void {
     const user = requireUser(req);
     const { id } = req.params as { id: string };
     const body = parse(SendMessageRequestSchema, req.body);
+    // A2A 전용 필드는 사람이 보낼 수 없다(스키마가 모르는 키는 버리므로 원본 본문을 직접 확인한다)
+    const raw = req.body as Record<string, unknown> | null;
+    if (raw && typeof raw === 'object' && (raw.recipients !== undefined || raw.replyTo !== undefined)) {
+      throw forbidden('agent_only_field', 'recipients·replyTo는 Agent만 쓸 수 있습니다');
+    }
     const r = write(user.id, { type: 'send_message', roomId: id, text: body.text, to: body.to, clientId: body.clientId });
     const out = appended(r);
     ctx.hub.ack(user.id, body.clientId, out.seq);
@@ -72,6 +79,28 @@ export function roomRoutes(app: FastifyInstance, ctx: AppContext): void {
     const { id } = req.params as { id: string };
     const body = parse(PointRequestSchema, req.body);
     return appended(write(user.id, { type: 'point_card', roomId: id, cardId: body.cardId, agentId: body.agentId }));
+  });
+
+  /* ----- 보드 도구 (domain/boardTools.ts) ----- */
+
+  app.post('/api/rooms/:id/tools', async (req) => {
+    const user = requireUser(req);
+    const { id } = req.params as { id: string };
+    const body = parse(CreateBoardToolRequestSchema, req.body);
+    return appended(write(user.id, { type: 'create_board_tool', roomId: id, title: body.title, init: body.init }));
+  });
+
+  app.post('/api/rooms/:id/tools/:toolId/ops', async (req) => {
+    const user = requireUser(req);
+    const { id, toolId } = req.params as { id: string; toolId: string };
+    const body = parse(BoardToolOpRequestSchema, req.body);
+    return appended(write(user.id, { type: 'update_board_tool', roomId: id, toolId, op: body.op }));
+  });
+
+  app.delete('/api/rooms/:id/tools/:toolId', async (req) => {
+    const user = requireUser(req);
+    const { id, toolId } = req.params as { id: string; toolId: string };
+    return appended(write(user.id, { type: 'remove_board_tool', roomId: id, toolId }));
   });
 
   app.post('/api/rooms/:id/seen', async (req) => {
