@@ -66,7 +66,7 @@ export function InteractionStrip({
         <span className="font-mono text-label">{CONNECTOR[s.channel]}</span>
         <span className="sr-only">{INTERACTION_LABEL[s.channel]}</span>
         {names(s.toIds) && <span className="font-semibold text-fg">{names(s.toIds)}</span>}
-        {note && <span className="text-label">({note})</span>}
+        {note && <span className="hidden text-label min-[1500px]:inline">({note})</span>}
       </button>,
     );
     prevTo = s.toIds;
@@ -79,7 +79,9 @@ export function InteractionStrip({
       className="tg-flow tg-solid pointer-events-auto max-w-full gap-3 overflow-hidden text-aux"
     >
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden whitespace-nowrap">{nodes}</div>
-      <InteractionLegend />
+      <span className="hidden shrink-0 min-[1700px]:block">
+        <InteractionLegend />
+      </span>
     </div>
   );
 }

@@ -32,6 +32,8 @@ export interface FxSceneProps {
   characters?: readonly CharacterInput[];
   viewerColor: string;
   reducedMotion: boolean;
+  /** Room 안(포커스)에서는 캡슐 위 결정체가 화면 위로 삐져나오므로 그리지 않는다 */
+  focusRoomId?: string | null;
 }
 
 export function FxScene(props: FxSceneProps) {
@@ -386,8 +388,8 @@ export function FxScene(props: FxSceneProps) {
   }, []);
 
   const attention = useMemo(
-    () => props.layout.order.filter((id) => props.models[id]?.ambience === 'attention'),
-    [props.layout, props.models],
+    () => props.layout.order.filter((id) => props.models[id]?.ambience === 'attention' && id !== props.focusRoomId),
+    [props.layout, props.models, props.focusRoomId],
   );
 
   return (

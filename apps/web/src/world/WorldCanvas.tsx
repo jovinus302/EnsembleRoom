@@ -286,7 +286,7 @@ export function WorldCanvas(props: WorldCanvasProps) {
               onCursor={props.onCursor}
             />
           ) : null}
-          <FxScene layout={layout} models={models} curves={curves} characters={characters?.characters} viewerColor={props.users[viewerId]?.color ?? '#ff8f7a'} reducedMotion={reducedMotion} />
+          <FxScene layout={layout} models={models} curves={curves} characters={characters?.characters} viewerColor={props.users[viewerId]?.color ?? '#ff8f7a'} reducedMotion={reducedMotion} focusRoomId={focusRoomId} />
         </GlassBufferProvider>
         </CharacterDirector>
         {cfg.postfx ? <Postfx quality={cfg} focused={!!focusRoomId} focusUv={focusUv} /> : null}
