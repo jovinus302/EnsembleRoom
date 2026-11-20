@@ -18,15 +18,18 @@ export function ActivityFeed({ model, leftReason }: { model: RoomModel; leftReas
   const disabledReason = model.replaying ? '과거를 재생 중이에요 · 지금으로 돌아가면 쓸 수 있어요' : leftReason;
   return (
     <section aria-label={`${title} 활동`} data-testid="activity-feed" className="flex min-h-0 flex-1 flex-col">
-      <h2 className="border-b border-line px-5 py-2.5 text-sm font-semibold">활동</h2>
+      <h2 className="tg-title border-b border-line px-1 pb-3">활동</h2>
       <div data-room-kind={model.room.kind} className="flex min-h-0 flex-1 flex-col">
         <MessageList roomId={model.roomId} meId={model.meId} users={model.users} replaySeq={model.replaySeq} />
-        <Composer
-          placeholder={`${title}에 메시지 보내기`}
-          targets={targets}
-          disabledReason={disabledReason}
-          onSend={(t, to) => void sendMessage(model.roomId, t, undefined, to)}
-        />
+        {/* 패널 p-4 안이라 Composer 자체 여백(m-3)을 상쇄한다 */}
+        <div className="-mx-3 -mb-3">
+          <Composer
+            placeholder={`${title}에 메시지 보내기`}
+            targets={targets}
+            disabledReason={disabledReason}
+            onSend={(t, to) => void sendMessage(model.roomId, t, undefined, to)}
+          />
+        </div>
       </div>
     </section>
   );

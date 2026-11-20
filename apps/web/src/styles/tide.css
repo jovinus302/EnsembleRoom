@@ -1321,3 +1321,55 @@ html[data-quality="off"] [data-world] {
 .tg-appr .hd .chk {
   position: static;
 }
+
+/* Step 9a: Room panels */
+/* 기억 한 줄 (목업 .memrow) */
+.tg-memrow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-card);
+  background: var(--concave);
+}
+/* Rejoin 요약 리스트 (목업 .dg .mrow .ic) */
+.tg-dg {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tg-dg li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-aux);
+}
+.tg-dg li:last-child {
+  border: 0;
+}
+.tg-dg .ic {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--fg) 12%, transparent);
+  color: var(--muted);
+}
+.tg-dg .ic.y {
+  background: color-mix(in srgb, var(--primary) 24%, transparent);
+  color: var(--primary);
+}
+.tg-dg .ic.n {
+  background: var(--amber-tonal);
+  color: var(--amber-ink);
+}
+.tg-dg .ic.x {
+  background: color-mix(in srgb, var(--destructive) 18%, transparent);
+  color: var(--destructive-ink);
+}

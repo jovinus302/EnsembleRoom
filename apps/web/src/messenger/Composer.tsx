@@ -55,7 +55,7 @@ export function Composer({
             id="composer-to"
             value={toValid}
             onChange={(e) => setTo(e.target.value)}
-            className={`${btn('soft')} max-w-[150px] shrink-0 text-aux`}
+            className={`${btn('soft')} max-w-[130px] shrink-0 text-aux`}
           >
             <option value="">모두에게</option>
             {targets.map((t) => (
@@ -66,27 +66,30 @@ export function Composer({
           </select>
         </>
       )}
-      <label htmlFor="composer-input" className="sr-only">
-        메시지 입력
-      </label>
-      <textarea
-        id="composer-input"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={onKeyDown}
-        rows={1}
-        placeholder={disabledReason ?? placeholder}
-        disabled={disabled}
-        className="max-h-32 min-h-[32px] min-w-[160px] flex-1 resize-none bg-transparent px-1 py-1.5 text-body placeholder:text-muted"
-      />
-      <button
-        type="submit"
-        disabled={disabled || !text.trim()}
-        aria-label="보내기"
-        className={`${btn('primary', { round: true })} shrink-0`}
-      >
-        <span aria-hidden="true">↑</span>
-      </button>
+      {/* 좁은 폭에서 줄바꿈되더라도 입력창과 전송 버튼은 같은 줄에 머문다 */}
+      <div className="flex min-w-0 flex-1 basis-[200px] items-center gap-2">
+        <label htmlFor="composer-input" className="sr-only">
+          메시지 입력
+        </label>
+        <textarea
+          id="composer-input"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={onKeyDown}
+          rows={1}
+          placeholder={disabledReason ?? placeholder}
+          disabled={disabled}
+          className="max-h-32 min-h-[32px] min-w-[120px] flex-1 resize-none bg-transparent px-1 py-1.5 text-body placeholder:text-muted"
+        />
+        <button
+          type="submit"
+          disabled={disabled || !text.trim()}
+          aria-label="보내기"
+          className={`${btn('primary', { round: true })} shrink-0`}
+        >
+          <span aria-hidden="true">↑</span>
+        </button>
+      </div>
     </form>
   );
 }
