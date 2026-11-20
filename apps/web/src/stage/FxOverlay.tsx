@@ -146,17 +146,18 @@ export function FxOverlay() {
       {approvalReq ? (
         <>
           <div key={`edge${approvalReq.id}`} className="fx-edge-pulse absolute inset-0" style={{ boxShadow: 'inset 0 0 120px 10px rgba(255,138,61,0.55)' }} />
-          <div key={`ap${approvalReq.id}`} data-testid="fx-approval-toast" className="fx-pop absolute left-1/2 top-16 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#ff8a3d] bg-[#fff1e0]/95 py-1 pl-1 pr-4 text-sm text-[#6b3300] shadow-[0_6px_24px_rgba(255,138,61,0.45)]">
+          <div key={`ap${approvalReq.id}`} data-testid="fx-approval-toast" className="fx-pop tg-solid absolute left-1/2 top-16 flex -translate-x-1/2 items-center gap-2 rounded-full py-1 pl-1 pr-4 text-aux"
+            style={{ borderColor: 'var(--amber)', boxShadow: 'var(--solid-shadow), 0 0 0 3px color-mix(in srgb, var(--amber) 22%, transparent)' }}>
             <LottieMoment name="lime-notify" size={64} durationMs={2300} />
             <span>
               승인 요청{approvalReq.ev.involvesMe ? ' · 내 결정이 필요해요' : ''}
-              {approvalReq.ev.text ? <span className="ml-2 text-[#a34a00]">{approvalReq.ev.text.slice(0, 28)}</span> : null}
+              {approvalReq.ev.text ? <span className="ml-2" style={{ color: 'var(--amber-ink)' }}>{approvalReq.ev.text.slice(0, 28)}</span> : null}
             </span>
           </div>
         </>
       ) : null}
       {approvalRes ? (
-        <div key={`res${approvalRes.id}`} data-testid="fx-approval-result" className="fx-pop absolute left-1/2 top-16 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#e0b030] bg-[#fff6d6]/95 py-1 pl-1 pr-4 text-sm text-[#5e4500] shadow-[var(--shadow-card)]">
+        <div key={`res${approvalRes.id}`} data-testid="fx-approval-result" className="fx-pop tg-solid absolute left-1/2 top-16 flex -translate-x-1/2 items-center gap-2 rounded-full py-1 pl-1 pr-4 text-aux">
           {approvalRes.ev.outcome === 'approved' ? <LottieMoment name="lime-jump-yaw" size={64} durationMs={1800} /> : <span className="w-3" />}
           <span>{OUTCOME_LABEL[approvalRes.ev.outcome ?? 'approved'] ?? '처리됐어요'}</span>
         </div>
@@ -167,7 +168,7 @@ export function FxOverlay() {
           <div className="fx-agree-bloom absolute inset-0" style={{ background: `radial-gradient(circle at 50% 46%, ${agreeColor}aa 0%, ${agreeColor}33 28%, transparent 60%)` }} />
           <div className="fx-pop relative flex flex-col items-center">
             <LottieMoment name="duo-highfive" size={240} durationMs={2000} />
-            <div className="-mt-6 rounded-full px-4 py-1 text-base font-semibold text-[var(--on-accent)]" style={{ background: `${agreeColor}dd`, boxShadow: `0 0 36px ${agreeColor}` }}>
+            <div className="-mt-6 rounded-full px-4 py-1 text-body font-semibold text-[var(--on-accent)]" style={{ background: `${agreeColor}dd`, boxShadow: `0 0 36px ${agreeColor}` }}>
               우리가 합의했어요
             </div>
           </div>
@@ -181,8 +182,8 @@ export function FxOverlay() {
             <div
               key={m.id}
               data-testid={`fx-toast-${m.kind}`}
-              className="fx-pop rounded-full border border-line bg-glass px-4 py-1.5 text-sm text-fg shadow-[var(--shadow-card)] backdrop-blur"
-              style={m.ev.color ? { boxShadow: `0 0 18px ${m.ev.color}88`, borderColor: `${m.ev.color}aa` } : undefined}
+              className="fx-pop tg-solid rounded-full px-4 py-1.5 text-aux"
+              style={m.ev.color ? { boxShadow: `var(--solid-shadow), 0 0 18px ${m.ev.color}88`, borderColor: `${m.ev.color}aa` } : undefined}
             >
               {text}
             </div>
@@ -201,7 +202,10 @@ export function FxOverlay() {
   );
 }
 
-/** 나·상대·우리 범례: 월드의 색 규칙을 한눈에 (8.3). 3D 창 왼쪽 아래 */
+const OCTA = 'polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%)';
+const HEXA = 'polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%)';
+
+/** 나·상대·우리 범례: 월드의 색 규칙을 한눈에 (8.3). 3D 창 왼쪽 아래. 접히는 pill + 위로 펼쳐지는 설명 카드 */
 export function WorldLegend() {
   const meId = useSession((s) => s.user?.id);
   const users = useWorld((s) => s.users);
@@ -209,62 +213,97 @@ export function WorldLegend() {
   const slotRect = useRect(useStage((s) => s.slotEl));
   const webgl = useStage((s) => s.webgl);
   const quality = useStage((s) => s.quality);
+  const [openPref, setOpenPref] = useState<boolean | null>(null);
   if (!meId || !users[meId] || webgl !== 'ok' || quality === 'off') return null;
   const me = users[meId]!.color;
   const others = Object.values(users).filter((u) => u.id !== meId);
   // 내가 속한 Our 중 첫 번째의 혼합색(없으면 나+상대 혼합)
   const ours = Object.values(rooms).find((r) => r.kind === 'our' && r.memberIds.includes(meId));
   const oursColor = ours ? ourColor(ours.memberIds.map((m) => users[m]?.color).filter((c): c is string => !!c)) : ourColor([me, others[0]?.color ?? me]);
-  // 오른쪽 아래 품질 토글(시점 초기화 포함, 약 260px)을 덮지 않도록 폭을 제한하고 넘치면 줄바꿈한다
+  // 설명 카드는 기본으로 접어 장면을 가리지 않는다. 좁은 3D 창(품질 토글과 한 줄을 나눈다)에서는 pill의 글자도 줄인다
+  const wide = !slotRect || slotRect.width >= 600;
+  const narrow = !!slotRect && slotRect.width < 480;
+  const open = openPref ?? false;
   const pos: React.CSSProperties = slotRect
-    ? { left: slotRect.left + 8, top: slotRect.top + slotRect.height - 8, transform: 'translateY(-100%)', maxWidth: Math.max(240, slotRect.width - 16 - 270) }
+    ? { left: slotRect.left + 8, top: slotRect.top + slotRect.height - 8, transform: 'translateY(-100%)' }
     : { left: 8, bottom: 40 };
   const dot = (c: string, extra?: React.CSSProperties) => <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: c, boxShadow: `0 0 8px ${c}`, ...extra }} />;
+  const mix = `linear-gradient(135deg, ${me}, ${others[0]?.color ?? me})`;
   return (
-    <div
-      role="group"
-      aria-label="색 범례"
-      data-testid="world-legend"
-      className="fixed z-30 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-line bg-panel px-3 py-1 text-[11px] text-muted backdrop-blur"
-      style={pos}
-    >
-      <span className="flex items-center gap-1.5">
-        {dot(me)} <span className="text-fg">나</span>
-      </span>
-      <span className="flex items-center gap-1.5">
-        {others.slice(0, 3).map((u) => (
-          <span key={u.id}>{dot(u.color)}</span>
-        ))}
-        <span className="text-fg">상대</span>
-      </span>
-      <span className="flex items-center gap-1.5">
-        {dot(`linear-gradient(135deg, ${me}, ${others[0]?.color ?? me})`, { background: `linear-gradient(135deg, ${me}, ${others[0]?.color ?? me})`, boxShadow: `0 0 8px ${oursColor}` })}
-        <span className="text-fg">우리</span>
-        <span className="opacity-90">(섞인 색)</span>
-      </span>
-      <span className="flex items-center gap-1.5" data-testid="world-legend-kind">
-        <span aria-hidden="true" data-testid="legend-human-portrait" className="inline-flex h-3.5 w-3.5 overflow-hidden rounded-full border border-fg">
-          <svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#9fb4d8" /><path d="M14 100 C16 72 34 66 50 66 C66 66 84 72 86 100Z" fill="#2f4b7c" /><rect x="43" y="56" width="14" height="14" fill="#efc29b" /><circle cx="50" cy="42" r="19" fill="#efc29b" /><path d="M30 42 C28 20 44 14 54 16 C68 18 72 30 70 42 C66 32 56 28 46 30 C38 32 33 36 30 42Z" fill="#3a2a22" /></svg>
-        </span>
-        <span className="text-fg">사람</span>
-        <span className="text-fg opacity-60">/</span>
-        <span className="inline-flex h-3.5 w-3.5 items-center justify-center bg-fg text-[9px] leading-none text-bg" style={{ clipPath: 'polygon(25% 0, 75% 0, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0 75%, 0 25%)' }}>✦</span>
-        <span className="text-fg">Agent</span>
-        <span className="opacity-90">(둥근 이름표 / 각진 이름표)</span>
-      </span>
-      <span className="flex items-center gap-1.5" data-testid="world-legend-interaction">
-        {(['a2a', 'a2h'] as const).map((k, i) => (
-          <span key={k} className="flex items-center gap-1.5" data-testid={`world-legend-${k}`}>
-            {i > 0 ? <span className="text-fg opacity-60">·</span> : null}
-            <span
-              className="inline-block w-5"
-              style={{ borderTop: `2px ${k === 'a2a' ? 'dashed' : 'solid'} ${INTERACTION_COLORS[k]}`, filter: `drop-shadow(0 0 3px ${INTERACTION_COLORS[k]})` }}
-            />
-            <span className="font-semibold" style={{ color: ink(INTERACTION_COLORS[k]) }}>{INTERACTION_LABEL[k]}</span>
-            <span className="opacity-90">{INTERACTION_HINT[k]}</span>
+    <div role="group" aria-label="색 범례" data-testid="world-legend" className="fixed z-30" style={pos}>
+      {open && (
+        <div
+          className="tg-solid tg-aux pointer-events-auto absolute bottom-full left-0 mb-2 flex flex-col gap-2 px-3 py-2.5"
+          style={{ width: 'max-content', maxWidth: slotRect ? Math.max(220, slotRect.width - 16) : 360, borderRadius: 'var(--r-card)' }}
+        >
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="flex items-center gap-1.5">
+              {dot(me)} <span className="text-fg">나</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              {others.slice(0, 3).map((u) => (
+                <span key={u.id}>{dot(u.color)}</span>
+              ))}
+              <span className="text-fg">상대</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              {dot(mix, { background: mix, boxShadow: `0 0 8px ${oursColor}` })}
+              <span className="text-fg">우리</span>
+              <span>(섞인 색)</span>
+            </span>
           </span>
-        ))}
-      </span>
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1" data-testid="world-legend-kind">
+            <span aria-hidden="true" data-testid="legend-human-portrait" className="inline-flex h-3.5 w-3.5 overflow-hidden rounded-full border border-fg">
+              <svg viewBox="0 0 100 100" width="100%" height="100%"><rect width="100" height="100" fill="#9fb4d8" /><path d="M14 100 C16 72 34 66 50 66 C66 66 84 72 86 100Z" fill="#2f4b7c" /><rect x="43" y="56" width="14" height="14" fill="#efc29b" /><circle cx="50" cy="42" r="19" fill="#efc29b" /><path d="M30 42 C28 20 44 14 54 16 C68 18 72 30 70 42 C66 32 56 28 46 30 C38 32 33 36 30 42Z" fill="#3a2a22" /></svg>
+            </span>
+            <span className="text-fg">사람</span>
+            <span>둥근 이름표</span>
+            <span aria-hidden="true" className="inline-block h-3.5 w-3.5 bg-fg" style={{ clipPath: OCTA }} />
+            <span className="text-fg">Agent</span>
+            <span>각진 이름표</span>
+          </span>
+          <span className="flex flex-wrap items-center gap-x-4 gap-y-1" data-testid="world-legend-interaction">
+            {(['a2a', 'a2h'] as const).map((k) => (
+              <span key={k} className="flex items-center gap-1.5" data-testid={`world-legend-${k}`}>
+                <span
+                  aria-hidden="true"
+                  className="inline-block w-5"
+                  style={{ borderTop: `2px ${k === 'a2a' ? 'dashed' : 'solid'} ${INTERACTION_COLORS[k]}` }}
+                />
+                <span className="font-semibold" style={{ color: ink(INTERACTION_COLORS[k]) }}>{INTERACTION_LABEL[k]}</span>
+                <span>{INTERACTION_HINT[k]}</span>
+              </span>
+            ))}
+          </span>
+        </div>
+      )}
+      <div className="tg-legend tg-solid tg-mono pointer-events-auto" style={{ gap: wide ? 12 : 8, padding: narrow ? '0 4px' : '0 6px 0 12px' }}>
+        {!narrow && (
+          <>
+            <span style={{ '--c': 'var(--fg)' } as React.CSSProperties}>
+              <i style={{ borderRadius: '50%' }} />
+              {wide && '사람'}
+            </span>
+            <span style={{ '--c': 'var(--agent)' } as React.CSSProperties}>
+              <i style={{ clipPath: OCTA }} />
+              {wide && 'Agent'}
+            </span>
+            <span style={{ '--c': 'var(--room)' } as React.CSSProperties}>
+              <i style={{ clipPath: HEXA }} />
+              {wide && 'Room'}
+            </span>
+          </>
+        )}
+        <button
+          type="button"
+          data-testid="world-legend-toggle"
+          aria-expanded={open}
+          onClick={() => setOpenPref(!open)}
+          className="tg-over-legend-btn"
+        >
+          범례 {open ? '▾' : '▴'}
+        </button>
+      </div>
     </div>
   );
 }

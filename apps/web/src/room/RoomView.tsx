@@ -166,7 +166,7 @@ export function RoomView({ roomId }: { roomId: string }) {
       </header>
 
       {/* 가운데 위쪽: 3D 위에 떠 있는 흐름 pill · 안내 */}
-      <div className="pointer-events-none absolute left-[352px] right-[432px] top-24 z-10 flex flex-col items-center gap-2">
+      <div className="pointer-events-none absolute left-[528px] right-[432px] top-24 z-10 flex flex-col items-center gap-2">
         <InteractionStrip events={model.events} agentIds={agentIds} nameOf={nameOf} />
         {me?.digestPending && !left && (
           <div role="status" data-testid="digest-banner" className="tg-notice tg-float amber pointer-events-auto !h-auto min-h-7 max-w-full py-1">

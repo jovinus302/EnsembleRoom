@@ -1462,3 +1462,46 @@ html[data-quality="off"] [data-world] {
     transform: none;
   }
 }
+
+/* Step 13: Over-3D chrome */
+@layer components {
+  /* 품질 토글: 시점 초기화 버튼과 좁은 폭용 여백 */
+  .tg-over-seg {
+    gap: 1px;
+  }
+  .tg-over-seg button {
+    padding: 0 9px;
+  }
+  .tg-over-seg .tg-over-reset {
+    margin-right: 2px;
+  }
+  .tg-over-seg .tg-over-reset:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .tg-over-seg .tg-over-reset:not(:disabled) {
+    background: color-mix(in srgb, var(--fg) 14%, transparent);
+    color: var(--fg);
+  }
+  .tg-over-seg button:not([aria-pressed="true"]):not(:disabled):hover {
+    color: var(--fg);
+  }
+  /* 범례 pill 안의 펼침 버튼 */
+  .tg-over-legend-btn {
+    height: 24px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--fg) 10%, transparent);
+    color: var(--fg);
+    font: inherit;
+    cursor: pointer;
+  }
+  .tg-over-legend-btn:hover {
+    background: color-mix(in srgb, var(--fg) 16%, transparent);
+  }
+  /* 호버 툴팁이 화면 위 가장자리에서 아래로 뒤집힐 때는 꼬리를 숨긴다 */
+  .tg-tip.below::after {
+    display: none;
+  }
+}

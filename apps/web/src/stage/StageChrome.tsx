@@ -14,6 +14,8 @@ export function QualityToggle() {
   const webgl = useStage((s) => s.webgl);
   const orbitDirty = useOrbit((s) => s.dirty);
   const slotRect = useRect(useStage((s) => s.slotEl));
+  // 아주 좁은 3D 창(범례 pill과 한 줄을 나눈다)에서는 "3D" 표시와 버튼 글자를 줄인다
+  const narrow = !!slotRect && slotRect.width < 480;
   // 3D 창(슬롯)의 오른쪽 아래에 붙는다. 슬롯이 없으면 화면 왼쪽 아래
   const pos: React.CSSProperties = slotRect
     ? { left: slotRect.left + slotRect.width - 8, top: slotRect.top + slotRect.height - 8, transform: 'translate(-100%, -100%)' }
@@ -23,7 +25,7 @@ export function QualityToggle() {
       role="group"
       aria-label="3D 품질"
       data-testid="quality-toggle"
-      className="fixed z-30 flex items-center gap-0.5 rounded-full border border-line bg-panel px-1.5 py-1 text-[10px] text-muted backdrop-blur"
+      className="tg-seg tg-solid tg-over-seg pointer-events-auto fixed z-30 items-center"
       style={pos}
     >
       {webgl === 'ok' && quality !== 'off' ? (
@@ -32,13 +34,14 @@ export function QualityToggle() {
           data-testid="view-reset"
           disabled={!orbitDirty}
           title="드래그로 각도, 휠로 줌. 더블클릭하면 초기화돼요"
+          aria-label="시점 초기화"
           onClick={() => useOrbit.getState().reset()}
-          className={`rounded-full px-1.5 py-0.5 ${orbitDirty ? 'bg-[var(--focus)] text-[var(--accent-fg)]' : 'opacity-40'}`}
+          className="tg-over-reset"
         >
-          시점 초기화
+          {narrow ? '↺' : '시점 초기화'}
         </button>
       ) : null}
-      <span className="px-1">{webgl === 'ok' ? '3D' : webgl === 'error' ? '3D 오류' : 'WebGL2 없음'}</span>
+      {!(narrow && webgl === 'ok') && <span className="tg-mono px-1.5">{webgl === 'ok' ? '3D' : webgl === 'error' ? '3D 오류' : 'WebGL2 없음'}</span>}
       {QUALITY_SETTINGS.map((q) => (
         <button
           key={q}
@@ -46,7 +49,6 @@ export function QualityToggle() {
           data-testid={`quality-${q}`}
           aria-pressed={quality === q}
           onClick={() => useStage.getState().setQuality(q)}
-          className={`rounded-full px-1.5 py-0.5 ${quality === q ? 'bg-accent text-[var(--on-accent-strong)]' : 'hover:text-fg'}`}
         >
           {LABEL[q]}
         </button>
@@ -70,15 +72,17 @@ export function HoverTip() {
   }, [hoverId]);
   if (!room || !meId) return null;
   const pending = room.preview.detail?.pendingApprovals ?? 0;
+  // 화면 위쪽 가장자리에서는 툴팁을 포인터 아래로 뒤집는다(꼬리는 숨김)
+  const below = pos.y < 90;
   return (
     <div
       role="tooltip"
       data-testid="world-hover-tip"
-      className="pointer-events-none fixed z-30 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs backdrop-blur"
-      style={{ left: pos.x + 14, top: pos.y + 14 }}
+      className={`tg-tip tg-solid pointer-events-none fixed z-30${below ? ' below' : ''}`}
+      style={below ? { left: pos.x - 25, top: pos.y + 18 } : { left: pos.x - 25, top: pos.y - 14, transform: 'translateY(-100%)' }}
     >
       <div className="font-semibold">{titleOf(room, meId, users)}</div>
-      <div className="text-muted">
+      <div className="tg-aux">
         조명 {AMBIENCE_LABEL[room.preview.ambience] ?? room.preview.ambience} · {room.preview.glass === 'clear' ? '유리 투명' : room.preview.glass === 'agent' ? '유리 Agent 시야' : '유리 서리'}
         {pending > 0 ? ` · 승인 대기 ${pending}` : ''}
         {room.preview.detail ? ` · 놓친 변화 ${room.preview.detail.missedChanges}` : ''}
