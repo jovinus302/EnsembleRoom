@@ -25,12 +25,12 @@ export function MandateBlock({
     <div
       data-testid="mandate-block"
       data-viewer-owner={viewerIsOwner ? 'true' : 'false'}
-      className={`surface-card rounded-lg border border-dashed ${compact ? 'mt-1.5 px-2.5 py-1.5' : 'mt-2 px-3 py-2'}`}
+      className={`rounded-lg border border-dashed ${compact ? 'mt-1.5 px-2.5 py-1.5' : 'mt-2 px-3 py-2'}`}
       style={{ borderColor: color, backgroundColor: tint(color, '--tint-mandate') }}
     >
       <div className="flex items-center gap-1.5">
         <span
-          className="inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold leading-4 text-[var(--on-accent)]"
+          className="inline-flex items-center gap-1 rounded-full px-1.5 py-px text-label font-semibold leading-4 text-[var(--on-accent)]"
           style={{ background: color }}
         >
           <svg aria-hidden="true" width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -39,15 +39,15 @@ export function MandateBlock({
           </svg>
           위임 범위
         </span>
-        <span className="text-[11px] text-muted">
+        <span className="text-label text-muted">
           {viewerIsOwner ? '내가 맡긴 범위예요' : `${ownerName}님이 Agent에게 맡긴 범위예요`}
         </span>
       </div>
-      <p className={`mt-1 border-l-2 pl-2 ${compact ? 'text-xs' : 'text-sm'}`} style={{ borderColor: color }} data-testid="mandate-text-display">
+      <p className={`mt-1 border-l-2 pl-2 ${compact ? 'text-aux' : 'text-body'}`} style={{ borderColor: color }} data-testid="mandate-text-display">
         {mandate.text}
       </p>
       {mandate.allowedActions.length > 0 && (
-        <p className="mt-1 flex flex-wrap gap-1 text-[10px] text-muted">
+        <p className="mt-1 flex flex-wrap gap-1 text-label text-muted">
           {mandate.allowedActions.map((c) => (
             <span key={c} className="rounded border border-dashed px-1 leading-4" style={{ borderColor: `${color}99` }}>
               {CAPABILITY_LABEL[c]}

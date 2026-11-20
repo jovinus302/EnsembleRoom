@@ -185,21 +185,7 @@ h3 {
   animation-delay: 0.3s;
 }
 
-/* 승인 카드(L1): 앰버 글로우 (목업 .appr.pending + .live) */
-.approval-pending {
-  border-color: color-mix(in srgb, var(--amber) 30%, transparent);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--amber) 14%, transparent),
-    0 4px 24px color-mix(in srgb, var(--amber) 24%, transparent);
-  animation:
-    tg-panel-in var(--dur-base) var(--ease-out) both,
-    tg-glow 2.4s var(--ease-standard) var(--dur-base) infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .approval-pending {
-    animation: none;
-  }
   .anim-in,
   .anim-card,
   .live-bubble,

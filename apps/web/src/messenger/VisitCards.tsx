@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { VISITOR_GRANTABLE, type Capability, type RoomEvent, type UserDto, type WorldRoom } from '@ensemble/shared';
 import { api, ApiError } from '../api/client';
 import { MandateBlock } from './MandateBlock';
-import { APPROVAL_ORANGE, CAPABILITY_LABEL, END_REASON_LABEL, type VisitState } from './visits';
-import { APPROVAL_INK, ink } from '../theme';
+import { CAPABILITY_LABEL, END_REASON_LABEL, type VisitState } from './visits';
+import { btn, cvar } from '../ui/tg';
 
 type VisitEvent = Extract<RoomEvent, { type: 'visit_requested' | 'visit_accepted' | 'visit_declined' | 'visit_ended' }>;
 export const isVisitEvent = (e: RoomEvent): e is VisitEvent =>
@@ -41,7 +41,7 @@ function AcceptForm({ visitId }: { visitId: string }) {
   const toggle = (c: Capability) => setPerms((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
   return (
     <div className="mt-3 flex flex-col gap-2">
-      <fieldset className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+      <fieldset className="flex flex-wrap items-center gap-x-3 gap-y-1 text-aux">
         <legend className="mb-1 text-muted">허용할 권한</legend>
         {VISITOR_GRANTABLE.map((c) => (
           <label key={c} className="flex items-center gap-1">
@@ -55,8 +55,7 @@ function AcceptForm({ visitId }: { visitId: string }) {
           type="button"
           disabled={busy}
           onClick={() => void run(() => api.acceptVisit(visitId, { permissions: perms }))}
-          className="rounded-md px-3 py-1 text-xs font-semibold text-[var(--on-accent)] disabled:opacity-50"
-          style={{ background: APPROVAL_ORANGE }}
+          className={btn('primary')}
         >
           수락
         </button>
@@ -64,13 +63,13 @@ function AcceptForm({ visitId }: { visitId: string }) {
           type="button"
           disabled={busy}
           onClick={() => void run(() => api.declineVisit(visitId))}
-          className="rounded-md border border-line px-3 py-1 text-xs hover:bg-raised disabled:opacity-50"
+          className={btn('dghost')}
         >
           거절
         </button>
       </div>
       {error && (
-        <p role="alert" className="text-xs text-danger">
+        <p role="alert" className="text-aux text-danger">
           {error}
         </p>
       )}
@@ -86,12 +85,12 @@ function EndButton({ visitId }: { visitId: string }) {
         type="button"
         disabled={busy}
         onClick={() => void run(() => api.endVisit(visitId))}
-        className="rounded-md border border-line px-3 py-1 text-xs hover:bg-raised disabled:opacity-50"
+        className={btn('soft')}
       >
         방문 종료
       </button>
       {error && (
-        <p role="alert" className="mt-1 text-xs text-danger">
+        <p role="alert" className="mt-1 text-aux text-danger">
           {error}
         </p>
       )}
@@ -116,18 +115,18 @@ export function VisitCard({
   if (!state) return null;
   const visitor = users[state.visitorUserId];
   const visitorName = visitor?.name ?? '알 수 없음';
-  const color = visitor?.color ?? '#a0aec4';
+  const color = visitor?.color ?? 'var(--muted)';
   const who = state.visitorKind === 'agent' ? `${visitorName}의 Agent` : visitorName;
   const host = amHost(room, meId, state);
   const iAmVisitor = state.visitorUserId === meId;
 
   let title: string;
-  let accent = color;
+  const requested = event.type === 'visit_requested' && state.status === 'requested';
+  const accent = requested ? 'var(--amber)' : color;
   let detail: string | null = null;
   switch (event.type) {
     case 'visit_requested':
       title = state.visitorKind === 'agent' ? `${who}를 보내고 싶어 해요` : `${who}님이 방문을 요청했어요`;
-      if (state.status === 'requested') accent = APPROVAL_ORANGE;
       break;
     case 'visit_accepted':
       title = '방문이 수락됐어요';
@@ -148,29 +147,29 @@ export function VisitCard({
       data-testid="visit-card"
       data-visit-event={event.type}
       data-visit-status={state.status}
-      className="mx-auto w-full max-w-[480px] rounded-xl border bg-raised/60 px-4 py-3 text-sm"
-      style={{ borderColor: accent }}
+      className={`tg-card mx-auto w-full max-w-[480px] px-4 py-3 text-body ${requested ? 'tg-appr pending' : ''}`}
+      style={requested ? undefined : cvar(color)}
     >
       <div className="flex items-center gap-2">
         <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full" style={{ background: accent }} />
-        <span className="font-medium" style={{ color: event.type === 'visit_requested' ? ink(accent) : undefined }}>
+        <span className="font-medium" style={requested ? { color: 'var(--amber-ink)' } : undefined}>
           {title}
         </span>
-        <span className="ml-auto text-[11px] text-muted">{fmtTime(event.ts)}</span>
+        <span className="tg-mono ml-auto">{fmtTime(event.ts)}</span>
       </div>
-      {detail && <p className="mt-1 text-xs text-muted">{detail}</p>}
+      {detail && <p className="mt-1 text-aux text-muted">{detail}</p>}
       {event.type === 'visit_requested' && state.visitorKind === 'agent' && state.mandate && (
         <MandateBlock mandate={state.mandate} ownerName={visitorName} color={color} viewerIsOwner={iAmVisitor} />
       )}
       {event.type === 'visit_requested' && (
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-aux text-muted">
           현재 상태:{' '}
           {{ requested: '승인 대기', active: '방문 중', declined: '거절됨', ended: '종료됨' }[state.status]}
         </p>
       )}
       {showButtons && state.status === 'requested' && host && <AcceptForm visitId={state.visitId} />}
       {showButtons && state.status === 'requested' && !host && iAmVisitor && (
-        <p className="mt-2 text-xs" style={{ color: APPROVAL_INK }}>
+        <p className="mt-2 text-aux" style={{ color: 'var(--amber-ink)' }}>
           호스트의 승인을 기다리는 중…
         </p>
       )}

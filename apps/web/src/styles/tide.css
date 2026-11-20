@@ -1294,10 +1294,30 @@ html[data-quality="off"] [data-world] {
 .tg-room-hdr [data-testid="guide-open-room"]:hover {
   background: color-mix(in srgb, var(--fg) 8%, transparent);
 }
+/* Step 10: Approval cards */
+/* compact 승인 카드: 한 줄 행. 제안·투표·수정 폼 같은 긴 내용(.full)은 아래 줄로 내려간다. */
+.tg-appr.compact {
+  flex-wrap: wrap;
+}
+.tg-appr.compact > .full,
+.tg-appr.compact > .extra {
+  flex-basis: 100%;
+}
+.tg-appr.compact .sum {
+  min-width: 0;
+}
+.tg-appr.compact > .acts:not(.full) {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
 @layer components {
   /* 3D 위에 떠 있는 안내(배너)는 반투명이면 읽기 어려워 불투명 바탕을 쓴다 */
   .tg-notice.tg-float {
     background: var(--solid-bg);
     box-shadow: var(--solid-shadow);
   }
+}
+/* 체크 아이콘은 헤더의 결과 칩 옆에 놓는다 */
+.tg-appr .hd .chk {
+  position: static;
 }
