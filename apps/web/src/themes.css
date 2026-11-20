@@ -4,15 +4,13 @@
  * 의미 토큰 
  *   표면/글자 : --bg(입력창 등 오목한 면) --panel(+--panel-rgb/--panel-opacity) --panel-raised(=surface-2)
  *               --surface(시트·투어) --fg --muted --line --focus --hover --scrim --scrim-tour --glass(3D 위 칩·범례)
- *   강조      : --accent(주요 버튼·활성 탭 바탕) --accent-fg(=--on-accent-strong, 그 위 글자) --on-accent(파스텔 칩 위 글자)
- *   모양/그림자: --radius(시트 모서리) --shadow(=--shadow-card, 떠 있는 카드) --font-title(제목 글꼴)
- *   대화      : 말풍선 바탕 = --card-base 에 사람색을 --tint-* 비율로 섞음
- *               --card-base(카드 바탕) --card-base-dim(미채움 풍선) --tint-me --tint-other --tint-agent-room --tint-agent-dm
- *               --tint-approval-pending --tint-approval --tint-mandate
+ *   강조      : --accent(주요 버튼·활성 탭 바탕) --accent-fg(그 위 글자) --on-accent(파스텔 칩 위 글자)
+ *   모양/그림자: --shadow(떠 있는 카드) --font-title(제목 글꼴)
+ *   대화      : 카드 바탕 = --card-base 에 사람색을 --tint-mandate 비율로 섞음(MandateBlock)
  *   글자용 색 : --ink-pct / --ink-base (ink(color) = color 를 --ink-base 에 --ink-pct 만큼 섞음) --approval-ink
  *   의미색    : --danger --warn --info --ok --star --sea --sky --plant --sand-gold
  *   사람/Agent: --person-* 는 서버(USER_COLORS) 색을 그대로 쓰고 글자에만 ink() 를 적용한다. A2A/A2H 색은 INTERACTION_COLORS + ink().
- *   3D 오버레이: --label-bg --label-border --label-fg --label-fg-dim --label-shadow --label-attn-border --label-attn-shadow
+ *   3D 오버레이: --label-bg --label-border --label-fg --label-shadow --label-attn-border --label-attn-shadow
  *               --label-chip-bg --label-dot-border  (월드 위 이름표)
  *   무대/썸네일: --stage-a --stage-b --stage-idle --thumb-bg (3D 미사용 폴백·방 미리보기)
  *   아바타    : --avatar-paper(아바타 안쪽 종이색)
@@ -116,7 +114,6 @@
   --focus: var(--primary);
   --accent: var(--primary);
   --accent-fg: var(--primary-fg);
-  --on-accent-strong: var(--accent-fg);
   --on-accent: var(--primary-fg);
   --sea: #5aa6b8;
   --sky: #5ab0ff;
@@ -127,8 +124,6 @@
   --scrim-tour: rgba(3, 12, 18, 0.64);
   --glass: var(--solid-bg);
   --shadow: var(--solid-shadow);
-  --shadow-card: var(--shadow);
-  --radius: var(--r-panel);
   --font-title: var(--font);
   --danger: var(--destructive-ink);
   --warn: var(--amber);
@@ -136,13 +131,6 @@
   --star: #f2d04e;
 
   --card-base: var(--bubble-base);
-  --card-base-dim: var(--card);
-  --tint-me: 20%;
-  --tint-other: 20%;
-  --tint-agent-room: 20%;
-  --tint-agent-dm: 16%;
-  --tint-approval-pending: 13%;
-  --tint-approval: 6%;
   --tint-mandate: 10%;
   --ink-pct: 80%;
   --ink-base: #d9f3f7;
@@ -151,7 +139,6 @@
   --label-bg: var(--solid-bg);
   --label-border: rgba(217, 243, 247, 0.16);
   --label-fg: var(--fg);
-  --label-fg-dim: var(--muted);
   --label-shadow: var(--solid-shadow);
   --label-attn-border: var(--amber);
   --label-attn-shadow: var(--solid-shadow), 0 0 0 3px color-mix(in srgb, var(--amber) 22%, transparent);

@@ -5,7 +5,6 @@
 | 에셋 | 위치 | 저작자 | 라이선스 | 원본 URL |
 |---|---|---|---|---|
 | Furniture Kit 2.0 (소품 GLB 58종) | `apps/web/public/assets/props/*.glb` | Kenney (www.kenney.nl) | CC0 1.0 | https://kenney.nl/assets/furniture-kit |
-| Venice Sunset HDRI (1k) | `apps/web/public/assets/hdri/sunset_1k.hdr` | Greg Zaal (Poly Haven) | CC0 1.0 | https://polyhaven.com/a/venice_sunset |
 | Sand 01 텍스처 (1k diffuse/normal/roughness) | `apps/web/public/assets/textures/sand_*_1k.jpg` | Rob Tuytel (Poly Haven) | CC0 1.0 | https://polyhaven.com/a/sand_01 |
 | Noto Sans KR Bold (간판용 서브셋) | `apps/web/public/assets/fonts/NotoSansKR-Bold-subset.ttf` | Adobe / Google (Noto Project Authors) | SIL OFL 1.1 (`fonts/OFL.txt`) | https://github.com/google/fonts/tree/main/ofl/notosanskr |
 | Pretendard Variable (UI 한글 본문, npm `pretendard`) | `apps/web` npm 의존성 (self-host) | Kil Hyung-jin (orioncactus) | SIL OFL 1.1 | https://github.com/orioncactus/pretendard |
