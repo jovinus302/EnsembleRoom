@@ -1,0 +1,1095 @@
+/*
+ * Tide Glass 공용 프리미티브 + 모션 코어
+ * 기준: design/mockups/02-tide-glass.html <style> (클래스는 tg- 접두사로 옮김)
+ * 토큰은 ../themes.css 가 정의한다. 이 파일은 토큰을 쓰기만 한다.
+ * 컴포넌트는 @layer components 라서 Tailwind 유틸리티(utilities 레이어)가 덮어쓸 수 있다.
+ */
+
+/* 승인 카드의 색 전환(transition: --c)에 필요 */
+@property --c {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ffb45a;
+}
+
+@layer components {
+  /* ---------- 표면 ---------- */
+  .tg-panel {
+    background: var(--panel-bg);
+    backdrop-filter: var(--panel-filter);
+    -webkit-backdrop-filter: var(--panel-filter);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--r-panel);
+    box-shadow: var(--panel-shadow);
+    color: var(--fg);
+  }
+  .tg-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-card);
+  }
+  .tg-solid {
+    background: var(--solid-bg);
+    border: 1px solid rgba(217, 243, 247, 0.16);
+    box-shadow: var(--solid-shadow);
+    color: var(--fg);
+  }
+
+  /* ---------- 글자 ---------- */
+  .tg-mono {
+    font: 600 var(--fs-label) / 1.2 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .tg-aux {
+    font-size: var(--fs-aux);
+    color: var(--muted);
+  }
+  .tg-title {
+    font-size: var(--fs-title);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  /* ---------- 버튼 ---------- */
+  .tg-btn {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: var(--r-pill);
+    border: 1px solid transparent;
+    font: 600 var(--fs-aux) / 1 var(--font);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    color: var(--fg);
+    background: transparent;
+    text-decoration: none;
+    transition:
+      transform var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard),
+      filter var(--dur-fast) var(--ease-standard);
+  }
+  .tg-btn:hover,
+  .tg-btn.is-hover {
+    transform: scale(calc(1 + 0.03 * var(--motion)));
+  }
+  .tg-btn:active,
+  .tg-btn.is-active {
+    transform: scale(calc(1 - 0.03 * var(--motion)));
+  }
+  .tg-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  .tg-btn-cta {
+    height: 40px;
+    padding: 0 22px;
+    font-size: var(--fs-body);
+    background: var(--cta-bg);
+    color: var(--cta-fg);
+    box-shadow: var(--primary-glow);
+  }
+  .tg-btn-cta:hover,
+  .tg-btn-cta.is-hover {
+    box-shadow: 0 6px 28px rgba(0, 229, 195, 0.55);
+  }
+  .tg-btn-primary {
+    background: var(--primary);
+    color: var(--primary-fg);
+  }
+  .tg-btn-primary:hover,
+  .tg-btn-primary.is-hover {
+    box-shadow: var(--primary-glow);
+    filter: brightness(1.07);
+  }
+  .tg-btn-soft {
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
+    color: var(--fg);
+  }
+  .tg-btn-soft:hover,
+  .tg-btn-soft.is-hover {
+    background: color-mix(in srgb, var(--primary) 26%, transparent);
+  }
+  .tg-btn-ghost {
+    border-color: var(--border);
+    color: var(--fg);
+  }
+  .tg-btn-ghost:hover,
+  .tg-btn-ghost.is-hover {
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+  }
+  .tg-btn-danger {
+    background: color-mix(in srgb, var(--destructive) 16%, transparent);
+    color: var(--destructive-ink);
+  }
+  .tg-btn-danger:hover,
+  .tg-btn-danger.is-hover {
+    background: color-mix(in srgb, var(--destructive) 28%, transparent);
+  }
+  .tg-btn-dghost {
+    border-color: color-mix(in srgb, var(--destructive) 45%, transparent);
+    color: var(--destructive-ink);
+  }
+  .tg-btn-dghost:hover,
+  .tg-btn-dghost.is-hover {
+    background: color-mix(in srgb, var(--destructive) 12%, transparent);
+  }
+  .tg-btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    filter: none;
+  }
+  .tg-btn-round {
+    width: 32px;
+    padding: 0;
+  }
+  .tg-btn-block {
+    width: 100%;
+  }
+  .tg-btn-person {
+    --c: var(--muted);
+    height: 40px;
+    padding: 0 18px;
+    font-size: var(--fs-body);
+    gap: 10px;
+    background: color-mix(in srgb, var(--c) 20%, transparent);
+    border-color: color-mix(in srgb, var(--c) 55%, transparent);
+    color: color-mix(in srgb, var(--c) 80%, var(--fg));
+  }
+  .tg-btn-person:hover {
+    background: color-mix(in srgb, var(--c) 32%, transparent);
+  }
+
+  /* ---------- 칩 · 배지 · 스위치 ---------- */
+  .tg-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: var(--r-pill);
+    font: 600 var(--fs-label) / 1 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+    color: var(--fg);
+    white-space: nowrap;
+  }
+  .tg-chip .d {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--c, var(--muted));
+  }
+  .tg-chip.tonal {
+    background: color-mix(in srgb, var(--c) 20%, transparent);
+    color: color-mix(in srgb, var(--c) 80%, var(--fg));
+  }
+  .tg-chip.tag {
+    --c: var(--agent);
+    background: color-mix(in srgb, var(--c) 20%, transparent);
+    color: color-mix(in srgb, var(--c) 80%, var(--fg));
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-family: var(--font);
+    font-size: var(--fs-aux);
+  }
+  .tg-chip.badge-ok {
+    background: color-mix(in srgb, var(--ok) 22%, transparent);
+  }
+  .tg-chip.badge-ok::before {
+    content: "✓";
+    color: var(--ok);
+  }
+  .tg-chip.warn {
+    background: var(--amber-tonal);
+    color: var(--amber-ink);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amber) 30%, transparent);
+  }
+  .tg-chip.err {
+    background: color-mix(in srgb, var(--destructive) 18%, transparent);
+    color: var(--destructive-ink);
+  }
+  .tg-pill-amber {
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    border-radius: var(--r-pill);
+    background: var(--amber-tonal);
+    border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+    color: var(--amber-ink);
+    font: 600 var(--fs-aux) / 1 var(--font);
+    white-space: nowrap;
+  }
+  .tg-pill-amber i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--amber) 60%, transparent);
+    animation: tg-pulse 2s infinite;
+  }
+  .tg-badge {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: var(--r-pill);
+    background: var(--primary);
+    color: var(--primary-fg);
+    font: 700 var(--fs-label) / 20px var(--mono);
+    text-align: center;
+    display: inline-block;
+  }
+  .tg-switch {
+    width: 40px;
+    height: 24px;
+    border-radius: var(--r-pill);
+    border: 0;
+    background: color-mix(in srgb, var(--fg) 20%, transparent);
+    position: relative;
+    cursor: pointer;
+    flex: none;
+    transition: background-color var(--dur-fast) var(--ease-standard);
+  }
+  .tg-switch::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform var(--dur-fast) var(--ease-standard);
+  }
+  .tg-switch[aria-checked="true"] {
+    background: var(--primary);
+  }
+  .tg-switch[aria-checked="true"]::after {
+    transform: translateX(16px);
+    background: var(--primary-fg);
+  }
+
+  /* ---------- 입력 · 선택 ---------- */
+  .tg-field {
+    border-radius: var(--r-input);
+    background: var(--concave);
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    font: 400 var(--fs-body) / 1.5 var(--font);
+    color: var(--fg);
+    min-height: 40px;
+  }
+  .tg-field.ph {
+    color: var(--muted);
+  }
+  .tg-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--r-input);
+    background: var(--concave);
+    border: 1px solid var(--border);
+  }
+  .tg-tog {
+    cursor: pointer;
+    border: 0;
+    transition: background-color var(--dur-fast) var(--ease-standard);
+  }
+  .tg-tog[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--primary) 24%, transparent);
+    box-shadow: inset 0 0 0 1px var(--primary);
+  }
+  .tg-opt {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    border-radius: var(--r-card);
+    background: var(--card);
+    border: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .tg-opt .r {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--muted);
+    flex: none;
+    margin-top: 2px;
+    position: relative;
+  }
+  .tg-opt.on {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  }
+  .tg-opt.on .r {
+    border-color: var(--primary);
+  }
+  .tg-opt.on .r::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+
+  /* ---------- 초상 프레임 ---------- */
+  .tg-frame {
+    --s: 52px;
+    width: var(--s);
+    height: var(--s);
+    background: var(--c);
+    display: grid;
+    place-items: center;
+    flex: none;
+    clip-path: var(--shape);
+  }
+  .tg-frame i {
+    width: calc(var(--s) - 6px);
+    height: calc(var(--s) - 6px);
+    clip-path: var(--shape);
+    background: color-mix(in srgb, var(--c) 22%, var(--popover));
+    display: grid;
+    place-items: center;
+    font-style: normal;
+    font-size: var(--fs-body);
+    color: var(--fg);
+  }
+  .tg-frame.octa {
+    --shape: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  }
+  .tg-frame.hexa {
+    --shape: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+  }
+  .tg-frame.sm {
+    --s: 30px;
+  }
+  .tg-frame.sm i {
+    font-size: var(--fs-aux);
+  }
+  .tg-frame.lg {
+    --s: 72px;
+  }
+  .tg-frame.lg i {
+    font-size: var(--fs-title);
+  }
+
+  /* ---------- 말풍선 (2D 채팅 = 3D 장면 위 말풍선, 같은 규칙) ---------- */
+  .tg-bubble {
+    --c: var(--muted);
+    position: relative;
+    max-width: 100%;
+    padding: 10px 14px;
+    font-size: var(--fs-body);
+    line-height: 1.5;
+    color: var(--fg);
+    border-radius: var(--r-card);
+    border: 1px solid color-mix(in srgb, var(--c) 38%, transparent);
+    background:
+      linear-gradient(color-mix(in srgb, var(--c) 20%, transparent), color-mix(in srgb, var(--c) 20%, transparent)),
+      var(--bubble-base);
+  }
+  .tg-bubble.other {
+    border-bottom-left-radius: var(--r-tail);
+    transform-origin: bottom left;
+  }
+  .tg-bubble.me {
+    border-bottom-right-radius: var(--r-tail);
+    transform-origin: bottom right;
+  }
+  .tg-bubble.agent {
+    --c: var(--agent);
+    border-left: 3px solid var(--c);
+  }
+  .tg-bubble.room {
+    --c: var(--room);
+    border-left: 3px solid var(--c);
+  }
+  .tg-bubble.warn {
+    --c: var(--amber);
+    border-left: 3px solid var(--c);
+  }
+  .tg-bubble.paused {
+    --c: var(--muted);
+    border-left: 3px solid var(--c);
+  }
+  .tg-bubble.err {
+    --c: var(--destructive);
+    border-left: 3px solid var(--c);
+  }
+  .tg-bubble.fail {
+    border-style: dashed;
+    border-color: var(--destructive);
+  }
+  .tg-bubble.in3d {
+    box-shadow: 0 8px 24px rgba(40, 20, 0, 0.28);
+  }
+  .tg-btag {
+    display: block;
+    margin-bottom: 2px;
+    font: 600 var(--fs-label) / 1.4 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--c) 80%, var(--fg));
+  }
+  .tg-cursor {
+    display: inline-block;
+    width: 7px;
+    height: 15px;
+    margin-left: 2px;
+    vertical-align: -2px;
+    border-radius: 2px;
+    background: var(--agent);
+    animation: tg-blink 1s steps(2) infinite;
+  }
+  .tg-dots {
+    display: inline-flex;
+    gap: 4px;
+    padding: 5px 0;
+  }
+  .tg-dots b {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--agent);
+    animation: tg-bounce 1.2s infinite;
+  }
+  .tg-dots b:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .tg-dots b:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  .tg-notice {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 28px;
+    padding: 0 12px;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+    font-size: var(--fs-aux);
+    color: var(--muted);
+  }
+  .tg-notice.amber {
+    background: var(--amber-tonal);
+    color: var(--amber-ink);
+    border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+  }
+  .tg-a2a {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-left: 18px;
+    padding-left: 12px;
+    border-left: 2px solid color-mix(in srgb, var(--bob) 55%, transparent);
+    font-size: var(--fs-aux);
+    color: var(--fg);
+  }
+  .tg-a2a b {
+    color: color-mix(in srgb, var(--bob) 80%, var(--fg));
+    font-weight: 600;
+  }
+
+  /* ---------- 승인 카드 ---------- */
+  .tg-appr {
+    --c: var(--amber);
+    position: relative;
+    overflow: hidden;
+    padding: 14px 14px 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition:
+      --c var(--dur-slow) var(--ease-standard),
+      box-shadow var(--dur-slow) var(--ease-standard),
+      filter var(--dur-slow) var(--ease-standard),
+      opacity var(--dur-slow) var(--ease-standard),
+      border-color var(--dur-slow) var(--ease-standard);
+  }
+  .tg-appr::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--c);
+    z-index: 2;
+  }
+  .tg-appr::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--amber-tonal);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-slow) var(--ease-standard);
+  }
+  .tg-appr > * {
+    position: relative;
+    z-index: 1;
+  }
+  .tg-appr.pending {
+    border-color: color-mix(in srgb, var(--amber) 30%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--amber) 14%, transparent),
+      0 4px 24px color-mix(in srgb, var(--amber) 24%, transparent);
+  }
+  .tg-appr.pending::after {
+    opacity: 1;
+  }
+  .tg-appr.live.pending {
+    animation: tg-glow 2.4s var(--ease-standard) infinite;
+  }
+  .tg-appr.approved {
+    --c: var(--primary);
+    border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 14%, transparent);
+  }
+  .tg-appr.rejected {
+    --c: var(--destructive);
+    filter: saturate(0.2);
+    opacity: 0.7;
+  }
+  .tg-appr .hd {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .tg-appr.pending .hd .tg-mono {
+    color: var(--amber-ink);
+  }
+  .tg-appr .route {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-aux);
+    font-weight: 600;
+    flex-wrap: wrap;
+  }
+  .tg-appr .route em {
+    font-style: normal;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .tg-appr .sum {
+    font-size: var(--fs-body);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .tg-appr .prop {
+    background: var(--concave);
+    border-radius: var(--r-card);
+    padding: 10px 12px;
+    font-size: var(--fs-aux);
+    color: var(--fg);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tg-appr .acts {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tg-appr.compact {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 8px 8px 16px;
+    gap: 10px;
+  }
+  .tg-appr.compact .sum {
+    flex: 1;
+    font-size: var(--fs-aux);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* 승인/거절되면 부가 영역이 접힌다 (목업 .mcard .extra) */
+  .tg-appr .extra {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition:
+      grid-template-rows var(--dur-slow) var(--ease-out),
+      opacity var(--dur-slow) var(--ease-out);
+  }
+  .tg-appr .extra > div {
+    overflow: hidden;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tg-appr.approved .extra,
+  .tg-appr.rejected .extra {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  /* 체크 아이콘: <svg class="chk"><path .../></svg> */
+  .tg-appr .chk {
+    position: absolute;
+    right: 14px;
+    top: 12px;
+    opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-standard);
+    z-index: 3;
+  }
+  .tg-appr.approved .chk {
+    opacity: 1;
+  }
+  .tg-appr.approved .chk path {
+    stroke-dasharray: 26;
+    animation: tg-draw var(--dur-slow) var(--ease-out) both;
+  }
+
+  /* ---------- 3D 위 작은 요소 (blur 없는 불투명 tonal) ---------- */
+  .tg-nametag {
+    --c: var(--alice);
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px 0 12px;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-aux);
+    font-weight: 600;
+    white-space: nowrap;
+    background:
+      linear-gradient(color-mix(in srgb, var(--c) 16%, transparent), color-mix(in srgb, var(--c) 16%, transparent)),
+      var(--solid-bg);
+    border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+    box-shadow: var(--solid-shadow);
+    color: var(--fg);
+    transition:
+      border-color var(--dur-base) var(--ease-standard),
+      box-shadow var(--dur-base) var(--ease-standard);
+  }
+  .tg-nametag .d {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  .tg-nametag.attn {
+    border-color: var(--amber);
+    box-shadow:
+      var(--solid-shadow),
+      0 0 0 3px color-mix(in srgb, var(--amber) 22%, transparent);
+  }
+  .tg-nametag.pulse1 {
+    animation: tg-ring var(--dur-slow) var(--ease-out) 1;
+  }
+  .tg-nametag .tg-chip {
+    height: 22px;
+  }
+  .tg-legend {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 14px;
+    border-radius: var(--r-pill);
+  }
+  .tg-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tg-legend i {
+    display: block;
+    width: 10px;
+    height: 10px;
+    background: var(--c);
+  }
+  .tg-tip {
+    position: relative;
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: var(--r-card);
+    font-size: var(--fs-aux);
+  }
+  .tg-tip::after {
+    content: "";
+    position: absolute;
+    left: 20px;
+    bottom: -5px;
+    width: 10px;
+    height: 10px;
+    transform: rotate(45deg);
+    background: var(--solid-bg);
+    border-right: 1px solid rgba(217, 243, 247, 0.16);
+    border-bottom: 1px solid rgba(217, 243, 247, 0.16);
+  }
+  .tg-seg {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: var(--r-pill);
+    gap: 2px;
+  }
+  .tg-seg button {
+    height: 26px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: none;
+    color: var(--muted);
+    font: 600 var(--fs-aux) / 1 var(--font);
+    cursor: pointer;
+  }
+  .tg-seg button[aria-pressed="true"] {
+    background: var(--cta-bg);
+    color: var(--cta-fg);
+  }
+  .tg-flow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    padding: 0 14px 0 8px;
+    border-radius: var(--r-pill);
+  }
+  .tg-flow .line {
+    width: 84px;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, var(--lc, var(--agent)) 0 6px, transparent 6px 12px);
+    animation: tg-dash 1s linear infinite;
+  }
+  .tg-flow .tag {
+    font-size: var(--fs-aux);
+    font-weight: 600;
+  }
+
+  /* ---------- 보드 · 도구 창 · 타임라인 ---------- */
+  .tg-kdot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--k);
+    flex: none;
+  }
+  .tg-toolwin {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .tg-toolwin .th {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px 14px 20px;
+    position: relative;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .tg-toolwin .th::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 14px;
+    bottom: 14px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--k);
+  }
+  .tg-toolwin .tb {
+    padding: 16px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tg-toolwin .tf {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding: 0 20px 16px;
+  }
+  .tg-track {
+    flex: 1;
+    height: 6px;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--fg) 14%, transparent);
+    position: relative;
+  }
+  .tg-track .fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 72%;
+    border-radius: var(--r-pill);
+    background: var(--primary);
+  }
+  .tg-track .th {
+    position: absolute;
+    left: 72%;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--cta-bg);
+    border: 3px solid var(--popover);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  .tg-track .ev {
+    position: absolute;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--c);
+    box-shadow: 0 0 0 2px var(--popover);
+  }
+
+  /* ---------- 시트 ---------- */
+  .tg-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 24, 34, 0.62);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 0;
+  }
+  .tg-sheet {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+  }
+  .tg-sheet .sh-h {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .tg-sheet .sh-f {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  /* ---------- 모션 유틸 ---------- */
+  .tg-enter {
+    animation: tg-panel-in var(--dur-base) var(--ease-out) both;
+  }
+  .tg-enter-t {
+    animation: tg-slide-t var(--dur-slow) var(--ease-out) both;
+  }
+  .tg-enter-l {
+    animation: tg-slide-l var(--dur-slow) var(--ease-out) both;
+  }
+  .tg-enter-r {
+    animation: tg-slide-r var(--dur-slow) var(--ease-out) both;
+  }
+  .tg-enter-b {
+    animation: tg-slide-b var(--dur-slow) var(--ease-out) both;
+  }
+
+  /* 임시 호환 클래스 (Step 17에서 삭제) */
+  .surface-card {
+  }
+  .chat-surface {
+  }
+}
+
+/* ---------- 키프레임 (--motion 을 곱해 감소 모션을 존중) ---------- */
+@keyframes tg-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(8px * var(--motion))) scale(calc(1 - 0.02 * var(--motion)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tg-pop {
+  from {
+    opacity: 0;
+    transform: scale(calc(1 - 0.15 * var(--motion)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tg-tool-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(12px * var(--motion))) scale(calc(1 - 0.08 * var(--motion)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tg-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes tg-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes tg-pop-badge {
+  0% {
+    transform: scale(calc(1 - 1 * var(--motion)));
+    opacity: 0;
+  }
+  60% {
+    transform: scale(calc(1 + 0.25 * var(--motion)));
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes tg-draw {
+  from {
+    stroke-dashoffset: 26;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes tg-glow {
+  50% {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--amber) 22%, transparent),
+      0 4px 34px color-mix(in srgb, var(--amber) 40%, transparent);
+  }
+}
+@keyframes tg-ring {
+  from {
+    box-shadow:
+      var(--solid-shadow),
+      0 0 0 0 color-mix(in srgb, var(--amber) 70%, transparent);
+  }
+  to {
+    box-shadow:
+      var(--solid-shadow),
+      0 0 0 14px transparent;
+  }
+}
+@keyframes tg-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes tg-bounce {
+  40% {
+    transform: translateY(calc(-4px * var(--motion)));
+    opacity: 0.5;
+  }
+}
+@keyframes tg-dash {
+  to {
+    background-position: 12px 0;
+  }
+}
+@keyframes tg-pulse {
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes tg-tickd {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(calc(1 + 0.9 * var(--motion)));
+    box-shadow:
+      0 0 0 2px var(--popover),
+      0 0 0 7px color-mix(in srgb, var(--primary) 45%, transparent);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes tg-slide-t {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-28px * var(--motion)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tg-slide-l {
+  from {
+    opacity: 0;
+    transform: translateX(calc(-28px * var(--motion)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tg-slide-r {
+  from {
+    opacity: 0;
+    transform: translateX(calc(28px * var(--motion)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tg-slide-b {
+  from {
+    opacity: 0;
+    transform: translateY(calc(28px * var(--motion)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- 감소 모션: 무한 루프는 정지, hover 이동은 없앤다 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tg-btn:hover,
+  .tg-btn:active {
+    transform: none;
+  }
+  .tg-pill-amber i,
+  .tg-flow .line,
+  .tg-appr.live.pending,
+  .tg-cursor,
+  .tg-dots b {
+    animation: none !important;
+  }
+}
