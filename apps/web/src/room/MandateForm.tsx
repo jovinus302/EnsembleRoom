@@ -69,7 +69,7 @@ export function MandateForm({
         {grants.map((c) => (
           <label key={c} className={`tg-opt${actions.includes(c) ? ' on' : ''}`}>
             <input type="checkbox" className="sr-only" checked={actions.includes(c)} onChange={() => toggle(c)} />
-            <span className="r" aria-hidden="true" />
+            <span className="tg-opt-box" aria-hidden="true" />
             <span className="flex flex-col">
               <span className="font-semibold">{CAPABILITY_LABEL[c]}</span>
               {CAPABILITY_HINT[c] && <span className="tg-aux">{CAPABILITY_HINT[c]}</span>}

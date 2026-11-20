@@ -27,8 +27,8 @@ export function InteractionChip({ interaction }: { interaction: RoomPreviewDetai
     <span
       data-testid="room-interaction"
       data-channel={chip.channel}
-      className="tg-chip tonal mt-0.5 !h-[18px] !px-2"
-      style={cvar(chip.color)}
+      className={`tg-chip ${chip.channel === 'a2h' ? 'warn' : 'tonal'} mt-0.5 self-start !h-[18px] !px-2`}
+      style={chip.channel === 'a2h' ? undefined : cvar(chip.color)}
     >
       {chip.label}
     </span>

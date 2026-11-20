@@ -199,9 +199,9 @@ export function RoomView({ roomId }: { roomId: string }) {
         {/* 방문자는 그 Room의 기억을 볼 수 없다(서버 403): 구성원일 때만 연다 */}
         {isMember && (
           <details className="px-1">
-            <summary className="cursor-pointer text-body font-semibold">내 기억</summary>
+            <summary className="tg-title cursor-pointer !text-body">내 기억</summary>
             <div className="mt-2">
-              <MemoryPanel roomId={roomId} />
+              <MemoryPanel roomId={roomId} hideTitle />
             </div>
           </details>
         )}

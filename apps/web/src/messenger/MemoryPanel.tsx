@@ -100,7 +100,7 @@ function MemoryRow({
 }
 
 /** 내 기억(private / 이 방에 제공 / 방 공유)과, 보고 있는 Room의 기억. 항목별 공유 대상을 바꾸고 삭제할 수 있다. */
-export function MemoryPanel({ roomId }: { roomId: string }) {
+export function MemoryPanel({ roomId, hideTitle = false }: { roomId: string; hideTitle?: boolean }) {
   const meId = useSession((s) => s.user!.id);
   const sessionAgentId = useSession((s) => s.agent?.id);
   const worldAgentId = useWorld((s) => s.myAgent?.agentId);
@@ -183,8 +183,8 @@ export function MemoryPanel({ roomId }: { roomId: string }) {
   return (
     <div data-testid="memory-panel" className="flex flex-col gap-4">
       <div>
-        <h2 className="tg-title">내 기억</h2>
-        <p className="tg-aux mt-1">기억마다 어디까지 보이는지 정할 수 있어요. 기본은 나만 보기예요.</p>
+        {!hideTitle && <h2 className="tg-title">내 기억</h2>}
+        <p className={`tg-aux${hideTitle ? '' : ' mt-1'}`}>기억마다 어디까지 보이는지 정할 수 있어요. 기본은 나만 보기예요.</p>
       </div>
 
       <form

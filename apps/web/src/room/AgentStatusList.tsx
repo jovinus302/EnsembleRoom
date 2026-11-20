@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
 import { PHASE_LABEL, STEP_LABEL, WorkingDots } from '../messenger/AgentActivity';
-import { AgentAvatar, AgentTag, Avatar } from '../messenger/Avatar';
+import { AgentAvatar, Avatar } from '../messenger/Avatar';
 import { MandateBlock } from '../messenger/MandateBlock';
 import { AGENT_ACTIVITY_LABEL, AGENT_MODE_LABEL, AUTO_REPLY_LABEL } from '../messenger/labels';
 import { useActivity } from '../store/activityStore';
 import type { RoomModel } from './useRoomModel';
-import { ink } from '../theme';
+import { cvar } from '../ui/tg';
+
+/** 알 수 없는 사용자 초상 배경(SVG 이미지라 CSS 변수를 쓸 수 없다) */
+const UNKNOWN_PERSON = '#7f93a3';
 
 /**
  * 참여자와 Agent 상태 목록 (aria-live). 상태는 이벤트 로그에서 재구성하므로 타임라인 재생에도 맞는다.
@@ -64,41 +67,43 @@ export function AgentStatusList({ model }: { model: RoomModel }) {
     Object.values(model.state.visits).find((v) => v.visitorKind === 'agent' && v.visitorAgentId === agentId && v.status === 'active' && v.mandate)?.mandate ?? null;
 
   return (
-    <section aria-label="참여자와 Agent" data-testid="agent-status-list" className="px-4 py-3">
-      <h2 className="text-sm font-semibold">참여자</h2>
-      <ul className="mt-2 flex flex-col gap-1.5" aria-live="polite">
+    <section aria-label="참여자와 Agent" data-testid="agent-status-list" className="px-1">
+      <h2 className="tg-title">참여자</h2>
+      <ul className="mt-2 flex flex-col gap-1" aria-live="polite">
         {people.map(({ id, member, present, visitor }) => {
           const u = model.users[id];
           const away = member && !member.present && member.mandate;
           return (
-            <li key={id} data-testid="member-row" data-present={present ? 'true' : 'false'} className="flex items-center gap-2.5 text-sm">
-              <span className={present ? '' : 'opacity-45'}>
-                <Avatar name={u?.name ?? '?'} color={u?.color ?? '#a0aec4'} size={28} />
+            <li key={id} data-testid="member-row" data-present={present ? 'true' : 'false'} className="tg-prow">
+              <span className="tg-avwrap">
+                <span className={present ? '' : 'opacity-45'}>
+                  <Avatar name={u?.name ?? '?'} color={u?.color ?? UNKNOWN_PERSON} size={32} />
+                </span>
+                {present && <span aria-hidden="true" className="tg-pdot" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
-                  <span className="truncate">{id === model.meId ? `${u?.name ?? '나'} (나)` : (u?.name ?? id)}</span>
-                  {visitor && <span className="rounded-full border border-dashed px-1.5 text-[10px] leading-4" style={{ borderColor: u?.color, color: ink(u?.color) }}>방문</span>}
+                  <span className="truncate font-semibold">{id === model.meId ? `${u?.name ?? '나'} (나)` : (u?.name ?? id)}</span>
+                  {visitor && (
+                    <span className="tg-chip tag !h-[18px] !px-2" style={cvar(u?.color)}>
+                      방문
+                    </span>
+                  )}
                 </span>
-                <span className="block truncate text-xs text-muted">
+                <span className="tg-aux block truncate">
                   {present ? '여기 있어요' : away ? `자리 비움 · 위임: ${member.mandate!.text}` : '자리에 없어요'}
                 </span>
               </span>
-              <span
-                aria-hidden="true"
-                className="h-2 w-2 rounded-full"
-                style={{ background: present ? (u?.color ?? '#a0aec4') : 'transparent', border: `1px solid ${u?.color ?? '#a0aec4'}` }}
-              />
             </li>
           );
         })}
       </ul>
 
-      <h2 className="mt-4 text-sm font-semibold">Agent</h2>
+      <h2 className="tg-title mt-4">Agent</h2>
       {model.agents.length === 0 ? (
-        <p className="mt-2 text-xs text-muted">이 Room에는 Agent가 없어요.</p>
+        <p className="tg-aux mt-2">이 Room에는 Agent가 없어요.</p>
       ) : (
-        <ul className="mt-2 flex flex-col gap-2" aria-live="polite">
+        <ul className="mt-2.5 flex flex-col gap-2" aria-live="polite">
           {model.agents.map((a) => {
             const l = live.get(a.agentId);
             const step = lastStep.get(a.agentId);
@@ -114,30 +119,31 @@ export function AgentStatusList({ model }: { model: RoomModel }) {
                 data-mode={auto ? 'auto_reply' : a.state.mode}
                 data-activity={a.state.activity}
                 data-visiting={a.visiting ? 'true' : 'false'}
-                className="flex items-center gap-2.5 rounded-lg border p-2 text-sm"
-                style={{ borderColor: `${a.color}66`, borderStyle: a.visiting ? 'dashed' : 'solid' }}
+                className={`tg-card tg-agcard${a.visiting ? ' visiting' : ''}`}
+                style={cvar(a.color)}
               >
                 <AgentAvatar variant={a.variant} color={a.color} size={36} name={a.name} room={a.kind === 'room_agent'} ownerName={ownerName} />
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-1.5">
-                    <span className="truncate font-medium" style={{ color: ink(a.color) }}>
-                      {a.name}
-                    </span>
+                    <span className="tg-agname truncate">{a.name}</span>
                     {mode && (
-                      <span data-testid="agent-mode" className="rounded-full px-1.5 text-[10px] leading-4 text-[var(--on-accent)]" style={{ background: a.color }}>
+                      <span data-testid="agent-mode" className="tg-chip tonal !h-[18px] !px-2">
                         {mode}
                       </span>
                     )}
-                    <AgentTag color={a.color} room={a.kind === 'room_agent'} />
+                    <span data-testid="agent-tag" className="tg-chip tag !h-[18px] !px-2">
+                      <span aria-hidden="true">✦</span>
+                      {a.kind === 'room_agent' ? 'Room Agent' : 'Agent'}
+                    </span>
                   </span>
-                  <span className="flex items-center gap-1.5 truncate text-xs text-muted" data-testid="agent-activity">
+                  <span className={`tg-aux flex items-center gap-1.5 truncate${l ? ' tg-agent-live' : ''}`} data-testid="agent-activity">
                     {l ? PHASE_LABEL[l.phase] : activity}
                     {l && <WorkingDots label={PHASE_LABEL[l.phase]} />}
                     {!l && step && (
                       <span>· {step.kind === 'talking' && step.target ? `${model.users[step.target]?.name ?? model.resolveAgent(step.target).name}에게 말함` : STEP_LABEL[step.kind]}</span>
                     )}
                   </span>
-                  {ownerName && <span className="block truncate text-[11px] text-muted">소유자 · {ownerName}</span>}
+                  {ownerName && <span className="tg-aux block truncate">소유자 · {ownerName}</span>}
                   {visitMandate(a.agentId) && a.ownerId && (
                     <MandateBlock
                       mandate={visitMandate(a.agentId)!}
@@ -147,7 +153,7 @@ export function AgentStatusList({ model }: { model: RoomModel }) {
                       compact
                     />
                   )}
-                  {a.state.handoverPending && <span className="block text-[11px] text-info">소유자에게 인계할 내용이 있어요</span>}
+                  {a.state.handoverPending && <span className="tg-aux block text-info">소유자에게 인계할 내용이 있어요</span>}
                 </span>
               </li>
             );
