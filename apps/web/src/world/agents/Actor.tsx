@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { PALETTE } from '@ensemble/shared';
+import { INTERACTION_COLORS, PALETTE } from '@ensemble/shared';
 import { glowTexture } from '../capsule/glow';
 import { portraitDataUrl } from '../../avatar/portrait';
 import {
@@ -815,9 +815,9 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
   const tagText = isRoom ? 'Room Agent' : isHuman ? (char.isMe ? `${char.name} · 나` : char.name) : `${agentBase} · Agent`;
   const bubbleSpec = useMemo<BubbleSpec | null>(() => {
     if (!tagsOn) return null;
-    if (char.awaitingApproval) return { kind: 'ask', text: '승인이 필요해요', color: '#ff9a3c' };
+    if (char.awaitingApproval) return { kind: 'ask', text: '승인이 필요해요', color: INTERACTION_COLORS.a2h };
     // 사람: 이 사람이 승인자인 Agent 승인 대기
-    if (char.alert === 'approval') return { kind: 'ask', text: char.isMe ? '내 승인 필요' : '승인 대기', color: '#ff9a3c' };
+    if (char.alert === 'approval') return { kind: 'ask', text: char.isMe ? '내 승인 필요' : '승인 대기', color: INTERACTION_COLORS.a2h };
     if (char.activity === 'paused') return { kind: 'paused', text: '일시정지', color: '#8b94a6' };
     const sp = char.speech;
     if (!sp) return null;

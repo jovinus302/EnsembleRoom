@@ -1,4 +1,5 @@
 import type { RoomEvent } from '@ensemble/shared';
+import { PALETTE } from '@ensemble/shared';
 
 /** 타임라인 스크러버용 한 줄 설명 */
 export function eventLabel(e: RoomEvent, nameOf: (id: string | null | undefined) => string): string {
@@ -76,7 +77,7 @@ export function eventMark(e: RoomEvent): string | null {
   switch (e.type) {
     case 'approval_requested':
     case 'approval_resolved':
-      return '#ff9f43';
+      return PALETTE.approvalOrange;
     case 'agreement_formed':
       return '#f2d04e';
     case 'member_left':

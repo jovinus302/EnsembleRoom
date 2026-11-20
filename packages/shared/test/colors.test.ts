@@ -68,7 +68,7 @@ describe('colors', () => {
 
   it('민트와 오렌지는 예약 색이고 사용자 색에는 없다', () => {
     expect(isReservedColor(PALETTE.agentMint)).toBe(true);
-    expect(isReservedColor('#FFC88C')).toBe(true);
+    expect(isReservedColor('#FFB45A')).toBe(true);
     for (const c of USER_COLOR_CHOICES) expect(isReservedColor(c)).toBe(false);
   });
 
