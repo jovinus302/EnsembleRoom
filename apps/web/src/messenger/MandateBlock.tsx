@@ -1,6 +1,7 @@
 import type { Mandate } from '@ensemble/shared';
 import { CAPABILITY_LABEL } from './visits';
 import { tint } from '../theme';
+import { cvar } from '../ui/tg';
 
 /**
  * 위임 범위 전용 표시. 방문 Agent의 소유자가 Agent에게 맡긴 범위를 일반 메시지·카드 내용과 구분해 보여 준다.
@@ -25,13 +26,13 @@ export function MandateBlock({
     <div
       data-testid="mandate-block"
       data-viewer-owner={viewerIsOwner ? 'true' : 'false'}
-      className={`rounded-lg border border-dashed ${compact ? 'mt-1.5 px-2.5 py-1.5' : 'mt-2 px-3 py-2'}`}
-      style={{ borderColor: color, backgroundColor: tint(color, '--tint-mandate') }}
+      className={`rounded-[12px] border border-dashed ${compact ? 'mt-1.5 px-2.5 py-1.5' : 'mt-2 px-3 py-2'}`}
+      style={{ ...cvar(color), borderColor: color, backgroundColor: tint(color, '--tint-mandate') }}
     >
       <div className="flex items-center gap-1.5">
         <span
-          className="inline-flex items-center gap-1 rounded-full px-1.5 py-px text-label font-semibold leading-4 text-[var(--on-accent)]"
-          style={{ background: color }}
+          className="tg-chip tonal !h-[18px] !gap-1 !px-2"
+          style={cvar(color)}
         >
           <svg aria-hidden="true" width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 2.5h7l3 3v8H3z" />
@@ -39,7 +40,7 @@ export function MandateBlock({
           </svg>
           위임 범위
         </span>
-        <span className="text-label text-muted">
+        <span className="tg-aux">
           {viewerIsOwner ? '내가 맡긴 범위예요' : `${ownerName}님이 Agent에게 맡긴 범위예요`}
         </span>
       </div>
@@ -47,9 +48,9 @@ export function MandateBlock({
         {mandate.text}
       </p>
       {mandate.allowedActions.length > 0 && (
-        <p className="mt-1 flex flex-wrap gap-1 text-label text-muted">
+        <p className="mt-1.5 flex flex-wrap gap-1">
           {mandate.allowedActions.map((c) => (
-            <span key={c} className="rounded border border-dashed px-1 leading-4" style={{ borderColor: `${color}99` }}>
+            <span key={c} className="tg-chip !h-[18px] !px-2">
               {CAPABILITY_LABEL[c]}
             </span>
           ))}

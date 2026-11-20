@@ -1595,3 +1595,35 @@ html[data-quality="off"] [data-world] {
     transform: rotate(45deg);
   }
 }
+
+/* Step 6b: Bubbles */
+@layer components {
+  /* 긴 문장도 담는 알림 알약 (높이 고정 해제) */
+  .tg-notice.wrap {
+    height: auto;
+    min-height: 28px;
+    max-width: 100%;
+    padding-block: 5px;
+    border-radius: 14px;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .tg-notice.err {
+    background: color-mix(in srgb, var(--destructive) 18%, transparent);
+    color: var(--destructive-ink);
+  }
+  /* 대화 목록 위에 뜨는 "새 메시지" 버튼 (불투명) */
+  .tg-jump {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: var(--r-pill);
+    border: 1px solid rgba(217, 243, 247, 0.16);
+    background: var(--solid-bg);
+    box-shadow: var(--solid-shadow);
+    font-size: var(--fs-aux);
+    color: var(--fg);
+  }
+  .tg-jump:hover {
+    background: color-mix(in srgb, var(--fg) 8%, var(--solid-bg));
+  }
+}
