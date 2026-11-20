@@ -59,7 +59,7 @@ describe('seed', () => {
     expect(ctx.repo.memberIds(SEED.rooms.family)).toEqual([SEED.users.alice, SEED.users.mom, D]);
     expect(ctx.repo.getUser(D)).toMatchObject({ name: '아빠', kind: 'seed' });
     expect(ctx.repo.getAgent(SEED.agents.dad)).toBeDefined();
-    expect(ctx.repo.listMemoryItems(`agent:${SEED.agents.dad}:for:${SEED.rooms.family}`)).toHaveLength(1);
+    expect(ctx.repo.listMemoryItems(`agent:${SEED.agents.dad}:for:${SEED.rooms.family}`)).toHaveLength(7); // 기본 일정·취향 기억 6건 + A2A 시연 1건(지운 것은 재시드로 복구)
     expect(ctx.store.lastSeq(SEED.rooms.family)).toBe(before);
   });
 
@@ -70,8 +70,8 @@ describe('seed', () => {
     expect(family.length).toBeGreaterThan(0);
     expect(team.length).toBeGreaterThan(0);
     expect(family.filter((t) => team.includes(t))).toEqual([]);
-    expect(ctx.repo.listMemoryItems(`agent:${SEED.agents.alice}:for:${SEED.rooms.family}`)).toHaveLength(1);
-    expect(ctx.repo.listMemoryItems(`agent:${SEED.agents.alice}:for:${SEED.rooms.team}`)).toHaveLength(0);
+    expect(ctx.repo.listMemoryItems(`agent:${SEED.agents.alice}:for:${SEED.rooms.family}`)).toHaveLength(3);
+    expect(ctx.repo.listMemoryItems(`agent:${SEED.agents.alice}:for:${SEED.rooms.team}`)).toHaveLength(1);
   });
 
   it('친구들 방에 대화·미확정 카드·방 기억이 있고, Alice의 비공개 선호는 방 기억에 없다', () => {

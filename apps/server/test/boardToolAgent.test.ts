@@ -213,6 +213,11 @@ describe('Agent 권한 경계', () => {
     say(alice, R.family, '이번 주말 여행 가자');
     say(alice, R.team, '사다리로 정하자');
     await ctx.agents.drain();
+    // 보드 도구를 만든 에피소드에서는 자동 대리를 버리므로(D3), 도구가 없는 평범한 발화로 자동 대리 턴을 만든다
+    say(alice, R.family, '오늘 날씨 정말 좋다');
+    await ctx.agents.drain();
+    say(alice, R.team, '다들 점심은 먹었어?');
+    await ctx.agents.drain();
     const autos = p.inputs.filter((i) => i.trigger.reason === 'auto_reply');
     expect(autos.length).toBeGreaterThan(0);
     for (const i of autos) {
@@ -361,7 +366,20 @@ describe('mock: 자유형(custom) 도구', () => {
     const input = p.inputs.find((i) => i.agent.kind === 'room_agent')!;
     expect(decideBoardTool(input)).toEqual(decideBoardTool(input));
     expect(toolsOf(R.friends)).toHaveLength(1);
-    expect(decideBoardTool(p.inputs.at(-1)!)).toBeNull();
+    // 같은 발화로는 Room Agent 턴이 1번뿐이고(자동 대리는 버려진다) 도구도 1개다
+    expect(p.inputs.filter((i) => i.agent.kind === 'room_agent')).toHaveLength(1);
+  });
+
+  it('Room Agent가 사다리를 만들면 같은 에피소드의 auto_reply 턴은 0, LLM 호출은 1회(D3)', async () => {
+    start();
+    const p = spy();
+    ctx.agents.setProvider(p);
+    say(alice, R.family, '사다리 타자');
+    await ctx.agents.drain();
+    expect(p.inputs).toHaveLength(1);
+    expect(p.inputs[0]!.agent.kind).toBe('room_agent');
+    expect(p.inputs.some((i) => i.trigger.reason === 'auto_reply')).toBe(false);
+    expect(toolsOf(R.family)).toHaveLength(1);
   });
 
   it('문장 해석 유틸', () => {
@@ -451,5 +469,60 @@ describe('custom: Agent 도구 입력·권한', () => {
     const section = last.prompt.split('[보드 도구]')[1]!.split('[최근 이벤트]')[0]!;
     expect(section).not.toContain(alice);
     expect(last.system).toContain('kind=custom');
+  });
+});
+
+describe('시드 도구가 이미 있는 방에서의 새 요청 (리허설 결함 a·b)', () => {
+  const startSeeded = () => {
+    ctx = makeCtx();
+    ctx.agents.start();
+  };
+
+  it('정산표가 이미 있어도 "~원 냈어"는 새 지출로 추가한다 (말로만 답하지 않는다)', async () => {
+    startSeeded();
+    const before = toolsOf(R.friends).find((t) => t.kind === 'settlement')!;
+    if (before.kind !== 'settlement') throw new Error('settlement 아님');
+    say(alice, R.friends, '영화표 24,000원 냈어. 정산하자');
+    await ctx.agents.drain();
+    const after = toolsOf(R.friends).find((t) => t.toolId === before.toolId)!;
+    if (after.kind !== 'settlement') throw new Error('settlement 아님');
+    expect(after.expenses).toHaveLength(before.expenses.length + 1);
+    expect(toolsOf(R.friends).filter((t) => t.kind === 'settlement')).toHaveLength(1);
+  });
+
+  it('실행 전인 같은 주제 사다리가 있으면 안내만, 다른 주제의 새 내기는 새로 만든다', async () => {
+    startSeeded();
+    const ladders = () => toolsOf(R.friends).filter((t) => t.kind === 'ladder');
+    expect(ladders()).toHaveLength(1);
+    say(alice, R.friends, '오늘 커피 누가 살까?');
+    await ctx.agents.drain();
+    expect(ladders()).toHaveLength(1);
+    const guide = msgs(R.friends).filter((e) => e.actorKind === 'room_agent').at(-1)!;
+    expect(guide.text).toContain('이미 보드에');
+
+    say(alice, R.friends, '국밥 누가 쏠까?');
+    await ctx.agents.drain();
+    expect(ladders()).toHaveLength(2);
+  });
+
+  it('이미 실행한 사다리가 있으면 같은 주제여도 새로 만든다', async () => {
+    startSeeded();
+    const seedLadder = toolsOf(R.friends).find((t) => t.kind === 'ladder')!;
+    dispatch(ctx, { kind: 'human', userId: alice }, { type: 'update_board_tool', roomId: R.friends, toolId: seedLadder.toolId, op: { op: 'ladder_run' } });
+    say(alice, R.friends, '오늘 커피 누가 살까?');
+    await ctx.agents.drain();
+    expect(toolsOf(R.friends).filter((t) => t.kind === 'ladder')).toHaveLength(2);
+  });
+
+  it('room_agent_call 지시: 보드 도구가 있으면 askable 유무와 관계없이 되묻지 말고 도구부터', async () => {
+    startSeeded();
+    const p = spy();
+    ctx.agents.setProvider(p);
+    say(alice, R.friends, '이번 주말 1박2일 여행 가자');
+    await ctx.agents.drain();
+    const ra = p.inputs.find((i) => i.agent.kind === 'room_agent')!;
+    expect(ra.prompt).toContain('되묻지 말고');
+    expect(ra.tools.map((t) => t.name)).toContain('create_board_tool');
+    expect(toolsOf(R.friends).some((t) => t.kind === 'trip')).toBe(true);
   });
 });

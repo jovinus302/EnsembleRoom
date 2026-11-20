@@ -44,8 +44,8 @@ export function roomRoutes(app: FastifyInstance, ctx: AppContext): void {
     const body = parse(SendMessageRequestSchema, req.body);
     // A2A 전용 필드는 사람이 보낼 수 없다(스키마가 모르는 키는 버리므로 원본 본문을 직접 확인한다)
     const raw = req.body as Record<string, unknown> | null;
-    if (raw && typeof raw === 'object' && (raw.recipients !== undefined || raw.replyTo !== undefined)) {
-      throw forbidden('agent_only_field', 'recipients·replyTo는 Agent만 쓸 수 있습니다');
+    if (raw && typeof raw === 'object' && (raw.recipients !== undefined || raw.replyTo !== undefined || raw.blocks !== undefined)) {
+      throw forbidden('agent_only_field', 'recipients·replyTo·blocks는 Agent만 쓸 수 있습니다');
     }
     const r = write(user.id, { type: 'send_message', roomId: id, text: body.text, to: body.to, clientId: body.clientId });
     const out = appended(r);

@@ -1,4 +1,5 @@
 export * from './events';
+export * from './answerBlocks';
 export * from './api';
 export * from './permissions';
 export * from './namespaces';

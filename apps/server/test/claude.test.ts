@@ -135,6 +135,40 @@ describe('ClaudeProvider 스트림 매핑', () => {
   });
 });
 
+describe('답변 카드(blocks) 스트림', () => {
+  it('say JSON에 blocks 키가 처음 보이면 composing 단계를 1회 내고, tool_call 입력에 blocks가 있다', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const blocks = [{ type: 'checklist', title: '할 일', items: [{ text: '회고 정리' }] }];
+    const full = JSON.stringify({ text: '정리했어요', blocks });
+    const cut = full.indexOf('"blocks"');
+    const chunks = [full.slice(0, cut - 4), full.slice(cut - 4, cut + 4), full.slice(cut + 4, cut + 40), full.slice(cut + 40)];
+    const events = [start(0, 'say'), ...chunks.map((c) => delta(0, c)), stop(0)];
+    const out = await collect(new ClaudeProvider({ client: fakeClient(events, calls), model: 'm' }), input({ allowBlocks: true }));
+    expect(out.filter((e) => e.type === 'phase' && e.phase === 'composing')).toHaveLength(1);
+    const call = out[out.length - 1];
+    expect(call).toEqual({ type: 'tool_call', call: { name: 'say', input: { text: '정리했어요', blocks } } });
+    // composing은 writing 뒤, tool_call 앞
+    const idx = (f: (e: ProviderEvent) => boolean) => out.findIndex(f);
+    expect(idx((e) => e.type === 'phase' && e.phase === 'composing')).toBeGreaterThan(idx((e) => e.type === 'phase' && e.phase === 'writing'));
+    expect(calls[0]!.max_tokens).toBe(2048);
+  });
+
+  it('blocks가 없으면 composing 없음, max_tokens는 1024', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const out = await collect(new ClaudeProvider({ client: fakeClient([start(0, 'say'), delta(0, '{"text":"안녕"}'), stop(0)], calls), model: 'm' }), input());
+    expect(out.some((e) => e.type === 'phase' && e.phase === 'composing')).toBe(false);
+    expect(calls[0]!.max_tokens).toBe(1024);
+  });
+
+  it('text 안에 "blocks" 문자열이 있어도 composing을 내지 않는다', async () => {
+    const out = await collect(
+      new ClaudeProvider({ client: fakeClient([start(0, 'say'), delta(0, JSON.stringify({ text: 'the "blocks": word' })), stop(0)]), model: 'm' }),
+      input(),
+    );
+    expect(out.some((e) => e.type === 'phase' && e.phase === 'composing')).toBe(false);
+  });
+});
+
 describe('provider 선택', () => {
   it('claude 모드에서 키가 없으면 기동 실패한다', () => {
     expect(() => createClaudeProvider({})).toThrow(/ANTHROPIC_API_KEY/);

@@ -99,6 +99,7 @@ function Row({ k, children }: { k: string; children: ReactNode }) {
 function PreviewTab({ roomId }: { roomId: string }) {
   const meId = useSession((s) => s.user!.id);
   const myAgentDto = useSession((s) => s.agent);
+  const meName = useSession((s) => s.user!.name);
   const users = useWorld((s) => s.users);
   const rooms = useWorld((s) => s.rooms);
   const myAgent = useWorld((s) => s.myAgent);
@@ -228,7 +229,7 @@ function PreviewTab({ roomId }: { roomId: string }) {
       )}
 
       <section aria-label="내 Agent" className="tg-card mt-4 flex items-center gap-3 p-3" data-testid="my-agent">
-        <AgentAvatar variant={myAgentDto?.variant} color={agentColor} name={myAgent?.name ?? myAgentDto?.name} />
+        <AgentAvatar variant={myAgentDto?.variant} color={agentColor} name={myAgent?.name ?? myAgentDto?.name} ownerName={meName} />
         <div className="min-w-0 text-aux">
           <div className="flex items-center gap-1.5 font-semibold">
             <span className="truncate">{myAgent?.name ?? myAgentDto?.name ?? '내 Agent'}</span>

@@ -18,6 +18,8 @@ import type { ToolCall, TurnInput } from './types';
 
 export const SLOT_RE = /((월|화|수|목|금|토|일)요일\s*)?((오전|오후|저녁|점심)\s*)?\d{1,2}\s*시(\s*(반|\d{1,2}\s*분))?/;
 export const COORD_RE = /당겨|당길|옮겨|옮길|미뤄|미룰|맞춰|조율|괜찮|가능|어때|할까|될까/;
+/** 답이 역제안·난색이면 정리 턴이 한 번 더 묻는다 (시드 대사에는 맞는 말이 없다) */
+const COUNTER_RE = /어렵|안 돼|안돼|말고|늦게|일찍/;
 const CLOCK_RE = /\d{1,2}\s*시(\s*(반|\d{1,2}\s*분))?/;
 const DAY_RE = /(월|화|수|목|금|토|일)요일/;
 const MEAL_RE = /(오전|오후|저녁|점심)\s*/;
@@ -139,11 +141,23 @@ export function decideA2A(input: TurnInput): ToolCall | null {
       const when = whenOf(raw, a2a.question, input.roomId);
       const card = targetCard(input);
       const summary = a2a.answers.map((a) => `${a.name}: ${clip(a.text, 36)}`).join(' / ');
+      // 역제안이 나왔고 한 번 더 물을 수 있으면 그 시각으로 재질문한다 (라운드가 남아 ask_agents가 주어졌을 때만)
+      if (has('ask_agents') && input.askable.length > 0) {
+        const counter = a2a.answers.find((a) => COUNTER_RE.test(a.text) && slotOf(a.text));
+        const slot = counter ? slotOf(counter.text) : null;
+        if (slot) {
+          return call('ask_agents', {
+            agent_ids: input.askable.map((a) => a.id),
+            question: `${whenOf(slot, a2a.question, input.roomId) ?? slot}으로 다시 맞춰 보려는데 괜찮을까요?`,
+          });
+        }
+      }
       if (card && when && has('propose_edit')) {
         return call('propose_edit', {
           card_id: card.cardId,
           body: cardBody(card, input.roomId, when),
           public_rationale: summary || '답을 모아 정리했어요.',
+          room_message: `정리했어요. ${(summary || '답을 모아 봤어요').replace(/[.。]+$/, '')}. 이대로 카드에 반영할지 확인 부탁해요.`,
         });
       }
       return has('say') ? call('say', { text: `정리해 볼게요. ${summary || '아직 받은 답이 없어요.'}` }) : pass();
@@ -157,6 +171,15 @@ export function decideA2A(input: TurnInput): ToolCall | null {
 
   // C. A2A에서 나온 승인이 해소됨 → 카드 수정안
   if (ev?.type === 'approval_resolved') {
+    // 확정 단계(마무리 턴): 수정 승인이 반영됐다. say만 허용되는 턴이다.
+    const req = input.events.find((e) => e.type === 'approval_requested' && e.approvalId === ev.approvalId);
+    if (req?.type === 'approval_requested' && req.kind === 'edit') {
+      if (ev.outcome !== 'approved' && ev.outcome !== 'edited') return pass();
+      const cardId = ev.applied?.cardId;
+      const title = ev.applied?.title || input.board.find((c) => c.cardId === cardId)?.title || '카드';
+      const body = ev.applied?.body ?? ev.applied?.title ?? '';
+      return has('say') ? call('say', { text: `확정됐어요: ${title} — ${body.replace(/[.。]+$/, '')}. 방 기억에도 남겨 뒀어요.` }) : pass();
+    }
     if (ev.outcome === 'approved' && ev.option && has('propose_edit') && isA2AApproval(input, ev.approvalId)) {
       const card = targetCard(input);
       const when = whenOf(slotOf(ev.option), ev.option, input.roomId) ?? ev.option;

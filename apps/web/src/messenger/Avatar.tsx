@@ -107,6 +107,7 @@ export function AgentAvatar({
   size = 40,
   name,
   room = false,
+  ownerName,
 }: {
   variant: string | null | undefined;
   /** 프레임 색: Personal은 소유자 색, Room Agent는 라임 */
@@ -114,7 +115,49 @@ export function AgentAvatar({
   size?: number;
   name?: string;
   room?: boolean;
+  /** Personal Agent의 소유자 이름. 주면 소유자 초상 + 둥근 사각 프레임 + 로봇 배지로 "누구의 Agent인지" 드러낸다 */
+  ownerName?: string | null;
 }) {
+  if (!room && ownerName) {
+    const ring = Math.max(2, Math.round(size / 11));
+    const b = Math.max(13, Math.round(size * 0.44));
+    return (
+      <span
+        role="img"
+        aria-label={name ?? `${ownerName}의 Agent`}
+        data-testid="agent-avatar"
+        data-shape="rounded"
+        data-owner={ownerName}
+        className="relative inline-block shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <span
+          className="absolute inset-0 overflow-hidden"
+          style={{ background: color, borderRadius: size * 0.3, padding: ring }}
+        >
+          <img
+            src={portraitDataUrl(ownerName, color)}
+            alt=""
+            draggable={false}
+            className="h-full w-full"
+            style={{ borderRadius: size * 0.3 - ring * 0.6 }}
+          />
+        </span>
+        <span
+          aria-hidden="true"
+          data-testid="agent-star"
+          className="absolute flex items-center justify-center rounded-full select-none"
+          style={{ right: -b * 0.22, bottom: -b * 0.22, width: b, height: b, background: '#1b2540', border: `1.5px solid ${color}` }}
+        >
+          <svg viewBox="0 0 16 16" width={b * 0.7} height={b * 0.7} fill="none" stroke="#fff" strokeWidth="1.4" strokeLinecap="round">
+            <rect x="3" y="5.5" width="10" height="7" rx="2" />
+            <path d="M8 5.5V3M6 9h.01M10 9h.01" />
+            <circle cx="8" cy="2.4" r="0.6" fill="#fff" />
+          </svg>
+        </span>
+      </span>
+    );
+  }
   const key = `${room ? 'room' : 'personal'}-${variant ?? ''}`;
   const list = room ? ROOM_IMAGES : PERSONAL_IMAGES;
   const file = list.includes(key) ? key : room ? 'room-chat' : 'personal-beret';

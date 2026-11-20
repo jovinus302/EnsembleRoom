@@ -17,6 +17,8 @@ export interface A2ALimits {
   maxRounds: number;
   fanoutMax: number;
   maxTurnsPerEpisode: number;
+  maxTurnsPerHumanEvent: number;
+  maxTurnsPerResolution: number;
 }
 
 export function a2aLimitsOf(ctx: AppContext): A2ALimits {
@@ -26,6 +28,8 @@ export function a2aLimitsOf(ctx: AppContext): A2ALimits {
     maxRounds: c.a2aMaxRounds ?? A2A_DEFAULTS.maxRounds,
     fanoutMax: c.a2aFanoutMax ?? A2A_DEFAULTS.fanoutMax,
     maxTurnsPerEpisode: c.a2aMaxTurnsPerEpisode ?? A2A_DEFAULTS.maxTurnsPerEpisode,
+    maxTurnsPerHumanEvent: c.a2aMaxTurnsPerHumanEvent ?? A2A_DEFAULTS.maxTurnsPerHumanEvent,
+    maxTurnsPerResolution: c.a2aMaxTurnsPerResolution ?? A2A_DEFAULTS.maxTurnsPerResolution,
   };
 }
 

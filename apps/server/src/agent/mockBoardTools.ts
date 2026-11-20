@@ -11,7 +11,7 @@ import type { ToolCall, TurnInput } from './types';
  *  - 여행 계획: 여행|일정 짜/잡|놀러|나들이|당일치기|N박 → create_board_tool(trip)
  *  - 자유형(custom): 투표 → vote 블록(선택지는 문장에서 읽히는 것만, 없으면 빈 선택지로 두고 사람이 추가),
  *    체크리스트|할 일 나누자 → checklist 블록(항목은 ':' 뒤 쉼표 목록에서만). 위 3종보다 먼저 판정한다.
- *  같은 종류의 도구가 이미 있으면 정산표만 expense_add로 이어 가고, 나머지는 null(기존 흐름).
+ *  같은 종류의 도구가 이미 있으면: 정산표는 expense_add로 이어 가고, 사다리는 실행 전인 같은 주제가 있을 때만 안내(say)하고 실행했거나 다른 주제면 새로 만든다. 여행은 null(기존 흐름).
  */
 
 export const LADDER_RE = /사다리|제비\s*뽑|누가\s*(살|쏠|사|낼|할|쏘)|내기/;
@@ -142,8 +142,15 @@ export function decideBoardTool(input: TurnInput): ToolCall | null {
   }
 
   if (LADDER_RE.test(text)) {
-    if (existing('ladder') || members.length < 2) return null;
+    if (members.length < 2) return null;
     const outcome = ladderOutcomeFrom(text);
+    // 실행 전인 같은 주제의 사다리가 이미 있을 때만 새로 만들지 않고 안내한다. 실행했거나 다른 주제·결과의 새 내기면 새로 만든다
+    const same = input.boardTools.find((t) => t.kind === 'ladder' && !t.run && (!outcome || t.outcomes.includes(outcome)));
+    if (same) {
+      return input.tools.some((t) => t.name === 'say')
+        ? { name: 'say', input: { text: `이미 보드에 "${same.title}" 사다리가 올라와 있어요. 거기서 실행해서 정해 봐요.` } }
+        : null;
+    }
     return tool('create_board_tool', {
       kind: 'ladder',
       title: outcome ? `누가 ${outcome}?` : '사다리타기',

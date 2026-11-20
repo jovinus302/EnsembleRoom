@@ -305,3 +305,39 @@ describe('Agent 방문 takeout / report', () => {
     expect(ctx.repo.listMemoryItems(nsVisit(visitId))).toEqual([]);
   });
 });
+
+describe('A1: 확정 단계(기억)와 Room Agent 승인자', () => {
+  const memTexts = (ns: string) => ctx.repo.listMemoryItems(ns).filter((m) => m.kind === 'agreement').map((m) => m.text);
+
+  it('Our Room에서 Agent가 올린 수정안이 반영되면 agreement 기억이 room ns에 남고 memory_retained가 기록된다', async () => {
+    const cardId = makeCard('주말 계획', '초안');
+    const approvalId = proposeInFriends(cardId, undefined, '토요일 7시 영화');
+    const before = memTexts(`room:${R.friends}`).length;
+    expect((await vote('Bob', approvalId, { decision: 'approve' })).statusCode).toBe(200);
+    const after = memTexts(`room:${R.friends}`);
+    expect(after).toHaveLength(before + 1);
+    expect(after.at(-1)).toBe('주말 계획: 토요일 7시 영화');
+    expect(types(R.friends, 'memory_retained').at(-1)).toMatchObject({ kind: 'agreement', ns: `room:${R.friends}` });
+  });
+
+  it('My Room의 edit 승인은 기억을 남기지 않는다', async () => {
+    // 소유자가 위임하고 자리를 비운 동안(대리 모드) Agent가 제안한다
+    dispatch(ctx, { kind: 'human', userId: alice }, { type: 'enter_room', roomId: R.myAlice });
+    dispatch(ctx, { kind: 'human', userId: alice }, { type: 'leave_room', roomId: R.myAlice, mandate: { text: '대신 정리해 줘', allowedActions: ['chat', 'propose_edit'] } });
+    const r = dispatch(ctx, { kind: 'agent', agentId: A.alice }, { type: 'propose_edit', roomId: R.myAlice, title: '메모', body: '내용' });
+    const before = ctx.repo.listMemoryItems(`room:${R.myAlice}`).length;
+    const res = await vote('Alice', r.data.approvalId as string, { decision: 'approve' });
+    expect(res.statusCode).toBe(200);
+    expect(ctx.repo.listMemoryItems(`room:${R.myAlice}`)).toHaveLength(before);
+  });
+
+  it('Room Agent의 승인자는 자리에 있는 실제 사람 구성원이고, 아무도 없으면 실제 사람 구성원 전원이다', () => {
+    const propose = () =>
+      dispatch(ctx, { kind: 'room_agent', roomAgentId: RA.friends }, { type: 'propose_edit', roomId: R.friends, title: '새 카드', body: 'x' }).data.approvers;
+    expect(propose()).toEqual([alice, bob]);
+    dispatch(ctx, { kind: 'human', userId: alice }, { type: 'enter_room', roomId: R.friends });
+    expect(propose()).toEqual([alice]);
+    dispatch(ctx, { kind: 'human', userId: bob }, { type: 'enter_room', roomId: R.friends });
+    expect(propose()).toEqual([alice, bob]);
+  });
+});

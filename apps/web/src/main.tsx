@@ -11,9 +11,17 @@ import { App } from './App';
 const WorldLab = lazy(() => import('./world/lab/WorldLab').then((m) => ({ default: m.WorldLab })));
 const isWorldLab = location.pathname.startsWith('/lab/world');
 
+// 개발용 답변 카드 랩: 서버 없이 6종 블록을 샘플로 본다.
+const AnswerBlocksLab = lazy(() => import('./messenger/answerBlocks/AnswerBlocksLab').then((m) => ({ default: m.AnswerBlocksLab })));
+const isAnswerLab = location.pathname.startsWith('/lab/answer-blocks');
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {isWorldLab ? (
+    {isAnswerLab ? (
+      <Suspense fallback={null}>
+        <AnswerBlocksLab />
+      </Suspense>
+    ) : isWorldLab ? (
       <Suspense fallback={null}>
         <WorldLab />
       </Suspense>

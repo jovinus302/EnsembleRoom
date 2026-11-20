@@ -5,7 +5,7 @@ import { endVisit } from '../domain/visits';
 import { resolveSubject, roomStateOf, type ActorCtx } from '../domain/rooms';
 import { a2aLimitsOf, askableAgents, isAutoAway } from './a2a';
 import { AUTO_REPLY_MAX_AGENTS, isTrivialReaction } from './rules';
-import { newTurnId, runTurn, type TurnJob } from './runTurn';
+import { newTurnId, runTurn, type TurnGate, type TurnJob } from './runTurn';
 import type { AgentProvider, Trigger, TriggerReason, TurnOutcome } from './types';
 
 /**
@@ -53,7 +53,31 @@ export function limitsOf(ctx: AppContext): SchedulerLimits {
   };
 }
 
-const QUESTION = /[?？]|정리|요약|summar/i;
+/** 순번대로 이어지는 실행 게이트: i번째는 i-1번째가 done()을 부른 뒤에 wait()가 풀린다 */
+function makeGates(n: number): TurnGate[] {
+  let prev: Promise<void> = Promise.resolve();
+  return Array.from({ length: n }, () => {
+    const before = prev;
+    let release!: () => void;
+    prev = new Promise<void>((r) => (release = r));
+    let once = false;
+    return {
+      wait: () => before,
+      done: () => {
+        if (!once) {
+          once = true;
+          release();
+        }
+      },
+    };
+  });
+}
+
+const QUESTION =/[?？]|정리|요약|summar/i;
+
+/** 다른 구성원 Agent와의 조율을 발화자 본인 Agent에게 시키는 동사 표현 */
+const DELEGATE_VERB = /맞춰\s*줘|물어\s*봐\s*줘|알아\s*봐\s*줘|조율해\s*줘/;
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Room Agent를 명시적으로 부르는 표현 */
 const ROOM_CALL = /룸\s*에이전트|룸\s*봇|room\s*agent|@room\b/i;
@@ -70,7 +94,9 @@ export class Scheduler {
   private running = new Map<string, { agentId: string; roomId: string; ctl: AbortController }>();
   private stopped = false;
   /** A2A 에피소드(사람 content 이벤트마다 리셋): ask 라운드와 a2a 턴 수 */
-  private episodes = new Map<string, { rounds: number; a2aTurns: number }>();
+  private episodes = new Map<string, { rounds: number; a2aTurns: number; turns: number; boardTool: boolean }>();
+  /** 승인 해소가 여는 확정 에피소드(Room당): 해소로 깨어난 턴 수. 사람의 content 이벤트가 오면 지운다 */
+  private resolutions = new Map<string, { turns: number }>();
   /** 정산 대기 중인 A2A 질문 (key: `${roomId}:${askSeq}`) */
   private asks = new Map<string, { roomId: string; askerId: string; askerKind: 'personal' | 'room_agent'; waiting: Set<string>; event: RoomEvent }>();
 
@@ -93,6 +119,7 @@ export class Scheduler {
     for (const q of this.queues.values()) q.jobs.length = 0;
     for (const r of this.running.values()) r.ctl.abort();
     this.episodes.clear();
+    this.resolutions.clear();
     this.asks.clear();
   }
 
@@ -122,7 +149,10 @@ export class Scheduler {
 
   onEvent(e: RoomEvent): void {
     try {
-      for (const job of this.triggersFor(e)) this.enqueue(job);
+      // 한 이벤트가 만든 job들을 모두 큐에 넣은 뒤 펌프한다(같은 질문의 답 턴을 한 묶음으로 병렬 호출하기 위해)
+      const jobs = this.triggersFor(e);
+      for (const job of jobs) this.enqueue(job, false);
+      for (const roomId of new Set(jobs.map((j) => j.roomId))) this.pump(roomId);
     } catch (err) {
       console.error('[scheduler] trigger failed', err);
     }
@@ -168,13 +198,19 @@ export class Scheduler {
       return j ? [j] : [];
     }
 
-    // 내가 올린 decision 승인이 해소되면 요청한 Agent를 깨워 결과를 이어서 처리하게 한다
+    // 내가 올린 승인이 해소되면 요청한 Agent를 깨워 결과를 이어서 처리하게 한다.
+    //  - decision: 결과를 이어서 처리(propose_edit·마무리)
+    //  - edit(Our Room, 승인·수정 반영): 확정 단계의 마무리 턴(say/pass만, closing)
     if (e.type === 'approval_resolved') {
+      // 승인 해소는 사람의 투표로만 일어나므로 각 해소가 새 확정 에피소드의 루트다: 승인 1건당 카운터를 새로 시작한다
+      this.resolutions.delete(e.roomId);
       const row = repo.getApproval(e.approvalId);
-      if (!row || row.kind !== 'decision' || !row.requestedBy || row.roomId !== e.roomId) return [];
+      if (!row || !row.requestedBy || row.roomId !== e.roomId) return [];
+      const closing = row.kind === 'edit' && room.kind === 'our' && (e.outcome === 'approved' || e.outcome === 'edited');
+      if (row.kind !== 'decision' && !closing) return [];
       if (!this.runnable(e.roomId, row.requestedBy)) return [];
       const j = this.job(e.roomId, row.requestedBy, 'approval_resolved', e);
-      return j ? [j] : [];
+      return j ? [closing ? { ...j, closing: true } : j] : [];
     }
 
     if (!HUMAN_CONTENT.has(e.type)) return [];
@@ -205,6 +241,7 @@ export class Scheduler {
     this.chain.set(e.roomId, 0);
     this.chainPaused.delete(e.roomId);
     this.episodes.delete(e.roomId);
+    this.resolutions.delete(e.roomId);
 
     const targets: { agentId: string; reason: TriggerReason }[] = [];
     const add = (agentId: string | undefined, reason: TriggerReason) => {
@@ -258,8 +295,19 @@ export class Scheduler {
         });
         // 자동 반응: 사람이 보낸 모든 메시지에 Room Agent가 깬다(할 말이 없으면 스스로 pass).
         // 단 구성원이 지목된 메시지는 그 구성원(또는 그 Agent)이 답할 일이라, Room Agent를 명시적으로 부르지 않았다면 끼어들지 않는다.
+        // "내 Agent에게 맡김": 다른 구성원의 Agent를 지목해(또는 맞춰 달라고) 시킨 말은 발화자 자신의 Agent가 맡아 그 Agent에게 묻는다.
+        const ownAgent = e.type === 'message' && e.actorId ? repo.getAgentByOwner(e.actorId) : undefined;
+        const delegated =
+          !!ownAgent &&
+          namedMembers.length > 0 &&
+          (namedMembers.some((m) => {
+            const n = repo.getUser(m)?.name;
+            return !!n && new RegExp(`${escapeRe(n)}\\s*(의)?\\s*(agent|에이전트)`, 'i').test(text);
+          }) ||
+            DELEGATE_VERB.test(text));
+        if (delegated) add(ownAgent!.id, 'addressed');
         const roomAgentWanted = auto && namedMembers.length > 0 ? ROOM_CALL.test(text) : QUESTION.test(text) || mentionsAbsent || auto;
-        if (ra && roomAgentWanted) add(ra.id, 'room_agent_call');
+        if (ra && roomAgentWanted && !(delegated && !ROOM_CALL.test(text))) add(ra.id, 'room_agent_call');
         // 대리 참여 중인 구성원의 Agent
         for (const m of members) {
           const ms = st.members[m];
@@ -271,7 +319,7 @@ export class Scheduler {
         // (a) 이름이 언급된 구성원이 있으면 그 부재 구성원 전원
         // (b) 모두에게 한 말이면 구성원 순서대로 최대 AUTO_REPLY_MAX_AGENTS명 (질문이 아닌 잡담도 포함, 2글자 이하 반응은 제외)
         // 시드 사용자(엄마, Dana)는 로그인하지 않으므로 항상 부재 → 대리 대상. 사람 메시지 1건당 각 Agent는 최대 1턴.
-        if (auto) {
+        if (auto && !delegated) {
           const cands = members.filter((m) => m !== e.actorId && this.isAutoAway(room.id, m, st));
           const named = cands.filter((m) => namedMembers.includes(m));
           const picks = named.length > 0 ? named : isTrivialReaction(text) ? [] : cands.slice(0, AUTO_REPLY_MAX_AGENTS);
@@ -289,9 +337,9 @@ export class Scheduler {
     return jobs;
   }
 
-  private episode(roomId: string): { rounds: number; a2aTurns: number } {
+  private episode(roomId: string) {
     let ep = this.episodes.get(roomId);
-    if (!ep) this.episodes.set(roomId, (ep = { rounds: 0, a2aTurns: 0 }));
+    if (!ep) this.episodes.set(roomId, (ep = { rounds: 0, a2aTurns: 0, turns: 0, boardTool: false }));
     return ep;
   }
 
@@ -380,7 +428,7 @@ export class Scheduler {
 
   /* ------------------------------ 큐 / 실행 ------------------------------ */
 
-  enqueue(job: TurnJob): void {
+  enqueue(job: TurnJob, pump = true): void {
     if (this.stopped) return;
     let q = this.queues.get(job.roomId);
     if (!q) this.queues.set(job.roomId, (q = { running: false, jobs: [] }));
@@ -396,7 +444,7 @@ export class Scheduler {
       return;
     }
     q.jobs.push(job);
-    this.pump(job.roomId);
+    if (pump) this.pump(job.roomId);
   }
 
   private visitOf(roomId: string, agentId: string) {
@@ -416,22 +464,47 @@ export class Scheduler {
     if (!q || q.running) return;
     for (;;) {
       if (q.running) return; // settleAsk가 버려진 job 정산 중에 enqueue→pump로 다음 턴을 이미 시작했을 수 있다
-      const job = q.jobs.shift();
-      if (!job) return;
-      const started = this.startJob(job);
-      if (!started) {
-        this.settleAsk(job); // 버려진 A2A 답 job도 정산한다
+      const first = q.jobs.shift();
+      if (!first) return;
+      // 같은 질문(askSeq)의 답 턴이 큐 앞에 이어져 있으면 한 묶음으로 꺼내 병렬로 호출한다. 기록은 수신자 순서(게이트)로 한다.
+      const batch: TurnJob[] = [first];
+      if (first.ask?.role === 'answer') {
+        while (q.jobs[0]?.ask?.role === 'answer' && q.jobs[0].ask.askSeq === first.ask.askSeq) batch.push(q.jobs.shift()!);
+      }
+      // 시작하는 동안 settleAsk→enqueue→pump가 끼어들지 못하게 막는다
+      q.running = true;
+      const gates = batch.length > 1 ? makeGates(batch.length) : null;
+      const runs: { job: TurnJob; started: Promise<TurnOutcome> }[] = [];
+      try {
+        batch.forEach((job, i) => {
+          let started: Promise<TurnOutcome> | null = null;
+          try {
+            started = this.startJob(job, gates?.[i]);
+          } catch (err) {
+            console.error('[scheduler] startJob threw', err);
+          }
+          if (!started) {
+            gates?.[i]!.done();
+            this.settleAsk(job); // 버려진 A2A 답 job도 정산한다
+          } else runs.push({ job, started });
+        });
+      } catch (err) {
+        q.running = false;
+        throw err;
+      }
+      if (runs.length === 0) {
+        q.running = false;
         continue; // 버려진 작업: 다음 것
       }
-      q.running = true;
-      const p: Promise<void> = started
-        .then((outcome) => this.afterTurn(job, outcome))
-        .catch((err) => console.error('[scheduler] turn crashed', err))
-        .finally(() => {
-          this.inflight.delete(p);
-          q.running = false;
-          this.pump(roomId);
-        });
+      const p: Promise<void> = Promise.all(
+        runs.map(({ job, started }) =>
+          started.then((outcome) => this.afterTurn(job, outcome)).catch((err) => console.error('[scheduler] turn crashed', err)),
+        ),
+      ).then(() => {
+        this.inflight.delete(p);
+        q.running = false;
+        this.pump(roomId);
+      });
       this.inflight.add(p);
       return;
     }
@@ -441,7 +514,7 @@ export class Scheduler {
    * 트리거 판정 직후, LLM 호출 전에 `agent_turn_started`를 동기로 append하고 턴을 시작한다.
    * 한도에 걸리면 null.
    */
-  private startJob(job: TurnJob): Promise<TurnOutcome> | null {
+  private startJob(job: TurnJob, gate?: TurnGate): Promise<TurnOutcome> | null {
     const { roomId, agentId } = job;
     if (!this.runnable(roomId, agentId)) return null;
     // 자동 대리는 구성원이 다시 접속(present)하면 즉시 멈춘다: 대기 중이던 작업은 버린다
@@ -449,12 +522,15 @@ export class Scheduler {
       const owner = this.ctx.repo.getAgent(agentId)?.ownerId;
       if (!this.autoReplyOn() || !owner || !this.isAutoAway(roomId, owner, roomStateOf(this.ctx, roomId))) return null;
     }
+    // Room Agent가 같은 에피소드에서 보드 도구를 만들었으면 큐에 남은 자동 대리는 버린다(잡담·호출 절약)
+    if (job.trigger.reason === 'auto_reply' && this.episodes.get(roomId)?.boardTool) return null;
     // A2A 답 턴: 소유자가 그 사이 접속했거나 위임 없이 떠났으면(askable 재확인) 버린다
     if (job.trigger.reason === 'a2a_ask') {
       const askerId = job.ask?.askerId ?? '';
       if (!a2aLimitsOf(this.ctx).on || !askableAgents(this.ctx, roomId, askerId).some((a) => a.id === agentId)) return null;
     }
     const lim = this.limits();
+    const a2aLim = a2aLimitsOf(this.ctx);
 
     // 5. 시간당 상한
     const now = Date.now();
@@ -463,6 +539,25 @@ export class Scheduler {
     if (log.length >= lim.maxTurnsPerRoomHour) {
       this.appendPaused(roomId, agentId, 'budget');
       return null;
+    }
+
+    // 사람 메시지 1건당 전체 턴 상한 / 승인 해소가 여는 확정 에피소드 상한
+    const reasonIn = job.trigger.reason;
+    if (reasonIn === 'approval_resolved') {
+      let res = this.resolutions.get(roomId);
+      if (!res) this.resolutions.set(roomId, (res = { turns: 0 }));
+      if (res.turns >= a2aLim.maxTurnsPerResolution) {
+        this.appendPaused(roomId, agentId, 'chain_limit');
+        return null;
+      }
+      res.turns++;
+    } else if (reasonIn !== 'arrival' && reasonIn !== 'a2a_collect' && !job.forced) {
+      const ep = this.episode(roomId);
+      if (ep.turns >= a2aLim.maxTurnsPerHumanEvent) {
+        this.appendPaused(roomId, agentId, 'chain_limit');
+        return null;
+      }
+      ep.turns++;
     }
 
     // A2A 에피소드 하드캡: a2a 턴(답+정리)이 상한을 넘으면 일시정지
@@ -508,7 +603,7 @@ export class Scheduler {
     job.trigger = { ...job.trigger, reason };
     const ctl = new AbortController();
     this.running.set(turnId, { agentId, roomId, ctl });
-    return runTurn(this.ctx, this.getProvider(), job, turnId, ctl.signal).finally(() => this.running.delete(turnId));
+    return runTurn(this.ctx, this.getProvider(), job, turnId, ctl.signal, gate).finally(() => this.running.delete(turnId));
   }
 
   private afterTurn(job: TurnJob, outcome: TurnOutcome): void {
@@ -520,6 +615,7 @@ export class Scheduler {
       }
     }
     if (this.stopped) return;
+    if (job.agentKind === 'room_agent' && outcome.tool === 'create_board_tool' && outcome.result === 'acted') this.episode(job.roomId).boardTool = true;
     this.settleAsk(job);
     // 방문 Agent: 턴을 다 썼으면 end_visit 강제 턴을 바로 이어 붙이고, 그 턴 뒤에도 방문이 남으면 서버가 끝낸다.
     const visit = this.visitOf(job.roomId, job.agentId);

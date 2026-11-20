@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { badRequest, conflict, notFound } from '../errors';
 import type { Action, ActionHandler, HandlerEnv } from './actions';
+import { roomStateOf } from './rooms';
 
 /**
  * Agent(·방문자)가 올리는 승인 요청 핸들러 (계획 6절 `propose_edit`, `request_approval`).
@@ -28,8 +29,11 @@ export function approversFor(env: HandlerEnv, kind: 'edit' | 'decision'): string
     if (room.ownerId) approvers = [room.ownerId];
   } else if (room.kind === 'our') {
     if (actor.kind === 'room_agent') {
-      // decision은 시드가 아닌 사람 구성원 전원
-      approvers = realMembers(env);
+      // 자리에 있는 실제 사람 구성원(자리에 없는 사람의 입장은 그 사람 Agent의 A2A 답으로 반영된다). 없으면 실제 사람 구성원 전원.
+      const real = realMembers(env);
+      const present = new Set(roomStateOf(ctx, room.id).presentUserIds);
+      const here = real.filter((id) => present.has(id));
+      approvers = here.length > 0 ? here : real;
     } else if (actor.kind === 'agent') {
       const owner = ctx.repo.getAgent(actor.agentId)?.ownerId;
       if (owner) {

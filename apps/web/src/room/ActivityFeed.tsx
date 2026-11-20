@@ -24,7 +24,7 @@ export function ActivityFeed({ model, leftReason }: { model: RoomModel; leftReas
         {/* 패널 p-4 안이라 Composer 자체 여백(m-3)을 상쇄한다 */}
         <div className="-mx-3 -mb-3">
           <Composer
-            placeholder={`${title}에 메시지 보내기`}
+            placeholder="메시지 보내기"
             targets={targets}
             disabledReason={disabledReason}
             onSend={(t, to) => void sendMessage(model.roomId, t, undefined, to)}
