@@ -455,6 +455,20 @@ describe('대리 참여(representing)와 승인 요청', () => {
     expect(st.activity).toBe('awaiting');
   });
 
+  it('request_approval의 room_message는 승인 요청과 함께 상대에게 보이는 안내 메시지로 남는다', async () => {
+    enter(alice, R.myAlice);
+    leave();
+    bobVisits();
+    ctx.agents.setProvider(
+      scripted(() => ({ name: 'request_approval', input: { question: '토요일 3시로 할까요?', options: ['3시', '보류'], room_message: 'Alice님께 확인을 요청해 두었어요.' } })),
+    );
+    say(bob, R.myAlice, '토요일 3시로 정하자, Alice 어때?', A.alice);
+    await ctx.agents.drain();
+    expect(ofType(R.myAlice, 'approval_requested')).toHaveLength(1);
+    const msgs = ofType(R.myAlice, 'message').filter((e) => e.actorId === A.alice);
+    expect(msgs.map((m) => (m as { text?: string }).text)).toEqual(['Alice님께 확인을 요청해 두었어요.']);
+  });
+
   it('propose_edit는 소유자 승인으로 올라가고 수정안이 이벤트에 실린다', async () => {
     const card = dispatch(ctx, { kind: 'human', userId: alice }, { type: 'create_card', roomId: R.myAlice, title: '약속', body: '' });
     enter(alice, R.myAlice);

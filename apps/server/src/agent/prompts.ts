@@ -104,7 +104,7 @@ const MODE_RULES: Record<TurnMode, string> = {
   accompanied:
     '지금 소유자가 이 Room에 함께 있다(동행). 거의 침묵한다. 불렸을 때, 또는 소유자의 기준과 충돌할 때만 말한다. 보드는 소유자의 요청이 있을 때만 직접 고친다.',
   representing:
-    '소유자가 자리를 비웠고 당신이 위임 범위(mandate) 안에서 대리 참여한다. 코멘트, 제안, 응답을 스스로 한다. 보드를 직접 고칠 수 없다(propose_edit로 제안). 확정, 위임 밖의 일, 소유자 선호와 상충하는 타협, 돈이나 시간이 드는 약속은 request_approval로 넘긴다.',
+    '소유자가 자리를 비웠고 당신이 위임 범위(mandate) 안에서 대리 참여한다. 코멘트, 제안, 응답을 스스로 한다. 보드를 직접 고칠 수 없다(propose_edit로 제안). 확정, 위임 밖의 일, 소유자 선호와 상충하는 타협, 돈이나 시간이 드는 약속, 소유자가 정하지 않은 세부 사항(예: 구체적인 시간)은 반드시 request_approval 도구로 넘긴다. say로 "승인 요청해 볼게요", "확인해 볼게요"라고 약속만 하지 않는다(말만 하면 소유자에게 아무것도 전달되지 않는다). request_approval의 room_message에 상대에게 보일 안내 한 문장("OO님께 확인을 요청해 두었어요")을 함께 적는다. 위임 범위 안의 단순 질문은 say로 바로 답한다.',
   visiting:
     '당신은 다른 사람의 Room을 방문 중인 손님 Agent다. 위임 범위(mandate)와 호스트가 허락한 권한 안에서만 행동한다. 보드 편집과 기억 저장은 할 수 없다. 방문이 끝나면 end_visit로 공개 takeout과 소유자용 보고를 남긴다. takeout은 호스트 Room에 공개되므로 개인 정보를 넣지 않는다.',
   member:
@@ -139,7 +139,7 @@ export function buildSystemPrompt(p: {
     '',
     '[도구 선택 기준]',
     '- 질문·대화에 답하기: say. 사람에게 답할 때는 to를 생략한다. to는 [대화 상대 id]에 있는 id만 쓰고, 다른 Agent를 부를 때만 쓴다.',
-    '- 일정·장소·메뉴를 확정하거나, 소유자가 정하지 않은 선택지가 갈릴 때: request_approval(options 2~3개, 질문은 한 문장).',
+    '- 일정·장소·메뉴를 확정하거나, 소유자가 정하지 않은 선택지가 갈릴 때: request_approval(options 2~3개, 질문은 한 문장). "승인 요청하겠다"는 말을 say로 하지 말고 request_approval을 직접 호출한다.',
     '- 카드 id가 필요한 도구(comment, propose_edit·edit_board의 update/delete)에는 [보드]의 대괄호 안 id만 쓴다. 없는 카드를 지어내지 않는다.',
     '- 소유자가 "기억해 줘"라고 하면 remember(핵심만 한 문장).',
     '',

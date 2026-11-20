@@ -44,7 +44,11 @@ export const TOOL_INPUT_SCHEMAS = {
     title: z.string().max(200).optional(),
     body: z.string().max(4000).optional(),
   }),
-  request_approval: obj({ question: z.string().min(1).max(500), options: z.array(z.string().min(1).max(200)).min(2).max(4) }),
+  request_approval: obj({
+    question: z.string().min(1).max(500),
+    options: z.array(z.string().min(1).max(200)).min(2).max(4),
+    room_message: z.string().min(1).max(500).optional(),
+  }),
   remember: obj({ text: z.string().min(1).max(1000), kind: MemoryKindSchema }),
   end_visit: obj({ public_takeout: z.string().max(1500), report_for_owner: z.string().max(3000) }),
   pass: obj({ reason: PassReasonSchema }),
@@ -89,9 +93,14 @@ export const TOOL_DEFS: Record<ToolName, ToolSpec> = {
   },
   request_approval: {
     name: 'request_approval',
-    description: '확정, 위임 범위 밖의 일, 돈·시간이 드는 약속 등은 직접 하지 말고 선택지 2~4개로 승인을 요청한다. 승인자는 서버가 정한다.',
+    description:
+      '확정, 위임 범위 밖의 일, 소유자가 정해야 하는 일, 돈·시간이 드는 약속은 say로 얼버무리지 말고 이 도구로 실제 승인을 요청한다. 선택지 2~4개. 승인자는 서버가 정한다. room_message에는 대화 상대에게 보일 한 문장 안내(예: "OO님께 확인을 요청해 두었어요")를 적는다.',
     inputSchema: schema(
-      { question: { type: 'string' }, options: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4 } },
+      {
+        question: { type: 'string' },
+        options: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4 },
+        room_message: { type: 'string', description: '대화 상대에게 Room에 함께 남길 짧은 안내 한 문장(선택, 권장).' },
+      },
       ['question', 'options'],
     ),
   },
@@ -266,6 +275,14 @@ function executeToolInner(ctx: AppContext, ex: ExecContext, name: ToolName, rawI
     case 'request_approval': {
       const i = parsed.data as z.infer<typeof TOOL_INPUT_SCHEMAS.request_approval>;
       const r = run({ type: 'request_approval', roomId: ex.roomId, question: i.question, options: i.options, rationale });
+      // 상대에게 보일 안내는 승인 요청이 만들어진 뒤에만 남기고, 실패해도 승인 요청은 유지한다
+      if (i.room_message?.trim()) {
+        try {
+          run({ type: 'send_message', roomId: ex.roomId, text: i.room_message.trim() });
+        } catch (err) {
+          console.error('[agent] room_message failed', err);
+        }
+      }
       return { result: 'acted', tool: name, data: r.data };
     }
     case 'remember': {

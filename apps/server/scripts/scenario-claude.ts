@@ -402,6 +402,30 @@ try {
     endStep('6 remember');
     for (const e of ctx.store.listAll(R.myAlice)) if (e.type === 'memory_retained') console.log(`  memory ns=${(e as { ns: string }).ns}`);
   }
+  for (const [id, question] of [
+    ['7', '토요일 3시로 정하자, Alice 어때?'],
+    ['8', 'Alice, 토요일 오후에는 보통 시간 괜찮아?'],
+  ] as const) {
+    if (!want(id)) continue;
+    enter(U.alice, R.friends);
+    enter(U.bob, R.friends);
+    dispatch(ctx, human(U.alice), { type: 'leave_room', roomId: R.friends, mandate: { text: '토요일 오후까지만. 카드 수정은 내 승인.', allowedActions: ['chat', 'comment', 'propose_edit', 'request_approval'] } });
+    await settle();
+    say(U.bob, R.friends, question);
+    await settle();
+    endStep(`${id} 대리 장면: ${question}`);
+    dispatch(ctx, human(U.alice), { type: 'rejoin_room', roomId: R.friends });
+    await settle();
+    try {
+      const d = await ctx.summarizer.digest(U.alice, R.friends);
+      await settle();
+      console.log(`  digest 요약: ${d.summary}`);
+      console.log(`  pendingApprovals=${d.pendingApprovals.length} approvalRequestedEvents=${pendingApprovals(R.friends).length}`);
+    } catch (e) {
+      console.log(`  digest 실패: ${(e as { message?: string }).message ?? 'err'}`);
+    }
+    endStep(`${id} Rejoin 다이제스트`);
+  }
 } catch (e) {
   console.log(`시나리오 중단: ${(e as { message?: string }).message ?? 'err'}`);
 }
