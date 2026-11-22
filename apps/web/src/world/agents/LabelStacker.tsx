@@ -1,5 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { virtualHeight } from '../CameraRig';
 
 /**
  * 포커스 방의 이름표(+말풍선) 겹침 회피. 각 Actor가 등록한 라벨 그룹을 매 프레임 화면에 투영해 서로 겹치면
@@ -47,7 +48,7 @@ export function LabelStacker({ labels, reducedMotion }: { labels: Map<string, La
     const cam = state.camera as THREE.PerspectiveCamera;
     if (!cam.isPerspectiveCamera || labels.size === 0) return;
     up.setFromMatrixColumn(cam.matrixWorld, 1).normalize();
-    const rows: { e: LabelEntry; cx: number; cy: number; wpp: number; pw: number; ph: number; top: number; target: number }[] = [];
+    const rows: { e: LabelEntry; cx: number; cy: number; wpp: number; pl: number; pr: number; ph: number; top: number; target: number }[] = [];
     for (const e of labels.values()) {
       if (!e.group.parent) continue;
       wp.set(0, e.baseY, 0);
@@ -59,8 +60,10 @@ export function LabelStacker({ labels, reducedMotion }: { labels: Map<string, La
         e.line.visible = false;
         continue;
       }
-      const wpp = (2 * dist * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2))) / size.height;
-      const bw = e.bubble ? Math.max(e.w, e.bubble.w) : e.w;
+      const wpp = (2 * dist * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2))) / virtualHeight(cam, size.height);
+      // 말풍선은 머리(이름표 가운데)에서 오른쪽으로 뻗는다(왼쪽 아래 모서리가 앵커)
+      const left = e.w / 2;
+      const right = e.bubble ? Math.max(e.w / 2, e.bubble.w) : e.w / 2;
       // 라벨 영역: 이름표 아래쪽부터 (말풍선이 있으면) 말풍선 위쪽까지
       const below = e.h / 2;
       const above = e.bubble ? e.bubble.y + e.bubble.h : e.h / 2;
@@ -69,7 +72,8 @@ export function LabelStacker({ labels, reducedMotion }: { labels: Map<string, La
         cx: (ndc.x * 0.5 + 0.5) * size.width,
         cy: (-ndc.y * 0.5 + 0.5) * size.height,
         wpp,
-        pw: bw / wpp,
+        pl: left / wpp,
+        pr: right / wpp,
         ph: (below + above) / wpp,
         top: above / wpp,
         target: 0,
@@ -83,8 +87,8 @@ export function LabelStacker({ labels, reducedMotion }: { labels: Map<string, La
       let shift = 0; // px, 위로
       const maxShift = ((r.e.bubble ? r.e.h + r.e.bubble.h + r.e.bubble.y : r.e.h) / r.wpp) * MAX_PUSH_H;
       for (let it = 0; it < MAX_PUSH_ITER; it++) {
-        const x0 = r.cx - r.pw / 2;
-        const x1 = r.cx + r.pw / 2;
+        const x0 = r.cx - r.pl;
+        const x1 = r.cx + r.pr;
         const y1 = r.cy - shift + (r.ph - r.top); // 화면 아래쪽 가장자리(이름표 하단)
         const y0 = r.cy - shift - r.top;
         let hit: Rect | null = null;
@@ -103,7 +107,7 @@ export function LabelStacker({ labels, reducedMotion }: { labels: Map<string, La
       // 화면 위쪽 경계 밖이면 아래로 당겨 뷰 안에 둔다
       const topEdge = r.cy - shift - r.top;
       if (topEdge < EDGE_PX) shift -= EDGE_PX - topEdge;
-      placed.push({ x0: r.cx - r.pw / 2, x1: r.cx + r.pw / 2, y0: r.cy - shift - r.top, y1: r.cy - shift + (r.ph - r.top) });
+      placed.push({ x0: r.cx - r.pl, x1: r.cx + r.pr, y0: r.cy - shift - r.top, y1: r.cy - shift + (r.ph - r.top) });
       r.target = shift * r.wpp;
     }
     for (const r of rows) {

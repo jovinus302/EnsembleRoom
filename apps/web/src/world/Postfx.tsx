@@ -9,8 +9,8 @@ import type { QualityConfig } from './quality';
 import type { FocusUv } from './CameraRig';
 
 /**
- * 후처리 체인 (계획 8.1): N8AO(high) → Bloom → TiltShift2(초점 띠가 대상을 따라감) → Vignette → AGX 톤매핑.
- * low 단계에서는 이 컴포넌트를 마운트하지 않고 렌더러 AGX 톤매핑만 쓴다.
+ * 후처리 체인 (계획 8.1): N8AO(high) → Bloom → TiltShift2(초점 띠가 대상을 따라감) → Vignette → Neutral 톤매핑.
+ * low 단계에서는 이 컴포넌트를 마운트하지 않고 렌더러 Neutral 톤매핑만 쓴다.
  */
 export function Postfx({ quality, focused, focusUv }: { quality: QualityConfig; focused: boolean; focusUv: React.RefObject<FocusUv> }) {
   const tilt = useRef<TiltShiftEffect>(null);
@@ -22,7 +22,7 @@ export function Postfx({ quality, focused, focusUv }: { quality: QualityConfig; 
     const b = bloom.current;
     if (b) {
       bloomScale.current += (fxLevel().bloom - bloomScale.current) * Math.min(1, dt * 5);
-      b.intensity = (focused ? 0.16 : 0.45) * bloomScale.current;
+      b.intensity = (focused ? 0.12 : 0.3) * bloomScale.current;
     }
     const t = tilt.current;
     if (!t) return;
@@ -40,13 +40,13 @@ export function Postfx({ quality, focused, focusUv }: { quality: QualityConfig; 
     <EffectComposer multisampling={quality.msaa} enableNormalPass={false}>
       <>
         {quality.n8ao ? <N8AO aoRadius={2.6} distanceFalloff={1.2} intensity={2.2} quality="medium" halfRes /> : <></>}
-        {quality.bloom ? <Bloom ref={bloom} mipmapBlur luminanceThreshold={focused ? 3.2 : 2.0} luminanceSmoothing={0.3} intensity={focused ? 0.16 : 0.45} radius={0.7} /> : <></>}
+        {quality.bloom ? <Bloom ref={bloom} mipmapBlur luminanceThreshold={focused ? 3.2 : 2.4} luminanceSmoothing={0.3} intensity={focused ? 0.12 : 0.3} radius={0.7} /> : <></>}
         {quality.tiltShift ? <TiltShift2 ref={tilt} samples={8} direction={[1, 1]} blur={0.2} taper={0.38} start={[0, 0.45]} end={[1, 0.45]} /> : <></>}
-        {quality.vignette ? <Vignette eskil={false} offset={0.28} darkness={0.55} /> : <></>}
-        <ToneMapping mode={ToneMappingMode.AGX} />
-        {/* AGX가 눌러 놓은 채도·대비를 되살린다 */}
+        {quality.vignette ? <Vignette eskil={false} offset={0.28} darkness={0.3} /> : <></>}
+        <ToneMapping mode={ToneMappingMode.NEUTRAL} />
+        {/* 낮 장면 채도 보정 */}
         <HueSaturation saturation={0.12} />
-        <BrightnessContrast contrast={focused ? 0.22 : 0.16} brightness={focused ? -0.05 : -0.02} />
+        <BrightnessContrast contrast={focused ? 0.12 : 0.08} brightness={0} />
       </>
     </EffectComposer>
   );

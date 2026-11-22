@@ -36,17 +36,16 @@ function BlockShell({ block, ctx, children, title, paper = false }: { block: Cus
       data-testid="custom-block"
       data-block-id={block.blockId}
       data-block-type={block.type}
-      className={`relative rounded-xl border p-3 pt-4 shadow-md ${paper ? 'border-[#e6d28a] bg-[#fff6cf] text-[#3a3410]' : 'tw-card'}`}
+      className={`tg-card bt-block relative p-3 pt-4${paper ? ' note' : ''}`}
     >
-      <span aria-hidden className="tool-pin" style={{ left: 18, top: -5 }} />
       <div className="flex items-baseline gap-2">
         <span
-          className="rounded px-1.5 text-[10px] font-bold tracking-wide"
-          style={paper ? { background: '#33290a22', color: '#6b5200' } : { background: 'color-mix(in srgb, var(--tool) 20%, transparent)', color: 'var(--tool-text)' }}
+          className="tg-chip tonal"
+          style={{ '--c': 'var(--tool)' } as React.CSSProperties}
         >
           {BLOCK_LABEL[block.type]}
         </span>
-        {title && <h3 className="min-w-0 flex-1 truncate text-sm font-bold">{title}</h3>}
+        {title && <h3 className="min-w-0 flex-1 truncate text-body font-bold">{title}</h3>}
         {!title && <span className="flex-1" />}
         {ctx.canEdit && (
           <button
@@ -55,7 +54,7 @@ function BlockShell({ block, ctx, children, title, paper = false }: { block: Cus
             data-testid="custom-block-remove"
             disabled={busy}
             onClick={() => void run({ op: 'block_remove', blockId: block.blockId }, gone)}
-            className={`rounded px-1.5 disabled:opacity-40 ${paper ? 'text-[#6b5200] hover:bg-black/10' : 'text-muted hover:bg-raised hover:text-fg'}`}
+            className="rounded px-1.5 text-muted hover:bg-raised hover:text-fg disabled:opacity-40"
           >
             ×
           </button>
@@ -70,7 +69,7 @@ function BlockShell({ block, ctx, children, title, paper = false }: { block: Cus
 function TextView({ block, ctx }: { block: TextBlock; ctx: Ctx }) {
   return (
     <BlockShell block={block} ctx={ctx} paper>
-      <p className="mt-1.5 whitespace-pre-wrap break-words text-sm font-medium leading-relaxed">{block.text}</p>
+      <p className="mt-1.5 whitespace-pre-wrap break-words text-body font-medium leading-relaxed">{block.text}</p>
     </BlockShell>
   );
 }
@@ -82,20 +81,20 @@ function ChecklistView({ block, ctx }: { block: ChecklistBlock; ctx: Ctx }) {
   const full = block.items.length >= L.customChecklist;
   return (
     <BlockShell block={block} ctx={ctx} title={block.title}>
-      <div className="flex items-center gap-2 text-xs text-muted">
+      <div className="flex items-center gap-2 text-aux text-muted">
         <span>
           {done}/{block.items.length}
         </span>
-        <span aria-hidden className="h-1.5 flex-1 overflow-hidden rounded-full tw-track">
-          <span className="block h-full rounded-full bg-[var(--tool)] transition-[width]" style={{ width: `${block.items.length ? Math.round((done / block.items.length) * 100) : 0}%` }} />
+        <span aria-hidden className="prog flex-1">
+          <b style={{ width: `${block.items.length ? Math.round((done / block.items.length) * 100) : 0}%` }} />
         </span>
       </div>
       {block.items.length === 0 ? (
-        <p className="mt-1 text-xs text-muted">아직 항목이 없어요.</p>
+        <p className="mt-1 text-aux text-muted">아직 항목이 없어요.</p>
       ) : (
         <ul className="mt-1.5 flex flex-col gap-1">
           {block.items.map((c) => (
-            <li key={c.checkId} data-check-id={c.checkId} className="flex items-center gap-2 text-sm">
+            <li key={c.checkId} data-check-id={c.checkId} className={`ck${c.done ? " done" : ""}`}>
               <label className="flex min-w-0 flex-1 items-center gap-2">
                 <input
                   type="checkbox"
@@ -105,7 +104,7 @@ function ChecklistView({ block, ctx }: { block: ChecklistBlock; ctx: Ctx }) {
                   // 토글이 아니라 값 지정: 동시에 눌러도 마지막 값으로 수렴한다
                   onChange={(e) => void run({ op: 'block_check_set', blockId: block.blockId, checkId: c.checkId, done: e.target.checked }, gone)}
                 />
-                <span className={`truncate ${c.done ? 'text-muted line-through' : ''}`}>{c.text}</span>
+                <span className="tx truncate">{c.text}</span>
               </label>
               {ctx.canEdit && (
                 <button
@@ -153,9 +152,9 @@ function VoteView({ block, ctx }: { block: VoteBlock; ctx: Ctx }) {
   const full = block.options.length >= L.customVoteOptions;
   return (
     <BlockShell block={block} ctx={ctx} title={block.question}>
-      <p className="text-xs text-muted">{total}표 · 한 사람당 한 표, 다시 누르면 바꿀 수 있어요</p>
+      <p className="text-aux text-muted">{total}표 · 한 사람당 한 표, 다시 누르면 바꿀 수 있어요</p>
       {block.options.length === 0 ? (
-        <p className="mt-1 text-xs text-muted">아직 선택지가 없어요.{ctx.canEdit ? ' 아래에서 추가해 주세요.' : ''}</p>
+        <p className="mt-1 text-aux text-muted">아직 선택지가 없어요.{ctx.canEdit ? ' 아래에서 추가해 주세요.' : ''}</p>
       ) : (
         <ul className="mt-1.5 flex flex-col gap-1.5">
           {block.options.map((o) => {
@@ -169,7 +168,7 @@ function VoteView({ block, ctx }: { block: VoteBlock; ctx: Ctx }) {
                   aria-pressed={selected}
                   disabled={!ctx.canEdit || busy}
                   onClick={() => void run({ op: 'vote_cast', blockId: block.blockId, optionId: o.optionId }, gone)}
-                  className={`relative min-w-0 flex-1 overflow-hidden rounded-lg border tw-inset px-2.5 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-70 ${selected ? 'border-[var(--tool)]' : 'border-line enabled:hover:border-[var(--tool)]'}`}
+                  className={`relative min-w-0 flex-1 overflow-hidden rounded-lg border tw-inset px-2.5 py-2 text-left text-body disabled:cursor-not-allowed disabled:opacity-70 ${selected ? 'border-[var(--tool)]' : 'border-line enabled:hover:border-[var(--tool)]'}`}
                 >
                   <span
                     aria-hidden
@@ -181,8 +180,8 @@ function VoteView({ block, ctx }: { block: VoteBlock; ctx: Ctx }) {
                   />
                   <span className="relative flex items-center gap-2">
                     <span className="min-w-0 flex-1 truncate font-medium">{o.text}</span>
-                    <span className="text-xs font-bold tabular-nums">{n}표</span>
-                    {selected && <span className="rounded bg-[var(--tool)] px-1 text-[10px] font-bold text-[var(--tool-ink)]">내 표</span>}
+                    <span className="text-aux font-bold tabular-nums">{n}표</span>
+                    {selected && <span className="rounded bg-[var(--tool)] px-1 text-label font-bold text-[var(--tool-ink)]">내 표</span>}
                   </span>
                 </button>
                 {ctx.canEdit && (
@@ -229,17 +228,17 @@ function CounterView({ block, ctx }: { block: CounterBlock; ctx: Ctx }) {
   return (
     <BlockShell block={block} ctx={ctx} title={block.label}>
       <div className="mt-2 flex items-center justify-center gap-3 rounded-xl tw-inset py-2">
-        <button type="button" aria-label="하나 줄이기" data-testid="counter-dec" disabled={!ctx.canEdit || busy || atMin} onClick={() => void run({ op: 'counter_add', blockId: block.blockId, delta: -1 }, gone)} className={`${toolBtn} h-9 w-9 rounded-full text-lg`}>
+        <button type="button" aria-label="하나 줄이기" data-testid="counter-dec" disabled={!ctx.canEdit || busy || atMin} onClick={() => void run({ op: 'counter_add', blockId: block.blockId, delta: -1 }, gone)} className={`${toolBtn} h-9 w-9 rounded-full text-title`}>
           −
         </button>
         <span data-testid="counter-value" className="min-w-[3.5rem] text-center text-3xl font-extrabold tabular-nums text-[var(--tool-text)]">
           {block.value}
         </span>
-        <button type="button" aria-label="하나 늘리기" data-testid="counter-inc" disabled={!ctx.canEdit || busy || atMax} onClick={() => void run({ op: 'counter_add', blockId: block.blockId, delta: 1 }, gone)} className={`${toolBtn} h-9 w-9 rounded-full text-lg`}>
+        <button type="button" aria-label="하나 늘리기" data-testid="counter-inc" disabled={!ctx.canEdit || busy || atMax} onClick={() => void run({ op: 'counter_add', blockId: block.blockId, delta: 1 }, gone)} className={`${toolBtn} h-9 w-9 rounded-full text-title`}>
           +
         </button>
         {(block.min !== null || block.max !== null) && (
-          <span className="text-[11px] text-muted">
+          <span className="text-label text-muted">
             {block.min ?? '…'} ~ {block.max ?? '…'}
           </span>
         )}
@@ -271,7 +270,7 @@ function AddBlockForm({ tool, roomId }: { tool: CustomTool; roomId: string }) {
   return (
     <form
       data-testid="custom-add-form"
-      className="mt-3 flex flex-wrap items-center gap-1.5 rounded-xl border border-dashed border-line tw-inset p-2.5"
+      className="mt-3 flex flex-wrap items-center gap-1.5 tg-card p-2.5"
       onSubmit={async (e) => {
         e.preventDefault();
         const t = text.trim();
@@ -305,7 +304,7 @@ function AddBlockForm({ tool, roomId }: { tool: CustomTool; roomId: string }) {
       <button type="submit" disabled={busy || !text.trim() || full} className={toolBtnPrimary}>
         블록 추가
       </button>
-      {full && <span className="text-[11px] text-muted">블록은 {L.customBlocks}개까지예요</span>}
+      {full && <span className="text-label text-muted">블록은 {L.customBlocks}개까지예요</span>}
       <ToolError message={error} />
     </form>
   );
@@ -317,7 +316,7 @@ export function CustomPanel({ tool, roomId, canEdit, meId }: { tool: CustomTool;
   return (
     <div data-testid="custom-panel" className="mt-4 flex flex-col gap-4">
       {tool.blocks.length === 0 ? (
-        <p className="text-sm text-muted">블록이 없어요.</p>
+        <p className="text-body text-muted">블록이 없어요.</p>
       ) : (
         tool.blocks.map((b) => <BlockView key={b.blockId} block={b} ctx={ctx} />)
       )}

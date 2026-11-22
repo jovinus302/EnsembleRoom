@@ -389,7 +389,7 @@ export function pickPreviewInteraction(
   };
 }
 
-export const INTERACTION_COLORS = { a2a: '#8b7bff', a2h: '#ff9a3c', h2a: '#e8edf7' } as const;
+export const INTERACTION_COLORS = { a2a: '#8b7bff', a2h: '#ffb45a', h2a: '#e8edf7' } as const;
 export const INTERACTION_LABEL = { a2a: 'A2A', a2h: 'A2H', h2a: 'H→A' } as const;
 export const INTERACTION_HINT = {
   a2a: 'Agent끼리 묻고 답함',

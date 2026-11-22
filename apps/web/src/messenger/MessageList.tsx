@@ -29,7 +29,8 @@ import { A2AThread, agentIdPredicate, ChannelBadge, DirectionChip, ThreadLinkChi
 import { AUTO_REPLY_LABEL, titleOf } from './labels';
 import { isVisitEvent, VisitCard } from './VisitCards';
 import { foldVisits } from './visits';
-import { ink, tint } from '../theme';
+import { ink } from '../theme';
+import { btn, cvar } from '../ui/tg';
 import { AnswerBlocks } from './answerBlocks/AnswerBlocks';
 import { BlockSkeleton } from './answerBlocks/BlockSkeleton';
 import { isNearBottom, onContentGrow, sentByMe } from './scrollFollow';
@@ -144,25 +145,20 @@ function Bubble({
   color,
   mine,
   state,
-  agentLike,
 }: {
   text: string;
   color: string;
   mine: boolean;
-  /** sent = 확정(채워짐), sending = 보냄(테두리만), failed */
+  /** sent = 확정(채워짐), sending = 보냄(바탕 없음), failed */
   state: 'sent' | 'sending' | 'failed';
-  agentLike: boolean;
 }) {
-  const filled = state === 'sent';
+  const sent = state === 'sent';
   return (
     <div
-      className={`surface-card max-w-[560px] whitespace-pre-wrap break-words px-3.5 py-2 text-sm leading-relaxed ${
-        agentLike ? 'rounded-xl border-dashed' : mine ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'
-      } border ${state === 'failed' ? 'border-red-400' : ''}`}
+      className={`tg-bubble ${mine ? 'me' : 'other'} ${state === 'failed' ? 'fail' : ''} max-w-[560px] whitespace-pre-wrap break-words`}
       style={{
-        borderColor: state === 'failed' ? undefined : color,
-        backgroundColor: filled ? tint(color, mine ? '--tint-me' : '--tint-other') : 'var(--card-base-dim)',
-        color: filled ? 'var(--fg)' : 'var(--muted)',
+        ...cvar(color),
+        ...(sent ? {} : { background: 'var(--card)', color: 'var(--muted)' }),
       }}
     >
       {text}
@@ -174,18 +170,16 @@ function PendingRow({ p, color }: { p: PendingMessage; color: string }) {
   const state = p.status === 'failed' ? 'failed' : p.status === 'acked' ? 'sent' : 'sending';
   return (
     <li className="flex flex-col items-end gap-1" data-testid="msg-pending" data-state={state}>
-      <Bubble text={p.text} color={color} mine state={state} agentLike={false} />
-      <span className="flex items-center gap-2 text-[11px] text-muted" role={p.status === 'failed' ? 'alert' : undefined}>
+      <Bubble text={p.text} color={color} mine state={state} />
+      <span className="tg-mono flex items-center gap-2" role={p.status === 'failed' ? 'alert' : undefined}>
         {p.status === 'sending' && '보냄…'}
         {p.status === 'acked' && '확정 중…'}
         {p.status === 'failed' && (
           <>
-            <span className="text-danger">전송 실패{p.error ? ` · ${p.error}` : ''}</span>
-            <button
-              type="button"
-              onClick={() => void sendMessage(p.roomId, p.text, p.clientId, p.to)}
-              className="rounded border border-line px-1.5 py-0.5 text-fg hover:bg-raised"
-            >
+            <span className="tg-aux normal-case tracking-normal" style={{ color: 'var(--destructive-ink)' }}>
+              전송 실패{p.error ? ` · ${p.error}` : ''}
+            </span>
+            <button type="button" onClick={() => void sendMessage(p.roomId, p.text, p.clientId, p.to)} className={btn('dghost')}>
               다시 시도
             </button>
           </>
@@ -197,25 +191,29 @@ function PendingRow({ p, color }: { p: PendingMessage; color: string }) {
 
 const fmtTime = (ts: number) => new Date(ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 
-const NOTICE_STYLE: Record<NoticeTone, { glyph: string; cls: string }> = {
-  plain: { glyph: '·', cls: 'text-muted' },
-  pause: { glyph: '‖', cls: 'text-warn' },
-  error: { glyph: '!', cls: 'text-danger' },
-  memory: { glyph: '✦', cls: 'text-ok' },
-  travel: { glyph: '→', cls: 'text-muted' },
-  note: { glyph: '✎', cls: 'text-info' },
-  agree: { glyph: '★', cls: 'text-star' },
-  report: { glyph: '▤', cls: 'text-info' },
+const NOTICE_STYLE: Record<NoticeTone, { glyph: string; cls: string; pill: string }> = {
+  plain: { glyph: '·', cls: 'text-muted', pill: '' },
+  pause: { glyph: '‖', cls: 'text-warn', pill: 'amber' },
+  error: { glyph: '!', cls: 'text-danger', pill: 'err' },
+  memory: { glyph: '✦', cls: 'text-ok', pill: '' },
+  travel: { glyph: '→', cls: 'text-muted', pill: '' },
+  note: { glyph: '✎', cls: 'text-info', pill: '' },
+  agree: { glyph: '★', cls: 'text-star', pill: '' },
+  report: { glyph: '▤', cls: 'text-info', pill: '' },
 };
 
 function NoticeRow({ text, ts, tone }: { text: string; ts: number; tone: NoticeTone }) {
   const st = NOTICE_STYLE[tone];
   return (
-    <li data-testid="notice" data-tone={tone} className={`anim-in text-center text-xs ${st.cls}`}>
-      <span aria-hidden="true" className="mr-1.5">
-        {st.glyph}
+    <li data-testid="notice" data-tone={tone} className="anim-in flex justify-center">
+      <span className={`tg-notice wrap ${st.pill}`}>
+        <span aria-hidden="true" className={st.cls}>
+          {st.glyph}
+        </span>
+        <span>
+          {text} <span className="opacity-70">· {fmtTime(ts)}</span>
+        </span>
       </span>
-      {text} <span className="text-muted">· {fmtTime(ts)}</span>
     </li>
   );
 }
@@ -288,24 +286,22 @@ function AgentRow({
         {streaming && (
           <span
             aria-hidden="true"
-            className="live-bubble absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface"
-            style={{ background: author.color, ['--glow' as string]: `${author.color}99` }}
+            className="live-bubble absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full"
+            style={{ background: author.color, border: '2px solid var(--popover)', ['--glow' as string]: `${author.color}99` }}
           />
         )}
       </span>
       <div className="flex min-w-0 flex-col items-start gap-1">
-        <span className="flex flex-wrap items-center gap-1.5 text-xs">
+        <span className="tg-mono flex flex-wrap items-center gap-1.5">
           {reply && (
             <span aria-hidden="true" data-testid="reply-mark" style={{ color: INTERACTION_COLORS.a2a }}>
               ↩
             </span>
           )}
           {badge && !reply && <ChannelBadge channel={badge} />}
-          <span className="font-medium" style={{ color: ink(author.color) }}>
-            {author.name}
-          </span>
+          <span style={{ color: ink(author.color) }}>{author.name}</span>
           {author.kind === 'system' ? (
-            <span className="rounded border px-1 text-[10px] leading-4" style={{ borderColor: author.color, color: ink(author.color) }}>
+            <span className="tg-chip tonal !h-[18px] !px-2" style={cvar(author.color)}>
               시스템
             </span>
           ) : (
@@ -315,8 +311,8 @@ function AgentRow({
             <span
               data-testid="mode-badge"
               data-mode={auto ? 'auto_reply' : mode}
-              className="rounded-full px-1.5 text-[10px] leading-4 text-[var(--on-accent)]"
-              style={{ background: author.color }}
+              className="tg-chip tonal !h-[18px] !px-2"
+              style={cvar(author.color)}
             >
               {modeLabel}
             </span>
@@ -329,30 +325,25 @@ function AgentRow({
               <WorkingDots label={label} />
             </span>
           ) : (
-            <span className="text-muted">{fmtTime(ts)}</span>
+            <span className="whitespace-nowrap">{fmtTime(ts)}</span>
           )}
         </span>
         <div
           data-testid="agent-bubble"
-          className={`surface-card max-w-[560px] whitespace-pre-wrap break-words rounded-xl rounded-tl-sm border px-3.5 py-2 text-sm leading-relaxed ${
-            streaming ? 'live-bubble' : ''
-          }`}
+          className={`tg-bubble other ${room ? 'room' : 'agent'} max-w-[560px] whitespace-pre-wrap break-words`}
           style={{
-            borderTopColor: `${author.color}${streaming ? 'cc' : '88'}`,
-            borderRightColor: `${author.color}${streaming ? 'cc' : '88'}`,
-            borderBottomColor: `${author.color}${streaming ? 'cc' : '88'}`,
-            borderLeftWidth: 3,
-            borderLeftColor: badge === 'a2h' ? INTERACTION_COLORS.a2h : author.color,
-            backgroundColor: tint(author.color, room ? '--tint-agent-room' : '--tint-agent-dm'),
-            ['--glow' as string]: `${author.color}55`,
+            ...cvar(author.color),
+            ...(badge === 'a2h' ? { borderLeftColor: INTERACTION_COLORS.a2h } : {}),
           }}
         >
           {shown ? (
             <span className={typing ? 'stream-cursor' : undefined}>{shown}</span>
           ) : (
-            <span className="inline-flex items-center gap-2 text-muted" style={{ color: ink(author.color) }}>
+            <span className="inline-flex items-center gap-2" style={{ color: ink(author.color) }}>
               <WorkingDots label={label} />
-              <span className="text-xs">{label}</span>
+              <span className="tg-aux" style={{ color: 'inherit' }}>
+                {label}
+              </span>
             </span>
           )}
         </div>
@@ -703,9 +694,9 @@ export function MessageList({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-    <div ref={scrollerRef} onScroll={onScroll} data-testid="message-scroller" className="chat-surface min-h-0 flex-1 overflow-y-auto px-6 py-4">
+    <div ref={scrollerRef} onScroll={onScroll} data-testid="message-scroller" className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
       {slice?.snapshotLoaded && items.length === 0 && (
-        <p className="mt-10 text-center text-sm text-muted">아직 대화가 없습니다. 첫 메시지를 보내 보세요.</p>
+        <p className="tg-aux mt-10 text-center">아직 대화가 없습니다. 첫 메시지를 보내 보세요.</p>
       )}
       <ul ref={contentRef} role="log" aria-live="polite" aria-label="메시지" className="flex flex-col gap-3">
         {items.map((it, i) => {
@@ -769,18 +760,16 @@ export function MessageList({
               )}
               <div className={`flex flex-col gap-1 ${it.mine ? 'items-end' : 'items-start'}`}>
                 {!grouped && !it.mine && (
-                  <span className="flex items-center gap-1.5 text-xs">
+                  <span className="tg-mono flex items-center gap-1.5 px-1">
                     {humanBadge && <ChannelBadge channel={humanBadge} />}
-                    <span className="font-medium" style={{ color: ink(it.author.color) }}>
-                      {it.author.name}
-                    </span>
+                    <span style={{ color: ink(it.author.color) }}>{it.author.name}</span>
                     <DirectionChip to={humanTo} />
-                    <span className="text-muted">{fmtTime(it.ts)}</span>
+                    <span className="whitespace-nowrap">{fmtTime(it.ts)}</span>
                   </span>
                 )}
-                <Bubble text={it.text} color={it.author.color} mine={it.mine} state="sent" agentLike={false} />
+                <Bubble text={it.text} color={it.author.color} mine={it.mine} state="sent" />
                 {it.mine && !grouped && (
-                  <span className="flex items-center gap-1.5 text-[11px] text-muted">
+                  <span className="tg-mono flex items-center gap-1.5 px-1">
                     {humanBadge && <ChannelBadge channel={humanBadge} />}
                     <DirectionChip to={humanTo} />
                     {fmtTime(it.ts)}
@@ -798,7 +787,7 @@ export function MessageList({
         type="button"
         data-testid="jump-to-latest"
         onClick={toBottom}
-        className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-1 text-xs text-fg shadow hover:bg-raised"
+        className="tg-jump absolute bottom-3 left-1/2 -translate-x-1/2"
       >
         새 메시지 ↓
       </button>

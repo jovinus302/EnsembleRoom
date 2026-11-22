@@ -12,8 +12,7 @@ import type {
 import { api, voteErrorText } from '../api/client';
 import { useApprovalInbox } from '../store/approvalStore';
 import { ChannelBadge, ThreadLinkChip } from './InteractionChips';
-import { APPROVAL_ORANGE } from './visits';
-import { tint, APPROVAL_INK } from '../theme';
+import { btn } from '../ui/tg';
 
 export const APPROVAL_KIND_LABEL: Record<ApprovalKind, string> = {
   edit: '수정 제안',
@@ -110,10 +109,6 @@ export function approvalViewFromDto(a: ApprovalItemDto, requesterName: string): 
   };
 }
 
-const primary =
-  'rounded-md px-3 py-1.5 text-sm font-semibold text-[var(--on-accent)] transition hover:brightness-110 disabled:opacity-50';
-const ghost = 'rounded-md border px-3 py-1.5 text-sm transition hover:bg-hover disabled:opacity-50';
-
 function EditForm({
   proposal,
   busy,
@@ -130,8 +125,7 @@ function EditForm({
   return (
     <form
       data-testid="approval-edit-form"
-      className="mt-3 flex flex-col gap-2 rounded-lg border bg-bg/60 p-2.5"
-      style={{ borderColor: `${APPROVAL_ORANGE}88` }}
+      className="full prop"
       onSubmit={(e) => {
         e.preventDefault();
         const edited: EditProposal = { ...(proposal.cardId ? { cardId: proposal.cardId } : {}) };
@@ -140,36 +134,30 @@ function EditForm({
         onSubmit(edited);
       }}
     >
-      <label className="text-[11px] text-muted">
+      <label className="text-label text-muted">
         제목
         <input
           data-testid="approval-edit-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="mt-0.5 w-full rounded-md border border-line bg-bg px-2 py-1 text-sm text-fg"
+          className="mt-0.5 w-full rounded-md border border-line bg-bg px-2 py-1 text-aux text-fg"
         />
       </label>
-      <label className="text-[11px] text-muted">
+      <label className="text-label text-muted">
         내용
         <textarea
           data-testid="approval-edit-body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={3}
-          className="mt-0.5 w-full resize-none rounded-md border border-line bg-bg px-2 py-1 text-sm text-fg"
+          className="mt-0.5 w-full resize-none rounded-md border border-line bg-bg px-2 py-1 text-aux text-fg"
         />
       </label>
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={busy}
-          data-testid="approval-edit-submit"
-          className={primary}
-          style={{ background: APPROVAL_ORANGE }}
-        >
+      <div className="acts">
+        <button type="submit" disabled={busy} data-testid="approval-edit-submit" className={btn('primary')}>
           수정해서 승인
         </button>
-        <button type="button" onClick={onCancel} className={ghost} style={{ borderColor: 'var(--line)' }}>
+        <button type="button" onClick={onCancel} className={btn('ghost')}>
           취소
         </button>
       </div>
@@ -179,18 +167,19 @@ function EditForm({
 
 function ProposalBox({ label, p }: { label: string; p: EditProposal }) {
   return (
-    <div className="mt-2.5 rounded-lg border border-line bg-bg/60 p-2.5" data-testid="approval-proposal">
-      <div className="text-[11px] text-muted">{label}</div>
-      {p.title && <div className="mt-0.5 font-semibold">{p.title}</div>}
-      {p.body && <div className="mt-0.5 whitespace-pre-wrap break-words text-[13px] text-fg/90">{p.body}</div>}
+    <div className="full prop" data-testid="approval-proposal">
+      <span className="tg-mono">{label}</span>
+      {p.title && <span className="font-semibold">{p.title}</span>}
+      {p.body && <span className="whitespace-pre-wrap break-words">{p.body}</span>}
     </div>
   );
 }
 
 /**
- * 승인 카드. 주황(승인 전용 색)으로 강조한다.
+ * 승인 카드 (Tide Glass `tg-appr`). 앰버 단일색(pending) → 아쿠아(approved) / 흐림(rejected).
  * - 결정형(options): 선택지 버튼. 수정안(proposal): 승인 / 수정해서 승인 / 거절. takeout·visit: 승인 / 거절.
  * - 결정은 POST /api/approvals/:id/vote. 오류 코드별 문구로 안내한다.
+ * - compact는 한 줄 행(요약 + 승인 버튼). 제안·투표·수정 폼처럼 긴 내용은 아래 줄(.full)로 내려간다.
  */
 export function ApprovalCard({
   view,
@@ -242,6 +231,58 @@ export function ApprovalCard({
   }
 
   const votes = Object.entries(view.votes);
+  const pending = status === 'pending';
+  const rejected = status === 'rejected';
+  const kindText = view.a2h ? 'A2H' : APPROVAL_KIND_LABEL[view.kind];
+  const stateText = pending ? '승인 대기' : OUTCOME_LABEL[status];
+  const monoStyle = pending ? { color: 'var(--amber-ink)' } : { color: rejected ? 'var(--destructive-ink)' : 'var(--fg)' };
+  const outcomeText = pending
+    ? ''
+    : `${OUTCOME_LABEL[status]}${status === 'approved' && view.resolvedOption ? ` · ${view.resolvedOption}` : ''}`;
+  const outcomeChip = !pending && (
+    <span data-testid="approval-outcome" className={`tg-chip ${rejected ? 'err' : 'badge-ok'}`} title={outcomeText}>
+      {outcomeText}
+    </span>
+  );
+  // compact 행에는 버튼이 한 줄에 들어갈 때만 인라인으로 둔다
+  const simpleActs = !view.options && !(view.kind === 'edit' && view.proposal);
+  const strike = rejected ? { textDecoration: 'line-through', textDecorationColor: 'var(--destructive)' } : undefined;
+
+  const actions = (
+    <>
+      {view.options ? (
+        view.options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            disabled={busy}
+            className={btn('primary')}
+            data-testid="approval-option"
+            onClick={() => void decide('approve', { option: o })}
+          >
+            {o}
+          </button>
+        ))
+      ) : (
+        <button type="button" disabled={busy} className={btn('primary')} data-testid="approval-approve" onClick={() => void decide('approve')}>
+          승인
+        </button>
+      )}
+      {view.kind === 'edit' && view.proposal && (
+        <button type="button" disabled={busy} className={btn('soft')} data-testid="approval-edit" onClick={() => setEditing(true)}>
+          수정해서 승인
+        </button>
+      )}
+      <button type="button" disabled={busy} className={btn('dghost')} data-testid="approval-reject" onClick={() => void decide('reject')}>
+        거절
+      </button>
+      {onOpenRoom && (
+        <button type="button" onClick={onOpenRoom} className={`${btn('ghost')} ml-auto`}>
+          Room 열기
+        </button>
+      )}
+    </>
+  );
 
   return (
     <li
@@ -250,62 +291,72 @@ export function ApprovalCard({
       data-kind={view.kind}
       data-seq={view.seq}
       data-actionable={actionable ? 'true' : 'false'}
-      className={`surface-card anim-card my-1 w-full rounded-xl p-3.5 text-sm ${status === 'pending' ? 'approval-pending border-2' : 'border'} ${compact ? '' : 'max-w-[560px] self-center'}`}
-      style={
-        {
-          // 색 값(PALETTE.approvalOrange)은 그대로 두고, L1(승인)이 가장 눈에 띄도록 두꺼운 테두리·왼쪽 띠·글로우(approval-pending, index.css)로 보강한다
-          '--glow': APPROVAL_ORANGE,
-          borderColor: status === 'pending' ? APPROVAL_ORANGE : `${APPROVAL_ORANGE}66`,
-          backgroundColor: tint(APPROVAL_ORANGE, status === 'pending' ? '--tint-approval-pending' : '--tint-approval'),
-        } as React.CSSProperties
-      }
+      className={`tg-card tg-appr anim-card ${status}${pending ? ' live' : ''}${compact ? ' compact' : ' max-w-[560px] self-center'} my-1 w-full`}
     >
-      {view.a2h && (
-        <div data-testid="a2h-header" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs">
-          <ChannelBadge channel="a2h" />
-          <span className="font-medium">{view.requesterName}</span>
-          <span className="text-muted">→</span>
-          <span className="font-medium" data-testid="a2h-approvers">
-            {approverNames}
+      {compact ? (
+        <>
+          <span className="tg-mono" style={monoStyle}>
+            {kindText}
           </span>
-          <span className="text-muted">· 승인 요청</span>
-          {view.a2h.threadSeq !== null && <ThreadLinkChip label="A2A 대화에서" threadSeq={view.a2h.threadSeq} />}
-        </div>
+          <span className="sum" title={view.summary} style={strike}>
+            {view.summary}
+          </span>
+          {outcomeChip}
+          {actionable && !editing && simpleActs && <span className="acts">{actions}</span>}
+          {actionable && !editing && !simpleActs && <div className="full acts">{actions}</div>}
+          {view.publicRationale && <p className="full text-aux text-muted">이유 · {view.publicRationale}</p>}
+        </>
+      ) : (
+        <>
+          <div className="hd">
+            <span className="tg-mono" style={monoStyle}>
+              {kindText} · {stateText}
+            </span>
+            {pending ? (
+              <span className="tg-mono">{view.ts ? fmtTime(view.ts) : ''}</span>
+            ) : (
+              <span className="inline-flex items-center gap-2">
+                <svg className="chk" width="22" height="18" viewBox="0 0 18 18" aria-hidden="true" style={rejected ? { display: 'none' } : undefined}>
+                <path d="M3 9l4 4 8-9" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+                {outcomeChip}
+              </span>
+            )}
+          </div>
+          <div className="route" data-testid={view.a2h ? 'a2h-header' : undefined}>
+            {view.a2h && <ChannelBadge channel="a2h" />}
+            <span>{view.requesterName}</span>
+            <em>→</em>
+            <span data-testid={view.a2h ? 'a2h-approvers' : undefined}>{approverNames}</span>
+            {view.a2h && <em>· 승인 요청</em>}
+            {view.roomTitle && <em>· {view.roomTitle}</em>}
+            {view.a2h && view.a2h.threadSeq !== null && <ThreadLinkChip label="A2A 대화에서" threadSeq={view.a2h.threadSeq} />}
+          </div>
+          <p className="sum whitespace-pre-wrap break-words" style={strike ? { ...strike, opacity: 0.8 } : undefined}>
+            {view.summary}
+          </p>
+          {view.publicRationale && <p className="text-aux text-muted">이유 · {view.publicRationale}</p>}
+        </>
       )}
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded-full px-2 py-0.5 font-semibold text-[var(--on-accent)]" style={{ background: APPROVAL_ORANGE }}>
-          {status === 'pending' && <span aria-hidden="true" className="approval-dot mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--on-accent)] align-middle" />}
-          {APPROVAL_KIND_LABEL[view.kind]}
-        </span>
-        <span className="text-muted">
-          {view.roomTitle ? `${view.roomTitle} · ` : ''}
-          {view.requesterName} 요청{view.ts ? ` · ${fmtTime(view.ts)}` : ''}
-        </span>
-        {status !== 'pending' && (
-          <span className="ml-auto font-medium" style={{ color: APPROVAL_INK }} data-testid="approval-outcome">
-            {OUTCOME_LABEL[status]}
-            {status === 'approved' && view.resolvedOption ? ` · ${view.resolvedOption}` : ''}
-          </span>
-        )}
-      </div>
-
-      <p className="mt-2 whitespace-pre-wrap break-words font-medium leading-relaxed">{view.summary}</p>
-      {view.publicRationale && <p className="mt-1 text-xs text-muted">이유 · {view.publicRationale}</p>}
 
       {view.proposal && (
-        <ProposalBox
-          label={view.proposal.cardId ? `카드 수정안 · ${view.proposal.cardId.slice(0, 8)}` : '새 카드 제안'}
-          p={view.proposal}
-        />
+        <div className="extra full">
+          <div>
+            <ProposalBox
+              label={view.proposal.cardId ? `카드 수정안 · ${view.proposal.cardId.slice(0, 8)}` : '새 카드 제안'}
+              p={view.proposal}
+            />
+          </div>
+        </div>
       )}
-      {view.applied && status !== 'pending' && <ProposalBox label="보드에 반영된 내용" p={view.applied} />}
+      {view.applied && !pending && <ProposalBox label="보드에 반영된 내용" p={view.applied} />}
 
       {votes.length > 0 && (
-        <ul className="mt-2 flex flex-wrap gap-1.5 text-[11px]" data-testid="approval-votes">
+        <ul className="full flex flex-wrap gap-1.5" data-testid="approval-votes">
           {votes.map(([uid, d]) => {
             const det = view.voteDetail?.[uid];
             return (
-              <li key={uid} className="rounded-full border px-2 py-0.5" style={{ borderColor: `${APPROVAL_ORANGE}88` }}>
+              <li key={uid} className="tg-chip warn !normal-case !tracking-normal">
                 {nameOf(uid)} · {VOTE_LABEL[d]}
                 {det?.option ? ` (${det.option})` : ''}
               </li>
@@ -314,63 +365,7 @@ export function ApprovalCard({
         </ul>
       )}
 
-      {actionable && !editing && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {view.options ? (
-            view.options.map((o) => (
-              <button
-                key={o}
-                type="button"
-                disabled={busy}
-                className={primary}
-                style={{ background: APPROVAL_ORANGE }}
-                data-testid="approval-option"
-                onClick={() => void decide('approve', { option: o })}
-              >
-                {o}
-              </button>
-            ))
-          ) : (
-            <button
-              type="button"
-              disabled={busy}
-              className={primary}
-              style={{ background: APPROVAL_ORANGE }}
-              data-testid="approval-approve"
-              onClick={() => void decide('approve')}
-            >
-              승인
-            </button>
-          )}
-          {view.kind === 'edit' && view.proposal && (
-            <button
-              type="button"
-              disabled={busy}
-              className={ghost}
-              style={{ borderColor: APPROVAL_ORANGE, color: APPROVAL_INK }}
-              data-testid="approval-edit"
-              onClick={() => setEditing(true)}
-            >
-              수정해서 승인
-            </button>
-          )}
-          <button
-            type="button"
-            disabled={busy}
-            className={ghost}
-            style={{ borderColor: APPROVAL_ORANGE, color: APPROVAL_INK }}
-            data-testid="approval-reject"
-            onClick={() => void decide('reject')}
-          >
-            거절
-          </button>
-          {onOpenRoom && (
-            <button type="button" onClick={onOpenRoom} className="ml-auto text-xs text-muted underline-offset-2 hover:underline">
-              Room 열기
-            </button>
-          )}
-        </div>
-      )}
+      {!compact && actionable && !editing && <div className="acts">{actions}</div>}
       {actionable && editing && view.proposal && (
         <EditForm
           proposal={view.proposal}
@@ -379,14 +374,19 @@ export function ApprovalCard({
           onSubmit={(edited) => void decide('edit', { edited })}
         />
       )}
-      {!actionable && status === 'pending' && (
-        <p className="mt-2 text-xs text-muted" data-testid="approval-waiting">
+      {!actionable && pending && (
+        <p className="full text-aux text-muted" data-testid="approval-waiting">
           {myVote ? '내 결정을 기록했어요 · ' : ''}승인 대기 · {approverNames}
+        </p>
+      )}
+      {!compact && !pending && view.ts && (
+        <p className="text-aux text-muted">
+          {view.requesterName} 요청 · {fmtTime(view.ts)}
         </p>
       )}
 
       {note && (
-        <p role={note.kind === 'error' ? 'alert' : 'status'} className={`mt-2 text-xs ${note.kind === 'error' ? 'text-danger' : 'text-muted'}`}>
+        <p role={note.kind === 'error' ? 'alert' : 'status'} className={`full text-aux ${note.kind === 'error' ? 'text-danger' : 'text-muted'}`}>
           {note.text}
         </p>
       )}

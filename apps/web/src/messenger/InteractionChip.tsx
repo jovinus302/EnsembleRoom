@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { INTERACTION_COLORS, PREVIEW_INTERACTION_WINDOW_MS, type RoomPreviewDetail } from '@ensemble/shared';
-import { ink } from '../theme';
+import { cvar } from '../ui/tg';
 
 /** 조망 상태 칩: 진행 중인 A2A/A2H의 종류만 보인다(구성원에게만 오는 detail.interaction). pending이 아니면 20초 뒤 숨긴다. */
 export function interactionChip(it: RoomPreviewDetail['interaction'], nowMs: number): { label: string; color: string; channel: 'a2a' | 'a2h' } | null {
@@ -27,8 +27,8 @@ export function InteractionChip({ interaction }: { interaction: RoomPreviewDetai
     <span
       data-testid="room-interaction"
       data-channel={chip.channel}
-      className="mt-0.5 inline-block rounded-full border px-1.5 text-[10px] leading-4"
-      style={{ borderColor: chip.color, color: ink(chip.color) }}
+      className={`tg-chip ${chip.channel === 'a2h' ? 'warn' : 'tonal'} mt-0.5 self-start !h-[18px] !px-2`}
+      style={chip.channel === 'a2h' ? undefined : cvar(chip.color)}
     >
       {chip.label}
     </span>

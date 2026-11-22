@@ -35,7 +35,7 @@ export function ToolWindow({
   }, [onClose]);
   return createPortal(
     <div
-      className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+      className="tg-scrim pointer-events-auto fixed inset-0 z-50 flex items-center justify-center p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -47,7 +47,7 @@ export function ToolWindow({
         aria-label={title}
         tabIndex={-1}
         data-testid={testId}
-        className="anim-card tool-window max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-2xl border shadow-2xl outline-none"
+        className="tg-panel tg-toolwin tool-window max-h-[90vh] w-full max-w-[560px] overflow-y-auto outline-none"
         style={style}
       >
         {header}

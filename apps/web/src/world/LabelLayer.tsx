@@ -1,7 +1,7 @@
-import { useRef, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ink } from '../theme';
+import { cvar } from '../ui/tg';
 
 /**
  * 조망용 이름 칩. 캔버스 안(drei Html)이 아니라 **캔버스 밖 DOM 레이어**에 그린다:
@@ -76,61 +76,45 @@ export function LabelLayer({ items, els }: { items: readonly LabelItem[]; els: R
   return (
     <div aria-hidden="true" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 2 }}>
       {items.map((it) => (
-        <div
-          key={it.id}
-          ref={(el) => {
-            const m = els.current;
-            if (!m) return;
-            if (el) m.set(it.id, el);
-            else m.delete(it.id);
-          }}
-          data-world-label={it.id}
-          className="world-label"
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            display: 'none',
-            alignItems: 'center',
-            gap: 6,
-            padding: '3px 10px 3px 8px',
-            borderRadius: 999,
-            background: 'var(--label-bg)',
-            border: `1px solid ${it.attention ? 'var(--label-attn-border)' : 'var(--label-border)'}`,
-            color: 'var(--label-fg)',
-            font: '600 13px/1.2 "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif',
-            whiteSpace: 'nowrap',
-            letterSpacing: '0.01em',
-            boxShadow: it.attention ? 'var(--label-attn-shadow)' : 'var(--label-shadow)',
-            willChange: 'transform',
-          }}
-        >
-          {it.people?.kind === 'many' ? <PeopleDots colors={it.people.colors} /> : it.people?.kind === 'one' ? <PersonIcon color={it.people.colors[0] ?? it.color} /> : (
-            <span style={{ width: 9, height: 9, borderRadius: 9, background: it.color, boxShadow: `0 0 6px ${it.color}`, flex: 'none' }} />
-          )}
-          {it.label}
-          {it.people?.kind === 'many' && (
-            <span data-testid="label-people-count" style={{ font: '700 11px/1 system-ui, sans-serif', color: 'var(--label-fg-dim)' }}>
-              {it.people.colors.length}
-            </span>
-          )}
-          {it.badge && (
-            <span
-              data-testid="label-badge"
-              style={{
-                font: '700 10.5px/1.2 "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif',
-                color: ink(it.badge.color),
-                border: `1px solid ${it.badge.color}`,
-                borderRadius: 999,
-                padding: '1px 6px',
-                background: 'var(--label-chip-bg)',
-              }}
-            >
-              {it.badge.text}
-            </span>
-          )}
-        </div>
+        <LabelChip key={it.id} it={it} els={els} />
       ))}
+    </div>
+  );
+}
+
+/** 이름표 하나. attention이 false에서 true로 바뀌는 순간에만 링을 1회 맥동시킨다(box-shadow만 애니메이션해서 Projector의 transform과 충돌하지 않는다) */
+function LabelChip({ it, els }: { it: LabelItem; els: RefObject<LabelEls> }) {
+  const [pulse, setPulse] = useState(false);
+  const prev = useRef(it.attention);
+  useEffect(() => {
+    if (it.attention && !prev.current) setPulse(true);
+    prev.current = it.attention;
+  }, [it.attention]);
+  return (
+    <div
+      ref={(el) => {
+        const m = els.current;
+        if (!m) return;
+        if (el) m.set(it.id, el);
+        else m.delete(it.id);
+      }}
+      data-world-label={it.id}
+      className={`world-label tg-nametag${it.attention ? ' attn' : ''}${pulse ? ' pulse1' : ''}`}
+      onAnimationEnd={() => setPulse(false)}
+      style={{ ...cvar(it.color), position: 'absolute', left: 0, top: 0, display: 'none', height: 30, padding: '0 12px 0 10px', willChange: 'transform' }}
+    >
+      {it.people?.kind === 'many' ? <PeopleDots colors={it.people.colors} /> : it.people?.kind === 'one' ? <PersonIcon color={it.people.colors[0] ?? it.color} /> : <span className="d" style={{ flex: 'none' }} />}
+      {it.label}
+      {it.people?.kind === 'many' && (
+        <span data-testid="label-people-count" className="tg-mono">
+          {it.people.colors.length}
+        </span>
+      )}
+      {it.badge && (
+        <span data-testid="label-badge" className="tg-chip tag" style={cvar(it.badge.color)}>
+          {it.badge.text}
+        </span>
+      )}
     </div>
   );
 }
@@ -138,7 +122,7 @@ export function LabelLayer({ items, els }: { items: readonly LabelItem[]; els: R
 /** 1인: 소유자 색 실루엣(머리 + 어깨), 10px */
 function PersonIcon({ color }: { color: string }) {
   return (
-    <svg data-testid="label-people-one" width="10" height="10" viewBox="0 0 10 10" style={{ flex: 'none', filter: `drop-shadow(0 0 3px ${color})` }}>
+    <svg data-testid="label-people-one" width="10" height="10" viewBox="0 0 10 10" style={{ flex: 'none' }}>
       <circle cx="5" cy="3" r="2.2" fill={color} />
       <path d="M0.8 10 C0.8 6.6 2.6 5.6 5 5.6 C7.4 5.6 9.2 6.6 9.2 10 Z" fill={color} />
     </svg>

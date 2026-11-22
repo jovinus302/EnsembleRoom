@@ -1,14 +1,14 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Environment, useEnvironment, useTexture } from '@react-three/drei';
+import { Environment, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import type { QualityConfig } from './quality';
-import { ENV_ROTATION_Y, FOG_COLOR, SUN_DIRECTION, SUN_VISUAL_DIRECTION, patchSky } from './sky';
+import { FOG_COLOR, SUN_DIRECTION, SUN_VISUAL_DIRECTION, patchSky } from './sky';
+import { HAZE, SAND, SEA_FAR, SEA_MID, SEA_SHORE, SKY_LOW, SKY_MID, SKY_TOP } from './scenePalette';
 
 export const SHORE_Z = -46;
 /** 바다 수면 높이. 모래는 물가에서 이 아래로 내려간다 */
 const SEA_Y = -0.25;
-const HDR = '/assets/hdri/sunset_1k.hdr';
 
 export interface WorldBounds {
   minX: number;
@@ -17,26 +17,36 @@ export interface WorldBounds {
   maxZ: number;
 }
 
-// ------------------------------------------------------------------ 하늘: HDRI를 클램프해서 그린다
-// venice_sunset의 태양 픽셀은 수천 배로 밝아 블룸·AGX를 지나면 화면 위 1/3을 하얗게 태운다.
-// 배경과 환경광 모두 같은 셰이더로 밝기를 상한(K)에 눌러 석양 원반·수평선·바다가 보이게 한다.
+// ------------------------------------------------------------------ 하늘: 절차적 그라디언트(scenePalette 색)
+// 하늘 돔, 환경 캡처(유리 반사), 바다 반사가 모두 skyColor() 하나를 호출한다.
 
 const SKY_GLSL = /* glsl */ `
-  uniform sampler2D skyMap;
-  uniform float skyRot;
-  uniform float skyMax;
+  uniform vec3 skyTop;
+  uniform vec3 skyMid;
+  uniform vec3 skyLow;
+  uniform vec3 skyHaze;
   uniform float skyGain;
   vec3 skyColor(vec3 d) {
     d = normalize(d);
-    float u = (atan(d.z, d.x) + skyRot) * 0.15915494 + 0.5;
-    float v = asin(clamp(d.y, -1.0, 1.0)) * 0.31830989 + 0.5;
-    vec3 c = texture2D(skyMap, vec2(u, v)).rgb * skyGain;
-    float m = max(max(c.r, c.g), max(c.b, 1e-4));
-    return c * min(1.0, skyMax / m);
+    float e = d.y;
+    vec3 c = mix(skyHaze, skyLow, smoothstep(0.0, 0.06, e));
+    c = mix(c, skyMid, smoothstep(0.04, 0.32, e));
+    c = mix(c, skyTop, smoothstep(0.30, 0.95, e));
+    return c * skyGain;
   }
 `;
 
-function useSkyMaterial(hdr: THREE.Texture, max: number, gain = 1, sunGlow = false) {
+function skyUniforms(gain: number) {
+  return {
+    skyTop: { value: new THREE.Color(SKY_TOP) },
+    skyMid: { value: new THREE.Color(SKY_MID) },
+    skyLow: { value: new THREE.Color(SKY_LOW) },
+    skyHaze: { value: new THREE.Color(HAZE) },
+    skyGain: { value: gain },
+  };
+}
+
+function useSkyMaterial(gain = 1, sunGlow = false) {
   return useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -45,10 +55,7 @@ function useSkyMaterial(hdr: THREE.Texture, max: number, gain = 1, sunGlow = fal
         depthTest: false,
         fog: false,
         uniforms: {
-          skyMap: { value: hdr },
-          skyRot: { value: ENV_ROTATION_Y },
-          skyMax: { value: max },
-          skyGain: { value: gain },
+          ...skyUniforms(gain),
           sunVis: { value: SUN_VISUAL_DIRECTION },
           sunGlow: { value: sunGlow ? 1 : 0 },
         },
@@ -66,24 +73,22 @@ function useSkyMaterial(hdr: THREE.Texture, max: number, gain = 1, sunGlow = fal
           void main() {
             vec3 col = skyColor(vDir);
             if (sunGlow > 0.5) {
-              // HDRI 태양은 클램프돼 작은 점이 된다: 원반·후광·넓은 노을 번짐을 해석적으로 더한다
+              // 태양 원반 + 흰색 후광
               float cs = max(dot(normalize(vDir), sunVis), 0.0);
-              col += vec3(1.0, 0.74, 0.42) * pow(cs, 650.0) * 6.0;
-              col += vec3(1.0, 0.55, 0.24) * pow(cs, 90.0) * 1.1;
-              col += vec3(0.95, 0.42, 0.2) * pow(cs, 9.0) * 0.38;
+              col += vec3(1.0, 0.98, 0.94) * (pow(cs, 800.0) * 4.0 + pow(cs, 40.0) * 0.35 + pow(cs, 6.0) * 0.12);
             }
             gl_FragColor = vec4(col, 1.0);
             #include <tonemapping_fragment>
             #include <colorspace_fragment>
           }`,
       }),
-    [hdr, max, gain, sunGlow],
+    [gain, sunGlow],
   );
 }
 
 /** 카메라를 따라다니는 하늘 구 (배경) */
-function SkyBackdrop({ hdr }: { hdr: THREE.Texture }) {
-  const mat = useSkyMaterial(hdr, 2.6, 1, true);
+function SkyBackdrop() {
+  const mat = useSkyMaterial(1, true);
   const ref = useRef<THREE.Mesh>(null);
   useFrame(({ camera }) => ref.current?.position.copy(camera.position));
   return (
@@ -93,9 +98,9 @@ function SkyBackdrop({ hdr }: { hdr: THREE.Texture }) {
   );
 }
 
-/** 환경광(큐브맵 캡처)용 하늘: 태양을 더 낮게 눌러 유리·바다 반사에 폭주하는 하이라이트가 없게 한다 */
-function SkyForEnv({ hdr }: { hdr: THREE.Texture }) {
-  const mat = useSkyMaterial(hdr, 2.2, 1);
+/** 환경광(큐브맵 캡처)용 하늘: 태양 원반 없이 그라디언트만 */
+function SkyForEnv() {
+  const mat = useSkyMaterial(1);
   return (
     <mesh material={mat}>
       <sphereGeometry args={[50, 32, 20]} />
@@ -143,7 +148,7 @@ const SAND_VERT_INJECT = /* glsl */ `
 `;
 
 /** 모래 바닥(텍스처 두 스케일 혼합, 젖은 모래 띠), 바다, 포말 */
-function Ground({ hdr, bounds }: { hdr: THREE.Texture; bounds: WorldBounds }) {
+function Ground({ bounds }: { bounds: WorldBounds }) {
   const [diff, nor, rough] = useTexture([
     '/assets/textures/sand_diff_1k.jpg',
     '/assets/textures/sand_nor_gl_1k.jpg',
@@ -187,7 +192,7 @@ function Ground({ hdr, bounds }: { hdr: THREE.Texture; bounds: WorldBounds }) {
       normalMap: nor,
       normalScale: new THREE.Vector2(0.7, 0.7),
       roughnessMap: rough,
-      color: '#f6e6d2',
+      color: SAND,
       roughness: 1,
       envMapIntensity: 0.7,
     });
@@ -219,6 +224,9 @@ function Ground({ hdr, bounds }: { hdr: THREE.Texture; bounds: WorldBounds }) {
           vec4 sB = texture2D(map, ruv);
           float mixN = smoothstep(0.3, 0.7, vn(vWXZ * 0.045));
           vec4 sandTex = mix(sA, sB, mixN);
+          // 사진 모래의 주황 기운을 빼고 밝은 크림색으로: 채도를 줄이고 전체를 올린다
+          float sLum = dot(sandTex.rgb, vec3(0.299, 0.587, 0.114));
+          sandTex.rgb = mix(vec3(sLum), sandTex.rgb, 0.6) * 1.35;
           // 넓은 얼룩: 밝은/어두운 모래 지대
           float macro = mix(0.86, 1.1, vn(vWXZ * 0.012 + 3.0));
           sandTex.rgb *= macro * mix(vec3(1.0), vec3(1.05, 0.98, 0.9), vn(vWXZ * 0.03));
@@ -226,7 +234,7 @@ function Ground({ hdr, bounds }: { hdr: THREE.Texture; bounds: WorldBounds }) {
           float rip = sin(vWXZ.x * 0.55 + vn(vWXZ * 0.08) * 9.0 + vWXZ.y * 0.2) * 0.5 + 0.5;
           sandTex.rgb *= mix(0.93, 1.05, rip);
           float wetK = sandWet(vWXZ);
-          sandTex.rgb *= mix(1.0, 0.5, wetK) * mix(vec3(1.0), vec3(0.95, 0.88, 0.85), wetK);
+          sandTex.rgb *= mix(1.0, 0.74, wetK) * mix(vec3(1.0), vec3(0.9, 0.96, 0.97), wetK);
           diffuseColor *= sandTex;`,
         )
         .replace(
@@ -243,10 +251,10 @@ function Ground({ hdr, bounds }: { hdr: THREE.Texture; bounds: WorldBounds }) {
     () =>
       new THREE.ShaderMaterial({
         uniforms: {
-          skyMap: { value: hdr },
-          skyRot: { value: ENV_ROTATION_Y },
-          skyMax: { value: 2.4 },
-          skyGain: { value: 1 },
+          ...skyUniforms(1),
+          seaFar: { value: new THREE.Color(SEA_FAR) },
+          seaMid: { value: new THREE.Color(SEA_MID) },
+          seaShore: { value: new THREE.Color(SEA_SHORE) },
           time: { value: 0 },
           sunDir: { value: SUN_DIRECTION.clone().setY(0.045).normalize() },
         },
@@ -261,6 +269,9 @@ function Ground({ hdr, bounds }: { hdr: THREE.Texture; bounds: WorldBounds }) {
           varying vec3 vWP;
           uniform float time;
           uniform vec3 sunDir;
+          uniform vec3 seaFar;
+          uniform vec3 seaMid;
+          uniform vec3 seaShore;
           ${SKY_GLSL}
           float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
           float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
@@ -290,18 +301,19 @@ function Ground({ hdr, bounds }: { hdr: THREE.Texture; bounds: WorldBounds }) {
             float cosV = clamp(dot(N, V), 0.0, 1.0);
             float fres = 0.03 + 0.97 * pow(1.0 - cosV, 4.0);
             float shore = smoothstep(${(SHORE_Z - 90).toFixed(1)}, ${(SHORE_Z + 2).toFixed(1)}, vWP.z);
-            vec3 deep = mix(vec3(0.02, 0.13, 0.2), vec3(0.06, 0.34, 0.4), shore);
+            vec3 deep = mix(seaFar, seaMid, shore);
             vec3 col = mix(deep, sky, clamp(fres * 1.15, 0.0, 1.0));
             // 태양 반사 띠: 좁은 하이라이트 + 넓은 번짐, 잔물결로 끊긴다
             float sp = max(dot(R, sunDir), 0.0);
             float sparkle = 0.55 + 0.9 * vn(vWP.xz * vec2(1.6, 4.5) + time * 0.6);
-            col += vec3(1.0, 0.72, 0.42) * (pow(sp, 900.0) * 3.2 + pow(sp, 160.0) * 1.0 * sparkle + pow(sp, 22.0) * 0.28);
+            col = mix(col, seaShore, smoothstep(${(SHORE_Z - 14).toFixed(1)}, ${(SHORE_Z + 1).toFixed(1)}, vWP.z) * 0.6);
+            col += vec3(1.0, 0.97, 0.92) * (pow(sp, 900.0) * 3.2 + pow(sp, 160.0) * 1.0 * sparkle + pow(sp, 22.0) * 0.28);
             gl_FragColor = vec4(col, 1.0);
             #include <tonemapping_fragment>
             #include <colorspace_fragment>
           }`,
       }),
-    [hdr],
+    [],
   );
   useFrame((s) => {
     seaMat.uniforms.time!.value = s.clock.elapsedTime;
@@ -315,11 +327,11 @@ function Ground({ hdr, bounds }: { hdr: THREE.Texture; bounds: WorldBounds }) {
     const g = c.getContext('2d')!;
     const grad = g.createLinearGradient(0, 0, 0, 256);
     for (const [o, col] of [
-      [0, 'rgba(255,244,230,0)'],
-      [0.35, 'rgba(255,244,230,0.55)'],
-      [0.55, 'rgba(255,248,238,0.9)'],
-      [0.7, 'rgba(255,244,230,0.3)'],
-      [1, 'rgba(255,244,230,0)'],
+      [0, 'rgba(255,255,255,0)'],
+      [0.35, 'rgba(255,255,255,0.55)'],
+      [0.55, 'rgba(255,255,255,0.9)'],
+      [0.7, 'rgba(255,255,255,0.3)'],
+      [1, 'rgba(255,255,255,0)'],
     ] as const)
       grad.addColorStop(o, col);
     g.fillStyle = grad;
@@ -362,7 +374,7 @@ function Ground({ hdr, bounds }: { hdr: THREE.Texture; bounds: WorldBounds }) {
   );
 }
 
-/** 낮고 따뜻한 태양광(역광), 앞쪽 보조광 */
+/** 맑은 낮 태양광, 앞쪽 하늘 보조광 */
 function Sun({ quality, center, extent }: { quality: QualityConfig; center: THREE.Vector3; extent: number }) {
   const light = useRef<THREE.DirectionalLight>(null);
   const gl = useThree((s) => s.gl);
@@ -385,8 +397,8 @@ function Sun({ quality, center, extent }: { quality: QualityConfig; center: THRE
       <directionalLight
         ref={light}
         position={pos}
-        intensity={7.2}
-        color="#ffa95a"
+        intensity={4.0}
+        color="#fff3df"
         castShadow
         shadow-mapSize={[quality.shadowMapSize, quality.shadowMapSize]}
         shadow-camera-left={-extent}
@@ -397,33 +409,30 @@ function Sun({ quality, center, extent }: { quality: QualityConfig; center: THRE
         shadow-camera-far={220}
         shadow-bias={-0.0004}
         shadow-normalBias={0.05}
-        shadow-intensity={0.62}
+        shadow-intensity={0.5}
       />
-      {/* 카메라 쪽 하늘 보조광: 역광으로 어두워진 앞면을 보라 기운의 분홍으로 살린다 */}
-      <directionalLight position={[0, 14, 60]} intensity={0.95} color="#ffcfc4" />
-      <hemisphereLight args={['#ffd9b8', '#c98a68', 0.55]} />
+      <directionalLight position={[0, 14, 60]} intensity={0.6} color="#dcefff" />
+      <hemisphereLight args={['#cfe8ff', '#f1e4cc', 0.9]} />
     </>
   );
 }
 
 function SkyAndEnv() {
-  const hdr = useEnvironment({ files: HDR });
   return (
     <>
-      <SkyBackdrop hdr={hdr} />
+      <SkyBackdrop />
       <Environment resolution={256} frames={1} environmentIntensity={0.9}>
-        <SkyForEnv hdr={hdr} />
+        <SkyForEnv />
       </Environment>
     </>
   );
 }
 
 function SeaAndSand({ bounds }: { bounds: WorldBounds }) {
-  const hdr = useEnvironment({ files: HDR });
   useEffect(() => {
     patchSky({ ready: true });
   }, []);
-  return <Ground hdr={hdr} bounds={bounds} />;
+  return <Ground bounds={bounds} />;
 }
 
 export function Beach({
@@ -439,7 +448,7 @@ export function Beach({
 }) {
   return (
     <>
-      <fog attach="fog" args={[FOG_COLOR, 120, 700]} />
+      <fog attach="fog" args={[FOG_COLOR, 160, 900]} />
       <Suspense fallback={null}>
         <SkyAndEnv />
         <SeaAndSand bounds={bounds} />

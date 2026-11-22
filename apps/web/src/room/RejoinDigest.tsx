@@ -8,7 +8,17 @@ import { useDigestUi } from '../store/digestStore';
 import { useRooms } from '../store/roomStore';
 import { useSession } from '../store/session';
 import { useWorld } from '../store/worldStore';
+import { btn } from '../ui/tg';
 import { Sheet } from './Sheet';
+
+/** 보드 변화 종류별 아이콘 (목업 .dg .ic) */
+const CHANGE_ICON: Record<DigestBoardChange['change'], { cls: string; glyph: string }> = {
+  created: { cls: 'y', glyph: '✓' },
+  agreed: { cls: 'y', glyph: '✓' },
+  updated: { cls: 'm', glyph: '·' },
+  commented: { cls: 'm', glyph: '·' },
+  deleted: { cls: 'x', glyph: '×' },
+};
 
 const CHANGE_LABEL: Record<DigestBoardChange['change'], string> = {
   created: '새 카드',
@@ -69,43 +79,46 @@ function DigestSheet({ roomId }: { roomId: string }) {
 
   const title = room ? titleOf(room, meId, users) : 'Room';
   return (
-    <Sheet title={`돌아온 것을 환영해요 · ${title}`} onClose={() => void confirm()} testId="rejoin-digest">
-      {!digest && !error && <p className="mt-4 text-sm text-muted">내가 없는 동안의 일을 정리하는 중…</p>}
+    <Sheet title={`돌아온 것을 환영해요 · ${title}`} eyebrow="REJOIN DIGEST" onClose={() => void confirm()} testId="rejoin-digest">
+      {!digest && !error && <p className="tg-aux mt-4">내가 없는 동안의 일을 정리하는 중…</p>}
       {error && (
-        <p role="alert" className="mt-4 text-sm text-danger">
+        <p role="alert" className="mt-4 text-body text-danger">
           {error}
         </p>
       )}
       {digest && (
-        <div className="mt-3 flex flex-col gap-4 text-sm">
-          <p data-testid="digest-count" className="text-muted">
+        <div className="mt-3 flex flex-col gap-4 text-body">
+          <p data-testid="digest-count" className="tg-aux">
             자리를 비운 동안 <b className="text-fg">{digest.missedCount}건</b>의 변화가 있었어요.
           </p>
           <section aria-label="요약">
-            <h3 className="mb-1 text-xs font-medium text-muted">요약</h3>
-            <p data-testid="digest-summary" className="whitespace-pre-wrap break-words rounded-lg border border-line bg-bg/60 p-3 leading-relaxed">
+            <h3 className="tg-mono mb-2">요약</h3>
+            <p data-testid="digest-summary" className="tg-card whitespace-pre-wrap break-words p-3 text-aux leading-relaxed">
               {digest.summary ?? '요약할 내용이 없어요.'}
             </p>
           </section>
           <section aria-label="보드 변화">
-            <h3 className="mb-1 text-xs font-medium text-muted">보드 변화</h3>
+            <h3 className="tg-mono mb-1">보드 변화</h3>
             {digest.boardChanges.length === 0 ? (
-              <p className="text-xs text-muted">보드에는 변화가 없었어요.</p>
+              <p className="tg-aux">보드에는 변화가 없었어요.</p>
             ) : (
-              <ul className="flex flex-col gap-1" data-testid="digest-board-changes">
+              <ul className="tg-dg" data-testid="digest-board-changes">
                 {digest.boardChanges.map((c, i) => (
-                  <li key={`${c.cardId}-${i}`} className="flex items-center gap-2 rounded-md border border-line px-2.5 py-1.5">
-                    <span className="rounded-full bg-raised px-2 py-0.5 text-[11px]">{CHANGE_LABEL[c.change]}</span>
-                    <span className="truncate">{c.title}</span>
+                  <li key={`${c.cardId}-${i}`}>
+                    <span className={`ic ${CHANGE_ICON[c.change].cls}`} aria-hidden="true">
+                      {CHANGE_ICON[c.change].glyph}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{c.title}</span>
+                    <span className="tg-chip">{CHANGE_LABEL[c.change]}</span>
                   </li>
                 ))}
               </ul>
             )}
           </section>
           <section aria-label="내가 결정할 승인">
-            <h3 className="mb-1 text-xs font-medium text-muted">내가 결정할 승인 {digest.pendingApprovals.length}건</h3>
+            <h3 className="tg-mono mb-2">내가 결정할 승인 {digest.pendingApprovals.length}건</h3>
             {digest.pendingApprovals.length === 0 ? (
-              <p className="text-xs text-muted">대기 중인 승인이 없어요.</p>
+              <p className="tg-aux">대기 중인 승인이 없어요.</p>
             ) : (
               <ul className="flex flex-col gap-2" data-testid="digest-approvals">
                 {digest.pendingApprovals.map((a) => (
@@ -125,15 +138,11 @@ function DigestSheet({ roomId }: { roomId: string }) {
               </ul>
             )}
           </section>
-          <button
-            type="button"
-            data-testid="digest-confirm"
-            disabled={busy}
-            onClick={() => void confirm()}
-            className="self-start rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-[var(--on-accent-strong)] disabled:opacity-50"
-          >
-            확인했어요
-          </button>
+          <div className="flex justify-end">
+            <button type="button" data-testid="digest-confirm" disabled={busy} onClick={() => void confirm()} className={btn('primary')}>
+              확인했어요
+            </button>
+          </div>
         </div>
       )}
     </Sheet>

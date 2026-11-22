@@ -5,7 +5,7 @@ import { useRooms } from '../store/roomStore';
 import { useSession } from '../store/session';
 import { useWorld } from '../store/worldStore';
 import { titleOf } from './labels';
-import { ink } from '../theme';
+import { btn, cvar } from '../ui/tg';
 
 const KIND_LABEL: Record<MemoryKind, string> = { fact: '사실', preference: '선호', agreement: '합의', summary: '요약' };
 
@@ -20,11 +20,12 @@ function scopeOf(ns: string): { scope: Scope; roomId?: string } {
   return { scope: 'other' };
 }
 
-const SCOPE_STYLE: Record<Scope, { label: string; color: string }> = {
-  private: { label: '나만', color: '#a0aec4' },
-  for: { label: '이 방에 제공', color: '#3d7482' },
-  room: { label: '방 공유', color: '#7be0c0' },
-  other: { label: '기타', color: '#a0aec4' },
+/** 공개 범위 칩 색: 나만/기타는 중립, 방에 제공은 Agent 색, 방 공유는 primary */
+const SCOPE_STYLE: Record<Scope, { label: string; color?: string }> = {
+  private: { label: '나만' },
+  for: { label: '이 방에 제공', color: 'var(--agent)' },
+  room: { label: '방 공유', color: 'var(--primary)' },
+  other: { label: '기타' },
 };
 
 function ScopeChip({ ns, rooms, meId, users }: { ns: string; rooms: Record<string, WorldRoom>; meId: string; users: Parameters<typeof titleOf>[2] }) {
@@ -35,8 +36,8 @@ function ScopeChip({ ns, rooms, meId, users }: { ns: string; rooms: Record<strin
     <span
       data-testid="memory-scope"
       data-scope={scope}
-      className="rounded-full border px-2 py-0.5 text-[11px]"
-      style={{ borderColor: st.color, color: ink(st.color) }}
+      className={`tg-chip min-w-0 max-w-full overflow-hidden text-ellipsis${st.color ? ' tonal' : ''}`}
+      style={cvar(st.color)}
     >
       {st.label}
       {target ? ` · ${titleOf(target, meId, users)}` : ''}
@@ -64,10 +65,10 @@ function MemoryRow({
   editable: boolean;
 }) {
   return (
-    <li data-testid="memory-item" data-ns={item.ns} className="rounded-lg border border-line bg-bg/40 p-2.5 text-sm">
-      <p className="whitespace-pre-wrap break-words">{item.text}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <span className="rounded border border-line px-1.5 text-[11px] text-muted">{KIND_LABEL[item.kind] ?? item.kind}</span>
+    <li data-testid="memory-item" data-ns={item.ns} className="tg-memrow">
+      <p className="whitespace-pre-wrap break-words text-aux">{item.text}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="tg-chip">{KIND_LABEL[item.kind] ?? item.kind}</span>
         <ScopeChip ns={item.ns} rooms={rooms} meId={meId} users={users} />
         {editable && (
           <>
@@ -75,7 +76,7 @@ function MemoryRow({
               aria-label="공유 대상 변경"
               value={options.some((o) => o.value === item.ns) ? item.ns : ''}
               onChange={(e) => e.target.value && onReshare(item.id, e.target.value)}
-              className="ml-auto rounded border border-line bg-bg px-1 py-0.5 text-xs"
+              className="tg-field ml-auto h-7 min-h-0 max-w-full px-2 py-0 text-aux"
             >
               {!options.some((o) => o.value === item.ns) && <option value="">(변경 불가)</option>}
               {options.map((o) => (
@@ -87,7 +88,7 @@ function MemoryRow({
             <button
               type="button"
               onClick={() => onDelete(item.id)}
-              className="rounded border border-line px-1.5 py-0.5 text-xs text-danger hover:bg-raised"
+              className={`${btn('dghost')} h-7 px-3 text-aux`}
             >
               삭제
             </button>
@@ -99,7 +100,7 @@ function MemoryRow({
 }
 
 /** 내 기억(private / 이 방에 제공 / 방 공유)과, 보고 있는 Room의 기억. 항목별 공유 대상을 바꾸고 삭제할 수 있다. */
-export function MemoryPanel({ roomId }: { roomId: string }) {
+export function MemoryPanel({ roomId, hideTitle = false }: { roomId: string; hideTitle?: boolean }) {
   const meId = useSession((s) => s.user!.id);
   const sessionAgentId = useSession((s) => s.agent?.id);
   const worldAgentId = useWorld((s) => s.myAgent?.agentId);
@@ -180,12 +181,14 @@ export function MemoryPanel({ roomId }: { roomId: string }) {
   const rowProps = { options, rooms, meId, users };
 
   return (
-    <div className="pt-3" data-testid="memory-panel">
-      <h2 className="text-sm font-semibold">내 기억</h2>
-      <p className="mt-1 text-xs text-muted">기억마다 어디까지 보이는지 정할 수 있어요. 기본은 나만 보기예요.</p>
+    <div data-testid="memory-panel" className="flex flex-col gap-4">
+      <div>
+        {!hideTitle && <h2 className="tg-title">내 기억</h2>}
+        <p className={`tg-aux${hideTitle ? '' : ' mt-1'}`}>기억마다 어디까지 보이는지 정할 수 있어요. 기본은 나만 보기예요.</p>
+      </div>
 
       <form
-        className="mt-3 flex flex-col gap-2 rounded-lg border border-line p-3"
+        className="tg-card flex flex-col gap-2 p-3"
         onSubmit={(e) => {
           e.preventDefault();
           const t = text.trim();
@@ -203,68 +206,68 @@ export function MemoryPanel({ roomId }: { roomId: string }) {
           onChange={(e) => setText(e.target.value)}
           rows={2}
           placeholder="Agent가 기억해 둘 내용 (예: 나는 토요일 오후가 편해)"
-          className="resize-none rounded-md border border-line bg-bg px-2 py-1.5 text-sm placeholder:text-muted"
+          className="tg-field min-h-0 resize-none px-3 py-2 text-aux placeholder:text-muted"
         />
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <select aria-label="종류" value={kind} onChange={(e) => setKind(e.target.value as MemoryKind)} className="rounded border border-line bg-bg px-1 py-1">
+        <div className="flex flex-wrap items-center gap-2 text-aux">
+          <select aria-label="종류" value={kind} onChange={(e) => setKind(e.target.value as MemoryKind)} className="tg-field h-8 min-h-0 px-2 py-0 text-aux">
             {MemoryKindSchema.options.map((k) => (
               <option key={k} value={k}>
                 {KIND_LABEL[k]}
               </option>
             ))}
           </select>
-          <select aria-label="공유 대상" value={effectiveShare} onChange={(e) => setShareNs(e.target.value)} className="min-w-0 flex-1 rounded border border-line bg-bg px-1 py-1">
+          <select aria-label="공유 대상" value={effectiveShare} onChange={(e) => setShareNs(e.target.value)} className="tg-field h-8 min-h-0 min-w-0 flex-1 px-2 py-0 text-aux">
             {options.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
             ))}
           </select>
-          <button type="submit" disabled={!text.trim() || !effectiveShare} className="rounded-md bg-accent px-3 py-1 font-semibold text-[var(--on-accent-strong)] disabled:opacity-50">
+          <button type="submit" disabled={!text.trim() || !effectiveShare} className={btn('primary')}>
             추가
           </button>
         </div>
       </form>
 
       {error && (
-        <p role="alert" className="mt-3 text-xs text-danger">
+        <p role="alert" className="text-aux text-danger">
           {error}
         </p>
       )}
 
-      <section aria-label="나만 보는 기억" className="mt-4">
-        <h3 className="text-xs font-medium text-muted">나만 ({priv.length})</h3>
-        <ul className="mt-1.5 flex flex-col gap-2">
+      <section aria-label="나만 보는 기억">
+        <h3 className="tg-mono">나만 ({priv.length})</h3>
+        <ul className="mt-2 flex flex-col gap-2">
           {priv.map((i) => (
             <MemoryRow key={i.id} item={i} editable {...rowProps} onReshare={(id, ns) => void mutate(() => api.reshareMemory(id, ns))} onDelete={(id) => void mutate(() => api.deleteMemory(id))} />
           ))}
         </ul>
-        {loaded && priv.length === 0 && <p className="mt-1 text-xs text-muted">없음</p>}
+        {loaded && priv.length === 0 && <p className="tg-aux mt-2">없음</p>}
       </section>
 
-      <section aria-label="방에 제공한 기억" className="mt-4">
-        <h3 className="text-xs font-medium text-muted">방에 제공 ({forRoom.length})</h3>
+      <section aria-label="방에 제공한 기억">
+        <h3 className="tg-mono">방에 제공 ({forRoom.length})</h3>
         {forGroups.map(([rid, items]) => (
-          <div key={rid} className="mt-1.5">
-            <p className="text-[11px] text-muted">{rooms[rid] ? titleOf(rooms[rid], meId, users) : rid}</p>
-            <ul className="mt-1 flex flex-col gap-2">
+          <div key={rid} className="mt-2">
+            <p className="tg-aux">{rooms[rid] ? titleOf(rooms[rid], meId, users) : rid}</p>
+            <ul className="mt-1.5 flex flex-col gap-2">
               {items.map((i) => (
                 <MemoryRow key={i.id} item={i} editable {...rowProps} onReshare={(id, ns) => void mutate(() => api.reshareMemory(id, ns))} onDelete={(id) => void mutate(() => api.deleteMemory(id))} />
               ))}
             </ul>
           </div>
         ))}
-        {loaded && forRoom.length === 0 && <p className="mt-1 text-xs text-muted">없음</p>}
+        {loaded && forRoom.length === 0 && <p className="tg-aux mt-2">없음</p>}
       </section>
 
-      <section aria-label={`${roomTitle}의 기억`} className="mt-4">
-        <h3 className="text-xs font-medium text-muted">{roomTitle}에서 쓰이는 기억 ({sharedRoom.length})</h3>
-        <ul className="mt-1.5 flex flex-col gap-2">
+      <section aria-label={`${roomTitle}의 기억`}>
+        <h3 className="tg-mono">{roomTitle}에서 쓰이는 기억 ({sharedRoom.length})</h3>
+        <ul className="mt-2 flex flex-col gap-2">
           {sharedRoom.map((i) => (
             <MemoryRow key={i.id} item={i} editable={false} {...rowProps} onReshare={() => undefined} onDelete={() => undefined} />
           ))}
         </ul>
-        {loaded && sharedRoom.length === 0 && <p className="mt-1 text-xs text-muted">없음</p>}
+        {loaded && sharedRoom.length === 0 && <p className="tg-aux mt-2">없음</p>}
       </section>
     </div>
   );

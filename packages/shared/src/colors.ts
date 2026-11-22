@@ -12,7 +12,7 @@ export const PALETTE = {
   /** Skill (1차 범위 밖, 예약) */
   skillPurple: '#8f7dbd',
   /** 승인 전용 */
-  approvalOrange: '#ffc88c',
+  approvalOrange: '#ffb45a',
 } as const;
 
 export const RESERVED_COLORS: readonly string[] = [

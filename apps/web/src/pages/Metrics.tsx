@@ -17,7 +17,7 @@ const KIND_LABEL: Record<string, string> = {
 
 function Card({ label, value, sub, testId }: { label: string; value: string | number; sub?: string; testId?: string }) {
   return (
-    <div className="rounded-xl border border-line bg-panel px-4 py-3 backdrop-blur-md" data-testid={testId}>
+    <div className="tg-panel !rounded-xl px-4 py-3" data-testid={testId}>
       <div className="text-xs text-muted">{label}</div>
       <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
       {sub && <div className="mt-0.5 text-xs text-muted">{sub}</div>}
@@ -82,7 +82,7 @@ function RoomTable({ rows }: { rows: RoomMetrics[] }) {
   return (
     <section className="mt-8 pb-10" aria-label="Room별">
       <h2 className="mb-2 text-sm font-medium text-muted">Room별</h2>
-      <div className="overflow-x-auto rounded-xl border border-line bg-panel backdrop-blur-md">
+      <div className="tg-panel overflow-x-auto !rounded-xl">
         <table className="w-full min-w-[760px] text-left text-sm" data-testid="metrics-rooms">
           <thead className="text-xs text-muted">
             <tr className="border-b border-line">

@@ -11,7 +11,7 @@ function pendingNote(s: FlowStep): string | null {
 }
 
 /**
- * RoomView 헤더 아래 얇은 띠: 가장 최근 에피소드의 흐름(사람 → Agent → Agent → 사람).
+ * RoomView 가운데 영역 위쪽에 3D 위로 떠 있는 불투명 pill(blur 없음): 가장 최근 에피소드의 흐름(사람 → Agent → Agent → 사람).
  * `events`는 replaySeq까지 자른 이벤트라 타임라인 재생을 그대로 반영한다. 상호작용이 없으면 아무것도 그리지 않는다.
  */
 export function InteractionStrip({
@@ -34,7 +34,7 @@ export function InteractionStrip({
   const names = (ids: readonly string[]) => (ids.length ? ids.map(nameOf).join(', ') : '');
   const nodes: React.ReactNode[] = [];
   let prevTo: readonly string[] = flow.rootActorId ? [flow.rootActorId] : [];
-  if (flow.rootActorId) nodes.push(<span key="root" data-testid="flow-node" className="font-medium">{nameOf(flow.rootActorId)}</span>);
+  if (flow.rootActorId) nodes.push(<span key="root" data-testid="flow-node" className="font-semibold">{nameOf(flow.rootActorId)}</span>);
 
   flow.steps.forEach((s, i) => {
     const color = INTERACTION_COLORS[s.channel];
@@ -43,7 +43,7 @@ export function InteractionStrip({
         <span key={`sep${i}`} aria-hidden="true" className="text-muted">
           ·
         </span>,
-        <span key={`from${i}`} data-testid="flow-node" className="font-medium">
+        <span key={`from${i}`} data-testid="flow-node" className="font-semibold">
           {nameOf(s.fromId)}
         </span>,
       );
@@ -60,13 +60,13 @@ export function InteractionStrip({
         data-pending={s.pending ? 'true' : 'false'}
         title={CHANNEL_HINT[s.channel]}
         onClick={() => onJump(s.seq)}
-        className={`flex items-center gap-1 rounded px-1 hover:bg-hover ${s.pending ? 'animate-pulse' : ''}`}
+        className={`tg-flow-step flex items-center gap-1 rounded-full px-2 py-1 ${s.pending ? 'animate-pulse' : ''}`}
         style={{ color: ink(color) }}
       >
-        <span className="font-mono text-[11px]">{CONNECTOR[s.channel]}</span>
+        <span className="font-mono text-label">{CONNECTOR[s.channel]}</span>
         <span className="sr-only">{INTERACTION_LABEL[s.channel]}</span>
-        {names(s.toIds) && <span className="font-medium text-fg">{names(s.toIds)}</span>}
-        {note && <span className="text-[10px]">({note})</span>}
+        {names(s.toIds) && <span className="font-semibold text-fg">{names(s.toIds)}</span>}
+        {note && <span className="hidden text-label min-[1500px]:inline">({note})</span>}
       </button>,
     );
     prevTo = s.toIds;
@@ -76,10 +76,12 @@ export function InteractionStrip({
     <div
       data-testid="interaction-strip"
       aria-label="상호작용 흐름"
-      className="pointer-events-auto flex h-8 shrink-0 items-center gap-2 overflow-hidden border-b border-line bg-panel px-5 text-xs backdrop-blur-md"
+      className="tg-flow tg-solid pointer-events-auto max-w-full gap-3 overflow-hidden text-aux"
     >
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden whitespace-nowrap">{nodes}</div>
-      <InteractionLegend />
+      <span className="hidden shrink-0 min-[1700px]:block">
+        <InteractionLegend />
+      </span>
     </div>
   );
 }

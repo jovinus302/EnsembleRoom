@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { RoomEvent } from '@ensemble/shared';
+import { btn, cvar } from '../ui/tg';
 import { eventLabel, eventMark } from './eventLabel';
 
 /**
@@ -11,11 +12,14 @@ export function TimelineScrubber({
   replaySeq,
   onChange,
   nameOf,
+  className = '',
 }: {
   events: readonly RoomEvent[];
   replaySeq: number | null;
   onChange: (seq: number | null) => void;
   nameOf: (id: string | null | undefined) => string;
+  /** 위치·입장 모션(RoomView가 정한다) */
+  className?: string;
 }) {
   const n = events.length;
   // 현재 위치: 마지막으로 포함된 이벤트 인덱스+1 (0 = 아무 일도 일어나기 전, n = 라이브)
@@ -33,12 +37,17 @@ export function TimelineScrubber({
     [events],
   );
 
+  const max = Math.max(n, 1);
+  const pct = (pos / max) * 100;
+  const labelText =
+    replaySeq === null ? `지금 · 이벤트 ${n}개` : `과거 재생 · #${current?.seq ?? 0} ${current ? eventLabel(current, nameOf) : '시작 전'}`;
+
   return (
     <section
       aria-label="타임라인"
       data-testid="timeline"
       data-replaying={replaySeq !== null ? 'true' : 'false'}
-      className="flex items-center gap-3 border-t border-line bg-panel px-5 py-2.5"
+      className={`tg-panel tg-tlbar pointer-events-auto ${replaySeq !== null ? 'past' : ''} ${className}`}
     >
       <button
         type="button"
@@ -46,7 +55,7 @@ export function TimelineScrubber({
         data-testid="timeline-prev"
         disabled={pos <= 0 || n === 0}
         onClick={() => set(pos - 1)}
-        className="h-8 w-8 rounded-md border border-line text-sm hover:bg-raised disabled:opacity-40"
+        className={btn('ghost', { round: true })}
       >
         ◀
       </button>
@@ -56,52 +65,42 @@ export function TimelineScrubber({
         data-testid="timeline-next"
         disabled={pos >= n}
         onClick={() => set(pos + 1)}
-        className="h-8 w-8 rounded-md border border-line text-sm hover:bg-raised disabled:opacity-40"
+        className={btn('primary', { round: true })}
       >
         ▶
       </button>
-      <div className="relative min-w-0 flex-1">
+      <div className="tg-tlwrap relative h-6 min-w-[60px] flex-1">
+        <div aria-hidden="true" className="tg-track absolute inset-x-2 top-1/2 -translate-y-1/2">
+          <span className="fill" style={{ width: `${pct}%` }} />
+          {marks.map((m) => (
+            <span key={m.i} className="ev" style={{ left: `${((m.i + 1) / max) * 100}%`, ...cvar(m.color) }} />
+          ))}
+          <span className="th" style={{ left: `${pct}%` }} />
+        </div>
         <input
           type="range"
           data-testid="timeline-range"
           aria-label="타임라인 위치"
           aria-valuetext={replaySeq === null ? '지금' : `이벤트 ${pos}/${n}`}
           min={0}
-          max={Math.max(n, 1)}
+          max={max}
           step={1}
-          value={Math.min(pos, Math.max(n, 1))}
+          value={Math.min(pos, max)}
           disabled={n === 0}
           onChange={(e) => set(Number(e.target.value))}
-          className="relative z-10 w-full accent-[var(--focus)]"
+          className="tg-tl-range absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
         />
-        {n > 0 && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-[7px] top-[17px] h-1.5">
-            {marks.map((m) => (
-              <span
-                key={m.i}
-                className="absolute top-0 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
-                style={{ left: `${((m.i + 1) / Math.max(n, 1)) * 100}%`, background: m.color }}
-              />
-            ))}
-          </div>
-        )}
       </div>
-      <div className="w-[300px] shrink-0 truncate text-xs text-muted" data-testid="timeline-label" aria-live="polite">
-        {replaySeq === null ? (
-          <span>지금 · 이벤트 {n}개</span>
-        ) : (
-          <span style={{ color: 'var(--warn)' }}>
-            과거 재생 · #{current?.seq ?? 0} {current ? eventLabel(current, nameOf) : '시작 전'}
-          </span>
-        )}
-      </div>
-      <button
-        type="button"
-        data-testid="timeline-live"
-        disabled={replaySeq === null}
-        onClick={() => onChange(null)}
-        className="rounded-md border border-line px-3 py-1.5 text-xs hover:bg-raised disabled:opacity-40"
+      <div
+        className="hidden w-[180px] shrink-0 truncate text-aux min-[1280px]:block"
+        style={{ color: replaySeq === null ? 'var(--muted)' : 'var(--amber-ink)' }}
+        data-testid="timeline-label"
+        aria-live="polite"
+        title={labelText}
       >
+        {labelText}
+      </div>
+      <button type="button" data-testid="timeline-live" disabled={replaySeq === null} onClick={() => onChange(null)} className={btn('ghost')}>
         지금으로
       </button>
     </section>

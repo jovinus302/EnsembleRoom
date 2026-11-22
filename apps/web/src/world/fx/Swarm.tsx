@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { virtualHeight } from '../CameraRig';
 import { ourColor } from '@ensemble/shared';
 import { fxLevel, getRemoteCursors, onFx, pointer, type FxEvent } from '../../fx/fxStore';
 import type { WorldLayout } from '../layout';
@@ -527,7 +528,7 @@ export function Swarm(props: SwarmProps) {
       sim.setGroup(i, C[i]!);
     }
     const fovRad = THREE.MathUtils.degToRad((cam as THREE.PerspectiveCamera).fov);
-    const px = (state.size.height * state.viewport.dpr) / (2 * Math.tan(fovRad / 2));
+    const px = (virtualHeight(cam, state.size.height) * state.viewport.dpr) / (2 * Math.tan(fovRad / 2));
     sim.setDensityScale(pr.focusRoomId ? 0.3 : 1);
     sim.setPointSize((side >= 200 ? 0.12 : side >= 120 ? 0.15 : 0.22) * (pr.focusRoomId ? 0.45 : 1));
     sim.step(dt, state.clock.elapsedTime, px, state.size.width / Math.max(1, state.size.height));

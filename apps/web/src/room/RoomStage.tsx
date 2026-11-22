@@ -6,6 +6,9 @@ import { APPROVAL_ORANGE } from '../messenger/visits';
 import { useStage, useWorldActive } from '../stage/stageStore';
 import type { RoomModel } from './useRoomModel';
 
+/** 알 수 없는 사용자 초상 배경(SVG 이미지라 CSS 변수를 쓸 수 없다) */
+const UNKNOWN_PERSON = '#7f93a3';
+
 /**
  * 3D 통합: 앱 루트의 `WorldCanvas`(stage/WorldHost)가 이 슬롯(`data-room-stage-slot`)의 DOM 사각형에 맞춰져
  * 포커스된 캡슐을 보여 준다. 슬롯은 투명하고 pointer-events가 없어 뒤의 캔버스가 그대로 보인다.
@@ -20,7 +23,7 @@ export function RoomStage({ model }: { model: RoomModel }) {
   const memberColors = room.memberIds.map((id) => users[id]?.color).filter((c): c is string => !!c);
   const ring = room.kind === 'our' ? ringGradientStops(memberColors.length ? memberColors : [color]) : [color];
   // 조명: 사람 있음 = 따뜻한 100%, Agent만 = 40%(Agent 색), 비어 있음 = 꺼짐, 승인 대기 = 오렌지 보조광
-  const glow = ambience.base === 'occupied' ? '#ffd9a0' : ambience.base === 'agentOnly' ? color : 'var(--stage-idle)';
+  const glow = ambience.base === 'occupied' ? 'var(--scene-sea-shore)' : ambience.base === 'agentOnly' ? color : 'var(--stage-idle)';
   const lit = ambience.base === 'empty' ? 0.12 : ambience.base === 'agentOnly' ? 0.4 : 0.85;
   const alpha = `${Math.round(lit * 100)}%`;
   const present = model.state.presentUserIds;
@@ -80,7 +83,7 @@ export function RoomStage({ model }: { model: RoomModel }) {
               title={users[id]?.name}
               className="relative z-10 mb-1"
             >
-              <Avatar name={users[id]?.name ?? '?'} color={users[id]?.color ?? '#a0aec4'} size={28} />
+              <Avatar name={users[id]?.name ?? '?'} color={users[id]?.color ?? UNKNOWN_PERSON} size={28} />
             </span>
           ))}
           {agentsHere.map((a) => (
@@ -97,9 +100,11 @@ export function RoomStage({ model }: { model: RoomModel }) {
         </div>
       </div>
       )}
-      <div className="absolute left-5 top-3 flex flex-col rounded-md bg-glass px-2.5 py-1.5 text-xs shadow-[var(--shadow-card)] backdrop-blur-sm">
-        <span className="text-sm font-semibold">{titleOf(room, meId, users)}</span>
-        <span className="text-muted">
+      <div className="tg-solid tg-stagetag absolute left-5 top-3">
+        <span className="tg-stagetag-t" title={titleOf(room, meId, users)}>
+          {titleOf(room, meId, users)}
+        </span>
+        <span className="tg-aux truncate">
           {THEMES[room.theme].label}
           {room.themeVariant ? ` · ${room.themeVariant}` : ''} · 조명 {AMBIENCE_LABEL[stage] ?? stage}
         </span>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { PALETTE } from '@ensemble/shared';
+import { INTERACTION_COLORS, PALETTE } from '@ensemble/shared';
 import { glowTexture } from '../capsule/glow';
 import { portraitDataUrl } from '../../avatar/portrait';
 import {
@@ -815,18 +815,21 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
   const tagText = isRoom ? 'Room Agent' : isHuman ? (char.isMe ? `${char.name} · 나` : char.name) : `${agentBase} · Agent`;
   const bubbleSpec = useMemo<BubbleSpec | null>(() => {
     if (!tagsOn) return null;
-    if (char.awaitingApproval) return { kind: 'ask', text: '승인이 필요해요', color: '#ff9a3c' };
+    // 태그 줄: Personal Agent "✦ ALICE의 AGENT · WRITING", Room Agent "ROOM AGENT · WRITING" (사람은 상태 라벨만)
+    const who = isHuman ? '' : isRoom ? 'ROOM AGENT' : `✦ ${agentBase}의 AGENT`;
+    const tg = (label: string) => (who ? `${who} · ${label}` : undefined);
+    if (char.awaitingApproval) return { kind: 'ask', text: '승인이 필요해요', color: INTERACTION_COLORS.a2h };
     // 사람: 이 사람이 승인자인 Agent 승인 대기
-    if (char.alert === 'approval') return { kind: 'ask', text: char.isMe ? '내 승인 필요' : '승인 대기', color: '#ff9a3c' };
-    if (char.activity === 'paused') return { kind: 'paused', text: '일시정지', color: '#8b94a6' };
+    if (char.alert === 'approval') return { kind: 'ask', text: char.isMe ? '내 승인 필요' : '승인 대기', color: INTERACTION_COLORS.a2h };
+    if (char.activity === 'paused') return { kind: 'paused', text: '일시정지', color: '#8dbed2', tag: tg('PAUSED') };
     const sp = char.speech;
     if (!sp) return null;
-    if (sp.phase === 'recalling') return { kind: 'recalling', text: '', color: '#7e5fd8' };
-    if (sp.phase === 'thinking' || (!sp.text && char.activity === 'thinking')) return { kind: 'thinking', text: '', color: char.color };
-    if (sp.text) return { kind: sp.phase === 'said' ? 'said' : 'writing', text: sp.text, color: char.color };
-    return { kind: 'writing', text: '', color: char.color };
-  }, [tagsOn, char.awaitingApproval, char.alert, char.isMe, char.activity, char.speech, char.color]);
-  const bubbleKey = bubbleSpec ? `${bubbleSpec.kind}|${bubbleSpec.text}|${bubbleSpec.color}` : 'none';
+    if (sp.phase === 'recalling') return { kind: 'recalling', text: '', color: char.color, tag: tg('RECALLING') };
+    if (sp.phase === 'thinking' || (!sp.text && char.activity === 'thinking')) return { kind: 'thinking', text: '', color: char.color, tag: tg('THINKING') };
+    if (sp.text) return { kind: sp.phase === 'said' ? 'said' : 'writing', text: sp.text, color: char.color, tag: sp.phase === 'said' ? (who || undefined) : tg('WRITING') };
+    return { kind: 'writing', text: '', color: char.color, tag: tg('WRITING') };
+  }, [tagsOn, char.awaitingApproval, char.alert, char.isMe, char.activity, char.speech, char.color, isHuman, isRoom, agentBase]);
+  const bubbleKey = bubbleSpec ? `${bubbleSpec.kind}|${bubbleSpec.text}|${bubbleSpec.color}|${bubbleSpec.tag ?? ''}` : 'none';
   void INK;
   void armGeo;
   void ringGeo;
@@ -874,7 +877,7 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
   if (labelEntry.current) {
     labelEntry.current.baseY = tagY;
     labelEntry.current.leaving = leaving;
-    labelEntry.current.bubble = bubbleSpec ? { w: 2.1 / K, h: 0.95 / K, y: 0.12 / K } : null;
+    labelEntry.current.bubble = bubbleSpec ? { w: 2.1 / K, h: 1.1 / K, y: 0.17 / K } : null;
   }
 
   return (
@@ -932,7 +935,7 @@ export function Actor({ char, rt, leaving, enterSide, leaveSide }: ActorProps) {
       <primitive object={leader} />
       <group ref={labelG} position={[0, tagY, 0]}>
         {tagsOn ? <NameTag text={tagText} color={accent} badge={badge} me={char.isMe} variant={isHuman ? 'human' : isRoom ? 'room' : 'agent'} scale={(isHuman || isRoom ? 1 : 0.88) / K} position={[0, 0, 0]} onMeasure={onMeasure} compact={compactTag} subtleBadge={away} onHover={isHuman ? undefined : setHover} /> : null}
-        {tagsOn && bubbleSpec ? <Bubble key={bubbleKey.slice(0, 4)} spec={bubbleSpec} width={2.5 / K} position={[0, 0.12 / K, 0]} /> : null}
+        {tagsOn && bubbleSpec ? <Bubble key={bubbleKey.slice(0, 4)} spec={bubbleSpec} width={2.5 / K} position={[0, 0.17 / K, 0]} /> : null}
       </group>
       {!full && !isHuman ? <LightMarker activity={char.activity} color={char.color} y={AGENT_H + 0.55 / K} /> : null}
       <Particles color={useMemo(() => new THREE.Color(isRoom ? PALETTE.roomAgentLime : char.color).lerp(new THREE.Color('#ffffff'), 0.25), [char.color, isRoom])} mode={pMode} from={pFrom} to={pTo} enabled={full && rt.quality !== 'low'} />

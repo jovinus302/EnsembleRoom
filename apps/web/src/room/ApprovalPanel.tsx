@@ -23,15 +23,13 @@ export function ApprovalPanel({ model }: { model: RoomModel }) {
   }, [model.events, model.roomId, model.state.approvals, model.users, model.resolveAgent]);
 
   return (
-    <section aria-label="승인" data-testid="approval-panel" className="px-4 py-3">
-      <h2 className="flex items-center gap-2 text-sm font-semibold">
-        승인
-        {items.pending.length > 0 && (
-          <span className="rounded-full bg-[#ff9f43] px-2 text-[11px] font-semibold leading-5 text-[var(--on-accent)]">대기 {items.pending.length}</span>
-        )}
+    <section aria-label="승인" data-testid="approval-panel" className="px-1">
+      <h2 className="flex items-center justify-between gap-2">
+        <span className="tg-title">승인</span>
+        {items.pending.length > 0 && <span className="tg-chip warn">대기 {items.pending.length}</span>}
       </h2>
-      {items.pending.length === 0 && items.done.length === 0 && <p className="mt-2 text-xs text-muted">승인할 일이 없어요.</p>}
-      <ul className="mt-2 flex flex-col gap-2">
+      {items.pending.length === 0 && items.done.length === 0 && <p className="tg-aux mt-2">승인할 일이 없어요.</p>}
+      <ul className="mt-2.5 flex flex-col gap-2">
         {items.pending.map((v) => (
           <ApprovalCard key={v.approvalId} compact view={v} meId={model.meId} users={model.users} />
         ))}

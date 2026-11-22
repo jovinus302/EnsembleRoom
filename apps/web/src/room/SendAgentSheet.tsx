@@ -23,8 +23,8 @@ export function SendAgentSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <Sheet title={`Agent 보내기 · ${hostName}`} onClose={onClose} testId="send-agent-sheet">
-      <p className="mt-2 text-sm text-muted">
+    <Sheet title={`Agent 보내기 · ${hostName}`} eyebrow="SEND AGENT" onClose={onClose} testId="send-agent-sheet">
+      <p className="tg-aux">
         {agentName}를 {hostName}에게 보내요. {hostName}님이 수락해야 출발하고, 끝나면 가져올 내용은 {hostName}님의 승인을 거쳐요.
       </p>
       <MandateForm

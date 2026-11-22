@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { cvar } from '../ui/tg';
 import type { ActivityPhase, AgentStepKind } from '@ensemble/shared';
 
 export const PHASE_LABEL: Record<ActivityPhase, string> = {
@@ -94,7 +95,7 @@ export function StepTrace({
   const label = (s: StepInfo) =>
     s.kind === 'talking' && s.target ? `${nameOf(s.target)}에게 말함` : STEP_LABEL[s.kind];
   return (
-    <details open={open} className="group text-[11px] text-muted" data-testid="step-trace">
+    <details open={open} className="group text-label text-muted" data-testid="step-trace">
       <summary className="cursor-pointer select-none list-none hover:text-fg">
         <span aria-hidden="true" className="mr-1 inline-block transition-transform group-open:rotate-90">
           ›
@@ -105,7 +106,7 @@ export function StepTrace({
         {steps.map((s, i) => (
           <li key={i} className="flex items-center gap-1">
             {i > 0 && <span aria-hidden="true">→</span>}
-            <span className="rounded-full border px-1.5 leading-4" style={{ borderColor: `${color}88` }}>
+            <span className="tg-chip tonal !h-[18px] !px-2 !normal-case !tracking-normal" style={cvar(color)}>
               {label(s)}
             </span>
           </li>

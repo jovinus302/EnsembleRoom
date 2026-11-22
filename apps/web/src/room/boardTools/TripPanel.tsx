@@ -65,22 +65,22 @@ function Checklist({ tool, roomId, canEdit }: { tool: TripTool; roomId: string; 
   const done = tool.checklist.filter((c) => c.done).length;
   const full = tool.checklist.length >= BOARD_TOOL_LIMITS.checklist;
   return (
-    <section aria-label="준비물" data-testid="trip-checklist" className="mt-4 rounded-xl border border-dashed p-3" style={{ borderColor: 'color-mix(in srgb, var(--tool) 50%, transparent)', background: 'color-mix(in srgb, var(--tool) 6%, transparent)' }}>
+    <section aria-label="준비물" data-testid="trip-checklist" className="tg-card mt-4 p-3">
       <div className="flex items-baseline gap-2">
-        <h3 className="text-sm font-bold">준비물</h3>
-        <span className="text-xs text-muted">
+        <h3 className="text-body font-bold">준비물</h3>
+        <span className="text-aux text-muted">
           {done}/{tool.checklist.length}
         </span>
-        <span aria-hidden className="ml-1 h-1.5 flex-1 overflow-hidden rounded-full tw-track">
-          <span className="block h-full rounded-full bg-[var(--tool)] transition-[width]" style={{ width: `${tool.checklist.length ? Math.round((done / tool.checklist.length) * 100) : 0}%` }} />
+        <span aria-hidden className="prog ml-1 flex-1">
+          <b style={{ width: `${tool.checklist.length ? Math.round((done / tool.checklist.length) * 100) : 0}%` }} />
         </span>
       </div>
       {tool.checklist.length === 0 ? (
-        <p className="mt-1.5 text-xs text-muted">아직 준비물이 없어요.</p>
+        <p className="mt-1.5 text-aux text-muted">아직 준비물이 없어요.</p>
       ) : (
         <ul className="mt-1.5 flex flex-col gap-1">
           {tool.checklist.map((c) => (
-            <li key={c.checkId} data-check-id={c.checkId} className="flex items-center gap-2 text-sm">
+            <li key={c.checkId} data-check-id={c.checkId} className={`ck${c.done ? ' done' : ''}`}>
               <label className="flex min-w-0 flex-1 items-center gap-2">
                 <input
                   type="checkbox"
@@ -90,7 +90,7 @@ function Checklist({ tool, roomId, canEdit }: { tool: TripTool; roomId: string; 
                   // 토글이 아니라 값 지정(check_set): 동시에 눌러도 마지막 값으로 수렴한다. 화면은 WS 이벤트로 바뀐다.
                   onChange={(e) => void run({ op: 'check_set', checkId: c.checkId, done: e.target.checked }, ['item_not_found'])}
                 />
-                <span className={`truncate ${c.done ? 'text-muted line-through' : ''}`}>{c.text}</span>
+                <span className="tx truncate">{c.text}</span>
               </label>
               {canEdit && (
                 <button
@@ -144,30 +144,27 @@ export function TripPanel({ tool, roomId, canEdit }: { tool: TripTool; roomId: s
             role="tab"
             aria-selected={d === cur}
             onClick={() => setDay(d)}
-            style={d === cur ? { background: 'var(--tool)', color: 'var(--tool-ink)', borderColor: 'var(--tool)' } : undefined}
-            className={`shrink-0 rounded-lg border px-3 py-1 text-xs ${d === cur ? 'font-bold shadow-sm' : 'border-line tw-inset text-muted hover:border-[var(--tool)] hover:text-fg'}`}
+            className={`tg-chip bt-kind shrink-0${d === cur ? ' on' : ''}`}
           >
             {tool.days > 1 || tool.startDate ? `${d}일차` : '일정'}
           </button>
         ))}
       </div>
-      <p className="mt-3 flex items-baseline gap-2 text-sm font-bold">
+      <p className="mt-3 flex items-baseline gap-2 text-body font-bold">
         <span style={{ color: 'var(--tool-text)' }}>{tripDayLabel(tool.startDate, cur)}</span>
-        <span className="text-[11px] font-normal text-muted">{items.length}곳</span>
+        <span className="text-label font-normal text-muted">{items.length}곳</span>
       </p>
       {items.length === 0 ? (
-        <p className="mt-1.5 rounded-xl border border-dashed border-line px-3 py-4 text-center text-sm text-muted">이 날의 일정이 아직 없어요.</p>
+        <p className="mt-1.5 rounded-xl border border-dashed border-line px-3 py-4 text-center text-body text-muted">이 날의 일정이 아직 없어요.</p>
       ) : (
-        <ul data-testid="trip-items" className="relative mt-2 flex flex-col gap-2 pl-[70px] text-sm before:absolute before:bottom-3 before:left-[58px] before:top-3 before:w-0.5 before:rounded before:bg-[color-mix(in_srgb,var(--tool)_45%,transparent)] before:content-['']">
+        <ul data-testid="trip-items" className="tl-v mt-2">
           {items.map((it) => (
-            <li key={it.itemId} data-item-id={it.itemId} className="relative flex items-center gap-2 rounded-xl tw-card px-3 py-2">
-              <span className="absolute -left-[70px] top-1/2 w-[46px] -translate-y-1/2 text-right text-xs font-bold tabular-nums" style={{ color: it.time ? 'var(--tool-text)' : 'var(--muted)', fontFamily: 'ui-monospace, Consolas, monospace' }}>
-                {it.time ?? '--:--'}
-              </span>
-              <span aria-hidden className="absolute -left-[16px] top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-[var(--bg)] bg-[var(--tool)]" />
-              <div className="min-w-0 flex-1">
+            <li key={it.itemId} data-item-id={it.itemId} className="it">
+              <span className="tg-mono pt-[3px]">{it.time ?? '--:--'}</span>
+              <i aria-hidden />
+              <div className="min-w-0">
                 <div className="truncate font-semibold">{it.place}</div>
-                {it.memo && <div className="truncate text-[11px] text-muted">{it.memo}</div>}
+                {it.memo && <div className="truncate text-aux text-muted">{it.memo}</div>}
               </div>
               {canEdit && (
                 <button

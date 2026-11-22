@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { portraitDataUrl } from '../avatar/portrait';
-import { ink } from '../theme';
+import { cvar } from '../ui/tg';
 
 /**
  * 사람 아바타: 원형 프로필 초상(이름 시드의 절차 생성 일러스트, avatar/portrait.ts). 이미지 실패 시 이니셜.
@@ -24,7 +24,14 @@ export function Avatar({
         aria-hidden="true"
         data-testid="human-portrait"
         className="inline-flex shrink-0 overflow-hidden select-none"
-        style={{ width: size, height: size, background: color, borderRadius: '50%' }}
+        style={{
+          width: size,
+          height: size,
+          background: `linear-gradient(160deg, color-mix(in srgb, ${color} 55%, #fff), ${color})`,
+          borderRadius: '50%',
+          border: `${size <= 24 ? 1.5 : 2}px solid #fff`,
+          boxShadow: '0 2px 6px rgba(0,0,0,.25)',
+        }}
       >
         <img
           src={portraitDataUrl(name, color)}
@@ -72,9 +79,9 @@ function StarMark({ size, color }: { size: number; color: string }) {
         bottom: -size * 0.12,
         width: size,
         height: size,
-        background: 'var(--on-accent)',
+        background: 'var(--popover)',
         border: `1.5px solid ${color}`,
-        color: '#fff',
+        color: 'var(--fg)',
         fontSize: size * 0.62,
       }}
     >
@@ -88,8 +95,8 @@ export function AgentTag({ color, room = false }: { color: string; room?: boolea
   return (
     <span
       data-testid="agent-tag"
-      className="inline-flex items-center gap-0.5 rounded-[3px] border px-1 text-[10px] font-semibold leading-4"
-      style={{ borderColor: color, color: ink(color) }}
+      className="tg-chip tonal !h-[18px] !gap-0.5 !px-2"
+      style={cvar(color)}
     >
       <span aria-hidden="true">✦</span>
       {room ? 'Room Agent' : 'Agent'}
@@ -119,40 +126,32 @@ export function AgentAvatar({
   ownerName?: string | null;
 }) {
   if (!room && ownerName) {
-    const ring = Math.max(2, Math.round(size / 11));
+    const ring = Math.max(2, Math.round(size / 12));
     const b = Math.max(13, Math.round(size * 0.44));
     return (
       <span
         role="img"
         aria-label={name ?? `${ownerName}의 Agent`}
         data-testid="agent-avatar"
-        data-shape="rounded"
+        data-shape="octagon"
         data-owner={ownerName}
         className="relative inline-block shrink-0"
         style={{ width: size, height: size }}
       >
-        <span
-          className="absolute inset-0 overflow-hidden"
-          style={{ background: color, borderRadius: size * 0.3, padding: ring }}
-        >
-          <img
-            src={portraitDataUrl(ownerName, color)}
-            alt=""
-            draggable={false}
-            className="h-full w-full"
-            style={{ borderRadius: size * 0.3 - ring * 0.6 }}
-          />
+        <span className="absolute inset-0" style={{ background: color, clipPath: OCTAGON }} />
+        <span className="absolute overflow-hidden" style={{ inset: ring, background: 'var(--popover)', clipPath: OCTAGON }}>
+          <img src={portraitDataUrl(ownerName, color)} alt="" draggable={false} className="h-full w-full" />
         </span>
         <span
           aria-hidden="true"
           data-testid="agent-star"
           className="absolute flex items-center justify-center rounded-full select-none"
-          style={{ right: -b * 0.22, bottom: -b * 0.22, width: b, height: b, background: '#1b2540', border: `1.5px solid ${color}` }}
+          style={{ right: -b * 0.22, bottom: -b * 0.22, width: b, height: b, background: 'var(--popover)', border: `1.5px solid ${color}` }}
         >
-          <svg viewBox="0 0 16 16" width={b * 0.7} height={b * 0.7} fill="none" stroke="#fff" strokeWidth="1.4" strokeLinecap="round">
+          <svg viewBox="0 0 16 16" width={b * 0.7} height={b * 0.7} fill="none" stroke="var(--fg)" strokeWidth="1.4" strokeLinecap="round">
             <rect x="3" y="5.5" width="10" height="7" rx="2" />
             <path d="M8 5.5V3M6 9h.01M10 9h.01" />
-            <circle cx="8" cy="2.4" r="0.6" fill="#fff" />
+            <circle cx="8" cy="2.4" r="0.6" fill="var(--fg)" />
           </svg>
         </span>
       </span>

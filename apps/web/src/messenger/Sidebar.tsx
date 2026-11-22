@@ -9,6 +9,7 @@ import { ApprovalInbox } from './ApprovalInbox';
 import { GuideButton } from '../onboarding/Tour';
 import { Avatar } from './Avatar';
 import { InteractionChip } from './InteractionChip';
+import { btn } from '../ui/tg';
 import { AMBIENCE_LABEL, colorOf, dmPeer, titleOf } from './labels';
 
 function UnreadBadge({ n }: { n: number }) {
@@ -16,7 +17,7 @@ function UnreadBadge({ n }: { n: number }) {
   return (
     <span
       aria-label={`안 읽은 메시지 ${n}개`}
-      className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold leading-5 text-[var(--on-accent-strong)]"
+      className="tg-badge ml-auto shrink-0"
     >
       {n > 99 ? '99+' : n}
     </span>
@@ -25,9 +26,9 @@ function UnreadBadge({ n }: { n: number }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-5" aria-label={title}>
-      <h2 className="px-4 pb-1 text-xs font-medium tracking-wide text-muted">{title}</h2>
-      <ul className="flex flex-col gap-0.5 px-2">{children}</ul>
+    <section className="mt-1" aria-label={title}>
+      <h2 className="tg-mono mx-1 mb-1.5 mt-1.5">{title}</h2>
+      <ul className="flex flex-col gap-0.5">{children}</ul>
     </section>
   );
 }
@@ -51,22 +52,18 @@ function RoomRow({ room, sub }: { room: WorldRoom; sub?: string }) {
         type="button"
         aria-current={selected ? 'true' : undefined}
         onClick={() => useWorld.getState().select(room.id)}
-        className={`flex w-full items-center gap-3 rounded-lg border px-2 py-2 text-left transition ${
-          selected ? 'bg-raised' : 'border-transparent hover:bg-raised/60'
-        }`}
-        style={selected ? { borderColor: color, boxShadow: 'var(--shadow)' } : undefined}
+        className={`tg-roomrow${selected ? ' sel' : ''}`}
       >
         {room.kind === 'dm' ? (
           <Avatar name={peer?.name ?? title} color={color} />
         ) : (
           <span
             aria-hidden="true"
-            className="h-8 w-8 shrink-0 rounded-[40%]"
-            style={{ background: `linear-gradient(135deg, ${color}, ${color}55)`, border: `1px solid ${color}` }}
+            className="tg-mini-cap"
           />
         )}
-        <span className="min-w-0">
-          <span className="flex items-center gap-1.5 text-sm font-medium">
+        <span className="tx">
+          <span className="nm flex items-center gap-1.5">
             <span className="truncate">{title}</span>
             {busy && (
               <span data-testid="room-working" className="shrink-0 text-[var(--focus)]" title="Agent가 일하는 중">
@@ -76,11 +73,11 @@ function RoomRow({ room, sub }: { room: WorldRoom; sub?: string }) {
           </span>
           <InteractionChip interaction={room.preview.detail?.interaction} />
           {myLeave && (
-            <span data-testid="room-left-status" data-leave={myLeave} className="mt-0.5 inline-block rounded-full border border-[var(--focus)] px-1.5 text-[10px] leading-4 text-[var(--focus)]">
+            <span data-testid="room-left-status" data-leave={myLeave} className="sub text-[var(--focus)]">
               {myLeave === 'delegated' ? 'Leave함 · Agent 대리 중' : 'Leave함'}
             </span>
           )}
-          {sub && <span className="block truncate text-xs text-muted">{sub}</span>}
+          {sub && <span className="sub">{sub}</span>}
         </span>
         <UnreadBadge n={unread} />
       </button>
@@ -98,15 +95,15 @@ export function Sidebar() {
   const dms = all.filter((r) => r.kind === 'dm');
 
   return (
-    <nav aria-label="대화 목록" className="pointer-events-auto flex h-full w-[280px] shrink-0 flex-col border-r border-line bg-panel backdrop-blur-md">
-      <div className="flex items-center gap-3 border-b border-line px-4 py-4">
+    <nav aria-label="대화 목록" className="tg-panel pointer-events-auto flex h-full w-[320px] shrink-0 flex-col gap-2.5 overflow-hidden p-4">
+      <div className="flex items-center gap-3">
         <Avatar name={me.name} color={me.color} size={40} />
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">{me.name}</div>
+          <div className="truncate font-semibold">{me.name}</div>
           <button
             type="button"
             onClick={() => useSession.getState().logout()}
-            className="text-xs text-muted underline-offset-2 hover:underline"
+            className="tg-mono normal-case tracking-normal underline-offset-2 hover:underline"
           >
             로그아웃
           </button>
@@ -117,14 +114,14 @@ export function Sidebar() {
             type="button"
             data-testid="open-metrics"
             onClick={() => navigate('/metrics')}
-            className="rounded-md border border-line px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg"
+            className={btn('ghost')}
           >
             지표
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-4">
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-1">
         <ApprovalInbox />
         {mine && (
           <Section title="나">

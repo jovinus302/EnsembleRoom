@@ -44,7 +44,7 @@ const FRAG = /* glsl */ `
     float body = 1.0 - smoothstep(0.5, 0.62, ay);
     float rim = 1.0 - smoothstep(0.9, 1.0, ay);
     vec3 col = mix(mix(uColA, uColB, u), uChan, 0.75);
-    // 어두운 외곽선 + 밝은 몸통: 유리·노을 배경 위에서도 읽힌다
+    // 어두운 외곽선 + 밝은 몸통: 유리·바다 배경 위에서도 읽힌다
     vec3 c = mix(vec3(0.07, 0.04, 0.16), col, body);
     float mask = 1.0;
     if (uDash > 0.5) {

@@ -14,6 +14,7 @@ import { WorldHost } from './stage/WorldHost';
 import { HoverTip, QualityToggle } from './stage/StageChrome';
 import { FxOverlay, WorldLegend } from './stage/FxOverlay';
 import { useWorldActive } from './stage/stageStore';
+import { usePerf } from './world/quality';
 
 function Placeholder({ title, step }: { title: string; step: string }) {
   return (
@@ -31,6 +32,7 @@ export function App() {
   const path = usePath();
   const status = useSession((s) => s.status);
   const worldActive = useWorldActive();
+  const tier = usePerf((s) => s.tier);
 
   useEffect(() => {
     void useSession.getState().init();
@@ -50,6 +52,16 @@ export function App() {
     }
   }, [status]);
 
+  // 품질 단계를 <html data-quality>로 내보낸다(tide.css가 패널 blur를 단계별로 조절).
+  // Sheet 등은 body로 portal되므로 App의 div가 아니라 html에 건다.
+  useEffect(() => {
+    const el = document.documentElement;
+    el.dataset.quality = worldActive ? tier : 'off';
+    return () => {
+      delete el.dataset.quality;
+    };
+  }, [worldActive, tier]);
+
   // 인증 가드
   useEffect(() => {
     if (status === 'anonymous' && path !== '/login') navigate('/login', true);
@@ -65,7 +77,7 @@ export function App() {
   if (path === '/metrics') return <MetricsPage />;
   const roomId = path.startsWith('/room/') ? decodeURIComponent(path.slice('/room/'.length)) : null;
   // WorldCanvas는 여기 한 번만 마운트된다(라우트가 바뀌어도 유지). DOM 패널은 z-10으로 그 위에 겹친다.
-  // 패널 투명도는 화면별 --panel-opacity(index.css)로만 조절한다.
+  // 패널 투명도는 화면별 --panel-alpha(themes.css)로만 조절한다.
   return (
     <>
       <WorldHost />

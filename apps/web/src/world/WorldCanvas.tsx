@@ -72,7 +72,7 @@ function FpsProbe() {
 function ToneModeSwitch({ postfx }: { postfx: boolean }) {
   const gl = useThree((s) => s.gl);
   useEffect(() => {
-    gl.toneMapping = postfx ? THREE.NoToneMapping : THREE.AgXToneMapping;
+    gl.toneMapping = postfx ? THREE.NoToneMapping : THREE.NeutralToneMapping;
     gl.toneMappingExposure = 1;
   }, [gl, postfx]);
   return null;
@@ -193,7 +193,7 @@ export function WorldCanvas(props: WorldCanvasProps) {
         frameloop={paused ? 'never' : 'always'}
         shadows={{ type: THREE.PCFShadowMap }}
         dpr={cfg.dpr}
-        camera={{ fov: 30, near: 0.5, far: 3000, position: [0, 14, 70] }}
+        camera={{ fov: 30, near: 0.5, far: 3000, position: [0, 14, 70], manual: true }}
         gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: THREE.NoToneMapping }}
         onPointerMissed={() => onSelectRoom?.(null)}
       >
@@ -210,7 +210,7 @@ export function WorldCanvas(props: WorldCanvasProps) {
           />
         ) : null}
         <LabelProjector items={labelItems} els={labelEls} hidden={!!focusRoomId} />
-        <CameraRig layout={layout} focusRoomId={focusRoomId} focusUv={focusUv} reducedMotion={reducedMotion} intro={props.intro} />
+        <CameraRig layout={layout} viewRect={props.viewRect} focusRoomId={focusRoomId} focusUv={focusUv} reducedMotion={reducedMotion} intro={props.intro} />
         <CharacterDirector input={characters} layout={layout} curves={curves} reducedMotion={reducedMotion} focusRoomId={focusRoomId}>
         <GlassBufferProvider enabled={cfg.transmissionSlots > 0} resolution={cfg.transmissionResolution} msaa={cfg.transmissionMsaa}>
           <Beach quality={cfg} center={center} extent={extent} bounds={layout.bounds} />
@@ -286,7 +286,7 @@ export function WorldCanvas(props: WorldCanvasProps) {
               onCursor={props.onCursor}
             />
           ) : null}
-          <FxScene layout={layout} models={models} curves={curves} characters={characters?.characters} viewerColor={props.users[viewerId]?.color ?? '#ff8f7a'} reducedMotion={reducedMotion} />
+          <FxScene layout={layout} models={models} curves={curves} characters={characters?.characters} viewerColor={props.users[viewerId]?.color ?? '#ff8f7a'} reducedMotion={reducedMotion} focusRoomId={focusRoomId} />
         </GlassBufferProvider>
         </CharacterDirector>
         {cfg.postfx ? <Postfx quality={cfg} focused={!!focusRoomId} focusUv={focusUv} /> : null}

@@ -26,7 +26,7 @@ function AddExpenseForm({ tool, roomId }: { tool: SettlementTool; roomId: string
   return (
     <form
       data-testid="expense-form"
-      className="mt-4 flex flex-col gap-1.5 rounded-xl border border-dashed border-line tw-inset p-3"
+      className="tg-card mt-4 flex flex-col gap-1.5 p-3"
       onSubmit={async (e) => {
         e.preventDefault();
         if (!valid || amt === null) return;
@@ -42,7 +42,7 @@ function AddExpenseForm({ tool, roomId }: { tool: SettlementTool; roomId: string
         <input aria-label="항목" value={label} maxLength={60} onChange={(e) => setLabel(e.target.value)} placeholder="항목 (예: 영화표)" className={`${toolInput} min-w-0 flex-1`} />
         <input aria-label="금액" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="금액(원)" className={`${toolInput} w-28`} />
       </div>
-      <div className="flex items-center gap-1.5 text-xs text-muted">
+      <div className="flex items-center gap-1.5 text-aux text-muted">
         낸 사람
         <input aria-label="낸 사람" list="settle-people" value={payer} maxLength={40} onChange={(e) => setPayer(e.target.value)} className={`${toolInput} w-28`} />
         <datalist id="settle-people">
@@ -52,7 +52,7 @@ function AddExpenseForm({ tool, roomId }: { tool: SettlementTool; roomId: string
         </datalist>
       </div>
       {people.length > 0 && (
-        <fieldset className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <fieldset className="flex flex-wrap items-center gap-x-3 gap-y-1 text-aux">
           <legend className="sr-only">나눌 사람</legend>
           <span className="text-muted">나눌 사람</span>
           {people.map((p) => (
@@ -67,7 +67,7 @@ function AddExpenseForm({ tool, roomId }: { tool: SettlementTool; roomId: string
         <button type="submit" disabled={busy || !valid} className={toolBtnPrimary}>
           지출 추가
         </button>
-        {full && <span className="ml-2 text-[11px] text-muted">지출은 최대 {BOARD_TOOL_LIMITS.expenses}건까지예요</span>}
+        {full && <span className="ml-2 text-label text-muted">지출은 최대 {BOARD_TOOL_LIMITS.expenses}건까지예요</span>}
       </div>
       <ToolError message={error} />
     </form>
@@ -80,46 +80,46 @@ export function SettlementPanel({ tool, roomId, canEdit }: { tool: SettlementToo
   const { busy, error, run } = useToolOp(roomId, tool.toolId);
   return (
     <div data-testid="settlement-panel">
-      <section aria-label="정산 결과" data-testid="settle-result" className="mt-3 rounded-xl border p-3" style={{ borderColor: 'color-mix(in srgb, var(--tool) 45%, transparent)', background: 'color-mix(in srgb, var(--tool) 8%, transparent)' }}>
+      <section aria-label="정산 결과" data-testid="settle-result" className="tg-card bt-result mt-3 p-3">
         <div className="flex items-baseline gap-2">
-          <h3 className="text-sm font-bold">정산 결과</h3>
-          <span className="text-xs text-muted">총 {formatWon(result.total)}</span>
+          <h3 className="text-body font-bold">정산 결과</h3>
+          <span className="text-aux text-muted">총 {formatWon(result.total)}</span>
         </div>
-        <ul data-testid="settle-transfers" className="mt-2 flex flex-col gap-1.5 text-sm">
+        <ul data-testid="settle-transfers" className="mt-2 flex flex-col gap-1.5 text-body">
           {result.transfers.length === 0 ? (
             <li className="text-muted">{tool.expenses.length === 0 ? '지출을 추가하면 계산해 드려요.' : '정산할 금액이 없어요.'}</li>
           ) : (
             result.transfers.map((t, i) => (
-              <li key={i} className="flex items-center gap-2 rounded-lg tw-card px-3 py-2">
+              <li key={i} className="flex items-center gap-2 srow">
                 <span className="min-w-0 truncate font-semibold">{t.from}</span>{' '}
-                <span aria-hidden className="shrink-0 text-base leading-none text-[var(--tool-text)]">→</span>{' '}
+                <span aria-hidden className="shrink-0 text-body leading-none text-[var(--tool-text)]">→</span>{' '}
                 <span className="min-w-0 truncate font-semibold">{t.to}</span>
-                <span className="ml-auto shrink-0 rounded-md bg-[var(--tool)] px-2 py-0.5 text-[13px] font-extrabold tabular-nums text-[var(--tool-ink)]">{formatWon(t.amount)}</span>
+                <span className="ml-auto shrink-0 rounded-md bg-[var(--tool)] px-2 py-0.5 text-aux font-extrabold tabular-nums text-[var(--tool-ink)]">{formatWon(t.amount)}</span>
               </li>
             ))
           )}
         </ul>
       </section>
 
-      <div className="tool-receipt mt-4">
+      <div className="bt-receipt mt-4">
         <div className="text-center">
-          <div className="text-[10px] font-bold tracking-[0.35em] text-[#7b755f]">RECEIPT</div>
-          <div className="mt-0.5 text-sm font-bold">{tool.title}</div>
+          <div className="text-label font-bold tracking-[0.35em] text-muted">RECEIPT</div>
+          <div className="mt-0.5 text-body font-bold">{tool.title}</div>
         </div>
-        <div className="my-2 border-t-2 border-dashed border-[#b9b29b]" />
+        <div className="my-2 border-t-2 border-dashed border-border" />
         {tool.expenses.length === 0 ? (
-          <p className="py-2 text-center text-sm text-[#6b6657]">아직 지출이 없어요.</p>
+          <p className="py-2 text-center text-body text-muted">아직 지출이 없어요.</p>
         ) : (
-          <ul data-testid="expense-list" className="flex flex-col gap-1.5 text-sm">
+          <ul data-testid="expense-list" className="flex flex-col gap-1.5 text-body">
             {tool.expenses.map((e) => (
               <li key={e.expenseId} data-expense-id={e.expenseId} className="flex items-start gap-1.5">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1.5">
                     <span className="min-w-0 truncate font-bold">{e.label || '지출'}</span>
-                    <span aria-hidden className="mb-1 min-w-[12px] flex-1 border-b border-dotted border-[#9a937f]" />
+                    <span aria-hidden className="mb-1 min-w-[12px] flex-1 border-b border-dotted border-border" />
                     <span className="shrink-0 font-bold tabular-nums">{formatWon(e.amount)}</span>
                   </div>
-                  <div className="truncate text-[11px] text-[#6b6657]">
+                  <div className="truncate text-label text-muted">
                     {e.payer} 결제 · 나눔: {e.splitAmong.join(', ')}
                   </div>
                 </div>
@@ -129,7 +129,7 @@ export function SettlementPanel({ tool, roomId, canEdit }: { tool: SettlementToo
                     aria-label={`${e.label || '지출'} 삭제`}
                     disabled={busy}
                     onClick={() => void run({ op: 'expense_remove', expenseId: e.expenseId }, ['item_not_found'])}
-                    className="rounded px-1.5 text-[#7b755f] hover:bg-black/10 hover:text-[#2b2f3a] disabled:opacity-40"
+                    className="rounded px-1.5 text-muted hover:bg-raised hover:text-fg disabled:opacity-40"
                   >
                     ×
                   </button>
@@ -138,14 +138,14 @@ export function SettlementPanel({ tool, roomId, canEdit }: { tool: SettlementToo
             ))}
           </ul>
         )}
-        <div className="my-2 border-t-2 border-dashed border-[#b9b29b]" />
-        <div className="flex items-baseline justify-between text-sm font-extrabold">
+        <div className="my-2 border-t-2 border-dashed border-border" />
+        <div className="flex items-baseline justify-between text-body font-extrabold">
           <span>합계</span>
           <span className="tabular-nums">{formatWon(result.total)}</span>
         </div>
         {result.perPerson.length > 0 && (
-          <table className="mt-2.5 w-full text-xs">
-            <thead className="text-[#7b755f]">
+          <table className="mt-2.5 w-full text-aux">
+            <thead className="text-muted">
               <tr>
                 <th className="text-left font-normal">이름</th>
                 <th className="text-right font-normal">낸 돈</th>
@@ -163,7 +163,7 @@ export function SettlementPanel({ tool, roomId, canEdit }: { tool: SettlementToo
             </tbody>
           </table>
         )}
-        <div className="mt-3 text-center text-[10px] tracking-[0.3em] text-[#9a937f]">THANK YOU</div>
+        <div className="mt-3 text-center text-label tracking-[0.3em] text-muted">THANK YOU</div>
       </div>
 
       <ToolError message={error} />
