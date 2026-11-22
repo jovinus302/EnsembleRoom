@@ -172,10 +172,36 @@ function status(_input: TurnInput, all: Src[]): ToolCall | null {
   return say(`방 ${rooms.length}곳의 진행 상황이에요.${pending ? ` 내가 확인할 승인 ${pending}건이 대기 중이에요.` : ''}`, [{ type: 'status', rooms }]);
 }
 
+const AVAIL_RE = /비어|비었|한가/;
+const PART_RE = /오전|점심|오후|저녁|아침/;
+
+/** "토요일 저녁 비어?": 그 시간대에 잡힌 카드·승인 대기가 있으면 미정이어도 먼저 알리고, 없을 때만 비어 있다고 답한다 */
+function availability(input: TurnInput, all: Src[], text: string): ToolCall | null {
+  const day = /([월화수목금토일])요일/.exec(text)?.[1];
+  if (!day) return null;
+  const part = PART_RE.exec(text)?.[0];
+  const fits = (s: Src) => s.text.includes(`${day}요일`) && (!part || !PART_RE.test(s.text) || s.text.includes(part));
+  const busy = all.filter((s) => (s.tag === 'card' || s.tag === 'agreed' || s.tag === 'approval') && fits(s));
+  const when = `${day}요일${part ? ` ${part}` : ''}`;
+  if (busy.length > 0) {
+    const first = busy[0]!;
+    const title = /"([^"]+)"/.exec(first.text)?.[1] ?? clip(first.text, 30);
+    const open = /미정/.test(first.text) ? '세부는 아직 미정이에요' : first.tag === 'approval' ? '승인 대기 중이에요' : '이미 정해져 있어요';
+    return say(`${when}엔 비어 있지 않아요. "${title}"가 잡혀 있고, ${open}.`, undefined, []);
+  }
+  const free = all.filter((s) => s.tag === 'memory' && /비어/.test(s.text) && fits(s));
+  if (free.length === 0) return null;
+  return say(`${when}은 비어 있어요.`, undefined, free.map((s) => s.id).slice(0, 2));
+}
+
 /** 해당 질문이면 도구 호출, 아니면 null (기존 mock 흐름으로) */
 export function mockOwnerAnswer(input: TurnInput, text: string): ToolCall | null {
   if (!input.allowBlocks) return null;
   const all = sourcesOf(input);
+  if (AVAIL_RE.test(text)) {
+    const a = availability(input, all, text);
+    if (a) return a;
+  }
   if (STATUS_RE.test(text)) return status(input, all);
   if (MONEY_RE.test(text)) return money(input, all);
   if (TODO_RE.test(text)) return checklist(input, all);

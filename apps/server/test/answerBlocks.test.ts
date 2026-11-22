@@ -175,6 +175,36 @@ describe('My Room 구조화 답변 (mock)', () => {
     expect(m.blocks).toBeUndefined();
   });
 
+  it('"토요일 저녁 비어?" → 미정으로 잡힌 영화 모임을 언급하고 "비어 있어요"로만 답하지 않는다', async () => {
+    start();
+    const m = await ask('토요일 저녁 비어?');
+    expect(m.text).toContain('영화 모임');
+    expect(m.text).toContain('미정');
+    expect(m.text).not.toMatch(/^토요일 저녁은 비어 있어요\.?$/);
+  });
+
+  it('"일요일 오전 비어?"처럼 잡힌 카드가 없는 시간은 기억대로 답한다 (회귀 없음)', async () => {
+    start();
+    const m = await ask('일요일 저녁 비어?');
+    expect(m.text).not.toContain('영화 모임');
+  });
+
+  it('owner_message 턴: 시스템 규칙과 현황 줄에 "잡혀 있음·세부 미정" 표기와 빈 시간 규칙이 들어간다', async () => {
+    start();
+    const p = spy();
+    ctx.agents.setProvider(p);
+    enter(alice, R.myAlice);
+    say(alice, R.myAlice, '토요일 저녁 비어?');
+    await ctx.agents.drain();
+    const input = p.inputs.at(-1)!;
+    expect(input.trigger.reason).toBe('owner_message');
+    expect(input.system).toContain('세부가 미정이어도 그 시간에 잡힌 모임이 있으면');
+    expect(input.system).not.toContain("'토요일 저녁 비어 있어요'");
+    expect(input.prompt).toContain('[잡혀 있음·세부 미정]');
+    expect(input.prompt).toContain('주말 저녁 영화 모임');
+    expect(input.prompt).toContain('잡힌 모임이 있으면');
+  });
+
   it('allowBlocks 턴의 입력: say 스키마에 blocks, 시스템에 [답변 카드], 프롬프트에 [내 Room 현황]', async () => {
     start();
     const p = spy();
