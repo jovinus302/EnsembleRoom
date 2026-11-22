@@ -8,7 +8,7 @@ import { cameraNudge } from './fx/cameraNudge';
 import { ORBIT_MAX_ELEV_DEG, ORBIT_MAX_YAW_DEG, ORBIT_MAX_ZOOM, ORBIT_MIN_ELEV_DEG, ORBIT_MIN_ZOOM, useOrbit } from './cameraOrbit';
 
 export const INTRO_MS = 3000;
-/** 하늘이 올라온 뒤 석양 구도를 이만큼 보여 주고 내려오기 시작한다 */
+/** 하늘이 올라온 뒤 태양 쪽 지평선 구도를 이만큼 보여 주고 내려오기 시작한다 */
 const INTRO_HOLD_MS = 1500;
 /** 하늘이 올라온 뒤(캔버스 페이드 인이 끝나는 만큼) 기다렸다가 시작 시각을 잡는다 */
 const INTRO_FADE_MS = 500;
@@ -89,10 +89,6 @@ export interface FocusUv {
   y: number;
 }
 
-/**
- * 월드 조망 ↔ 캡슐 포커스 카메라. 목표 포즈로 부드럽게 따라가고(감쇠), 포인터에 맞춰 아주 약하게 시차를 준다.
- * fov가 좁은 망원 구도라 멀리서 접사처럼 보인다(미니어처 느낌).
- */
 /** 가상 전체 화면(viewRect)의 높이. setViewOffset 때문에 화면 픽셀당 월드 길이는 canvas가 아니라 이 높이 기준이다 */
 export function virtualHeight(camera: THREE.Camera, fallback: number): number {
   const c = camera as THREE.PerspectiveCamera;
@@ -106,6 +102,10 @@ export interface ViewRect {
   height: number;
 }
 
+/**
+ * 월드 조망 ↔ 캡슐 포커스 카메라. 목표 포즈로 부드럽게 따라가고(감쇠), 포인터에 맞춰 아주 약하게 시차를 준다.
+ * fov가 좁은 망원 구도라 멀리서 접사처럼 보인다(미니어처 느낌).
+ */
 export function CameraRig({
   layout,
   viewRect,
@@ -115,7 +115,7 @@ export function CameraRig({
   intro = false,
 }: {
   reducedMotion?: boolean;
-  /** 첫 진입 인트로: 석양(태양 쪽 지평선)을 보다가 조망 구도로 내려온다 */
+  /** 첫 진입 인트로: 태양 쪽 지평선을 보다가 조망 구도로 내려온다 */
   intro?: boolean;
   layout: WorldLayout;
   /** 포커스 영역. 캔버스(전체 화면) 안에서 대상이 이 사각형 중앙에 오도록 투영을 옮긴다 */

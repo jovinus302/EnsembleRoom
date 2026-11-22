@@ -145,7 +145,7 @@ export function FxOverlay() {
       {/* L1 승인 요청: 화면 가장자리 오렌지 맥동 + lime-notify + 토스트 */}
       {approvalReq ? (
         <>
-          <div key={`edge${approvalReq.id}`} className="fx-edge-pulse absolute inset-0" style={{ boxShadow: 'inset 0 0 120px 10px rgba(255,138,61,0.55)' }} />
+          <div key={`edge${approvalReq.id}`} className="fx-edge-pulse absolute inset-0" style={{ boxShadow: 'inset 0 0 120px 10px rgba(255,180,90,0.55)' }} />
           <div key={`ap${approvalReq.id}`} data-testid="fx-approval-toast" className="fx-pop tg-solid absolute left-1/2 top-16 flex -translate-x-1/2 items-center gap-2 rounded-full py-1 pl-1 pr-4 text-aux"
             style={{ borderColor: 'var(--amber)', boxShadow: 'var(--solid-shadow), 0 0 0 3px color-mix(in srgb, var(--amber) 22%, transparent)' }}>
             <LottieMoment name="lime-notify" size={64} durationMs={2300} />

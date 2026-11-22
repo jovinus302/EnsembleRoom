@@ -77,7 +77,7 @@ export function App() {
   if (path === '/metrics') return <MetricsPage />;
   const roomId = path.startsWith('/room/') ? decodeURIComponent(path.slice('/room/'.length)) : null;
   // WorldCanvas는 여기 한 번만 마운트된다(라우트가 바뀌어도 유지). DOM 패널은 z-10으로 그 위에 겹친다.
-  // 패널 투명도는 화면별 --panel-opacity(index.css)로만 조절한다.
+  // 패널 투명도는 화면별 --panel-alpha(themes.css)로만 조절한다.
   return (
     <>
       <WorldHost />

@@ -119,7 +119,7 @@ export function TransmissiveGlass({
 export interface ShellUniforms {
   rimColor: { value: THREE.Color };
   rimStrength: { value: number };
-  /** 석양 역광 림·반사 줄기 세기(맑은 유리 1, 서리 0에 가깝게) */
+  /** 햇빛 역광 림·반사 줄기 세기(맑은 유리 1, 서리 0에 가깝게) */
   glint: { value: number };
   /** 서리 전환 와이프: x=띠의 위치(0..1, 캡슐 길이 방향), y=세기, z=캡슐 반길이(로컬) */
   wipe: { value: THREE.Vector3 };
@@ -167,7 +167,7 @@ export function createShellMaterial(side: THREE.Side): THREE.MeshPhysicalMateria
         // 두께감: 가장자리에서 가늘고 밝은 선(굴절로 휘는 테두리)
         float edge = pow(1.0 - ndv, 5.0);
         outgoingLight += mix(rimColor, vec3(1.0), 0.55) * edge * rimStrength * 0.75;
-        // 석양 역광: 해가 있는 쪽 가장자리가 따뜻하게 빛나고, 반사 줄기가 지나간다
+        // 햇빛 역광: 해가 있는 쪽 가장자리가 따뜻하게 빛나고, 반사 줄기가 지나간다
         vec3 sunV = normalize((viewMatrix * vec4(sunDirW, 0.0)).xyz);
         float sunSide = clamp(dot(normalize(Nv.xy + vec2(1e-4)), normalize(sunV.xy + vec2(1e-4))) * 0.5 + 0.5, 0.0, 1.0);
         outgoingLight += vec3(1.0, 0.66, 0.34) * pow(1.0 - ndv, 3.0) * (0.15 + 1.5 * sunSide * sunSide) * glint * 0.9;

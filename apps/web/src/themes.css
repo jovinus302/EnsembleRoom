@@ -2,7 +2,7 @@
  * 디자인 토큰 (Tide Glass: 청록 잉크 단일 테마). 컴포넌트는 아래 "의미 토큰"만 쓴다.
  *
  * 의미 토큰 
- *   표면/글자 : --bg(입력창 등 오목한 면) --panel(+--panel-rgb/--panel-opacity) --panel-raised(=surface-2)
+ *   표면/글자 : --bg(입력창 등 오목한 면) --panel(+--panel-rgb/--panel-alpha) --panel-raised(=surface-2)
  *               --surface(시트·투어) --fg --muted --line --focus --hover --scrim --scrim-tour --glass(3D 위 칩·범례)
  *   강조      : --accent(주요 버튼·활성 탭 바탕) --accent-fg(그 위 글자) --on-accent(파스텔 칩 위 글자)
  *   모양/그림자: --shadow(떠 있는 카드) --font-title(제목 글꼴)

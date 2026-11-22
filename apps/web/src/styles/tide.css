@@ -501,12 +501,12 @@
     align-items: flex-start;
     margin-left: 18px;
     padding-left: 12px;
-    border-left: 2px solid color-mix(in srgb, var(--bob) 55%, transparent);
+    border-left: 2px solid color-mix(in srgb, var(--agent) 55%, transparent);
     font-size: var(--fs-aux);
     color: var(--fg);
   }
   .tg-a2a b {
-    color: color-mix(in srgb, var(--bob) 80%, var(--fg));
+    color: color-mix(in srgb, var(--agent) 80%, var(--fg));
     font-weight: 600;
   }
 
@@ -665,7 +665,7 @@
 
   /* ---------- 3D 위 작은 요소 (blur 없는 불투명 tonal) ---------- */
   .tg-nametag {
-    --c: var(--alice);
+    --c: var(--muted);
     height: 36px;
     display: inline-flex;
     align-items: center;

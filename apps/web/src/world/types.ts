@@ -69,7 +69,7 @@ export interface WorldCanvasProps {
   reducedMotion?: boolean;
   /** 포커스 영역(캔버스 좌표계의 사각형). 캔버스는 화면 전체이고, 카메라는 대상을 이 사각형 중앙에 맞춘다. 없으면 캔버스 전체 */
   viewRect?: { left: number; top: number; width: number; height: number } | null;
-  /** 월드 첫 진입 인트로(석양에서 내려오는 카메라). true면 마운트 직후 한 번 재생 */
+  /** 월드 첫 진입 인트로(태양 쪽 지평선에서 내려오는 카메라). true면 마운트 직후 한 번 재생 */
   intro?: boolean;
   /** 내 커서 위치를 상대에게 알린다(휘발성 cursor 채널, 캡슐 로컬 인코딩). 20Hz 상한 */
   onCursor?: (c: { x: number; y: number; z: number }) => void;

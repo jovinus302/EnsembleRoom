@@ -8,7 +8,7 @@ import { Sidebar } from './Sidebar';
 
 /**
  * 데스크톱 3단: 좌 사이드바 / 가운데 대화 / 우 Room 미리보기.
- * 뒤에 App 루트의 WorldCanvas(해변 조감)가 깔리고, 각 패널 배경은 --panel-opacity(index.css)로만 제어한다.
+ * 뒤에 App 루트의 WorldCanvas(해변 조감)가 깔리고, 각 패널 배경은 --panel-alpha(themes.css)로만 제어한다.
  * 컨테이너는 pointer-events-none, 패널만 auto: 투명 창(world-strip)을 통해 3D 캡슐을 클릭·호버할 수 있다.
  */
 export function MessengerHome() {
